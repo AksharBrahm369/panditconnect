@@ -1,5 +1,4 @@
 import Link from "next/link";
-import Image from "next/image";
 import { ArrowRight, BadgeCheck, CalendarX2, CircleHelp, Clock3, Flame, Flower2, House, MapPin, ShieldCheck, Sparkles } from "lucide-react";
 import { LiveAvailabilityCard } from "@/components/live-availability-card";
 import { FeaturedPandits } from "@/components/featured-pandits";
@@ -33,7 +32,9 @@ export default function Home() {
         </div>
         <div className="hero-showcase">
           <div className="hero-photo">
-            <Image src="/puja-hero.png" alt="A Pandit conducting a home Puja for an Indian couple" fill priority sizes="(max-width: 900px) 100vw, 46vw" />
+            {/* Vinext serves public assets directly; bypass its unstable local image optimizer. */}
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/puja-hero.png" alt="A Pandit conducting a home Puja for an Indian couple" width="1024" height="1024" fetchPriority="high" />
             <div className="hero-photo-badge"><BadgeCheck size={17} /><span><strong>Approved professionals</strong><small>Identity and experience reviewed</small></span></div>
           </div>
           <LiveAvailabilityCard />
