@@ -23,9 +23,11 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     console.error("OTP request failed", error);
+    const message = error instanceof Error ? error.message : "Unable to request OTP";
+    const connectionFailure = /connection|timeout|ECONNRESET|terminated/i.test(message);
     return NextResponse.json(
-      { error: error instanceof Error ? error.message : "Unable to request OTP" },
-      { status: 400 },
+      { error: connectionFailure ? "The service was temporarily unavailable. Please try again." : message },
+      { status: connectionFailure ? 503 : 400 },
     );
   }
 }

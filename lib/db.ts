@@ -1,7 +1,18 @@
 import { Client, type QueryResultRow } from "pg";
 
+function cleanConnectionString(value: string | undefined) {
+  if (!value) return undefined;
+  // Recover from an environment line accidentally appended after the closing
+  // quote, e.g. .../postgres"OTP_PROVIDER="development".
+  return value.match(/^(postgres(?:ql)?:\/\/[^"\s]+)/i)?.[1];
+}
+
 function databaseConfig() {
-  const connectionString = process.env.DATABASE_URL;
+  // The transaction pooler is ideal for serverless production requests, while
+  // the session/direct connection is more stable for Vinext's local worker.
+  const connectionString = process.env.NODE_ENV === "development"
+    ? cleanConnectionString(process.env.DIRECT_URL) || cleanConnectionString(process.env.DATABASE_URL)
+    : cleanConnectionString(process.env.DATABASE_URL);
   if (!connectionString) throw new Error("DATABASE_URL is not configured");
   return { connectionString, connectionTimeoutMillis: 10_000, keepAlive: true };
 }
