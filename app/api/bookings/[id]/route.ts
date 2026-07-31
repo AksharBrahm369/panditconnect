@@ -42,16 +42,26 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     }
   }
   const updated = await sql<{ status: string }>(
-    `UPDATE pim_v2.bookings SET status=$2,
-      accepted_at=CASE WHEN $2='ACCEPTED' THEN now() ELSE accepted_at END,
-      completed_at=CASE WHEN $2='COMPLETED' THEN now() ELSE completed_at END,
-      declined_pandit_ids=CASE
-        WHEN $2='DECLINED' AND NOT (pandit_id = ANY(declined_pandit_ids))
-          THEN array_append(declined_pandit_ids,pandit_id)
-        ELSE declined_pandit_ids
-      END
-     WHERE id=$1 AND status=$3
-     RETURNING status`,
+    `WITH updated_booking AS (
+       UPDATE pim_v2.bookings SET status=$2,
+         accepted_at=CASE WHEN $2='ACCEPTED' THEN now() ELSE accepted_at END,
+         completed_at=CASE WHEN $2='COMPLETED' THEN now() ELSE completed_at END,
+         declined_pandit_ids=CASE
+           WHEN $2='DECLINED' AND NOT (pandit_id = ANY(declined_pandit_ids))
+             THEN array_append(declined_pandit_ids,pandit_id)
+           ELSE declined_pandit_ids
+         END
+       WHERE id=$1 AND status=$3
+       RETURNING status,pandit_id
+     ),
+     update_pandit_total AS (
+       UPDATE pim_v2.pandit_profiles p
+       SET completed_jobs=p.completed_jobs+1,updated_at=now()
+       FROM updated_booking b
+       WHERE $2='COMPLETED' AND p.user_id=b.pandit_id
+       RETURNING p.user_id
+     )
+     SELECT status FROM updated_booking`,
     [id, body.status, booking.status],
   );
   if (!updated.rows[0]) {

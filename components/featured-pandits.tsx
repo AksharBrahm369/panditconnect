@@ -48,7 +48,7 @@ export function FeaturedPandits() {
         <div className="expert-details">
           <span><strong>{pandit.experience_years} yrs</strong> experience</span>
           <span><strong><Star size={13} fill="currentColor" /> {pandit.rating}</strong> rating</span>
-          <span><strong>{pandit.completed_jobs}</strong> completed</span>
+          <span><strong>{pandit.completed_jobs}</strong> Pujas done</span>
         </div>
         <p><Languages size={15} /> {pandit.languages.slice(0, 3).join(" · ")}</p>
         <div className="expert-footer"><span>Starts from <strong>₹{pandit.starting_charge.toLocaleString("en-IN")}</strong></span><Link href="/login?role=customer" className="btn btn-primary">Request</Link></div>
