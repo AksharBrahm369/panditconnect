@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, BadgeCheck, Clock3, MessageCircle, Send, Star, Wifi } from "lucide-react";
 import { readJson } from "@/lib/http";
 
@@ -28,6 +28,8 @@ export function ConsultationPanel({ role, onBack }: { role: "CUSTOMER" | "PANDIT
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
   const [now, setNow] = useState(0);
+  const [otherTyping, setOtherTyping] = useState<{ typing: boolean; name?: string | null; role?: string }>({ typing: false });
+  const lastTypingSentAt = useRef(0);
   const selectedId = selected?.id;
 
   const loadConsultations = useCallback(async () => {
@@ -49,6 +51,12 @@ export function ConsultationPanel({ role, onBack }: { role: "CUSTOMER" | "PANDIT
     }
   }, []);
 
+  const loadTyping = useCallback(async (consultationId: string) => {
+    const response = await fetch(`/api/consultations/${consultationId}/typing?fresh=${Date.now()}`, { cache: "no-store" });
+    const data = await readJson<{ typing?: boolean; participant?: { name?: string | null; role?: string } | null }>(response);
+    if (response.ok) setOtherTyping({ typing: Boolean(data.typing), name: data.participant?.name, role: data.participant?.role });
+  }, []);
+
   useEffect(() => {
     const initial = window.setTimeout(() => {
       void loadConsultations();
@@ -63,12 +71,16 @@ export function ConsultationPanel({ role, onBack }: { role: "CUSTOMER" | "PANDIT
       if (selectedId) void loadMessages(selectedId);
     }, 3_000);
     const clock = window.setInterval(() => setNow(Date.now()), 1_000);
+    const typingRefresh = window.setInterval(() => {
+      if (selectedId) void loadTyping(selectedId);
+    }, 1_000);
     return () => {
       window.clearTimeout(initial);
       window.clearInterval(refresh);
       window.clearInterval(clock);
+      window.clearInterval(typingRefresh);
     };
-  }, [loadConsultations, loadMessages, role, selectedId]);
+  }, [loadConsultations, loadMessages, loadTyping, role, selectedId]);
 
   async function openChat(consultation: Consultation) {
     setSelected(consultation);
@@ -110,9 +122,31 @@ export function ConsultationPanel({ role, onBack }: { role: "CUSTOMER" | "PANDIT
     if (!response.ok) setError(data.error ?? "Unable to send message.");
     else {
       setDraft("");
+      void updateTyping(false);
       await loadMessages(selected.id);
     }
     setBusy(false);
+  }
+
+  function updateTyping(typing: boolean) {
+    if (!selectedId) return;
+    if (typing) {
+      const current = Date.now();
+      if (current - lastTypingSentAt.current < 1_200) return;
+      lastTypingSentAt.current = current;
+    } else {
+      lastTypingSentAt.current = 0;
+    }
+    void fetch(`/api/consultations/${selectedId}/typing`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ typing }),
+    });
+  }
+
+  function changeDraft(value: string) {
+    setDraft(value);
+    updateTyping(Boolean(value.trim()));
   }
 
   const remaining = selected ? Math.max(0, new Date(selected.ends_at).getTime() - now) : 0;
@@ -133,11 +167,15 @@ export function ConsultationPanel({ role, onBack }: { role: "CUSTOMER" | "PANDIT
       {messages.length ? messages.map((message) => <div className={`chat-bubble ${message.sender_id === userId ? "mine" : ""}`} key={message.id}>
         <small>{message.sender_id === userId ? "You" : message.sender_name ?? message.sender_role}</small>
         <p>{message.body}</p><time>{new Date(message.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</time>
-      </div>) : <div className="empty chat-empty"><MessageCircle /><strong>Chat is ready</strong><span>Send the first message about the occasion or question.</span></div>}
+      </div>) : !otherTyping.typing && <div className="empty chat-empty"><MessageCircle /><strong>Chat is ready</strong><span>Send the first message about the occasion or question.</span></div>}
+      {otherTyping.typing && <div className="typing-presence" aria-live="polite">
+        <span className="typing-dots" aria-hidden="true"><i /><i /><i /></span>
+        <small>{otherTyping.name ?? selected.participant_name ?? (otherTyping.role === "CUSTOMER" ? "Customer" : "Pandit")} is typing…</small>
+      </div>}
     </div>
     {error && <div className="alert error">{error}</div>}
     <div className="chat-composer">
-      <textarea rows={2} value={draft} disabled={!remaining} onChange={(event) => setDraft(event.target.value)} placeholder={remaining ? "Write a message…" : "This consultation has ended"} />
+      <textarea rows={2} value={draft} disabled={!remaining} onChange={(event) => changeDraft(event.target.value)} onBlur={() => updateTyping(false)} placeholder={remaining ? "Write a message…" : "This consultation has ended"} />
       <button className="btn btn-primary" disabled={busy || !draft.trim() || !remaining} onClick={sendMessage}><Send size={17} /> Send</button>
     </div>
   </section>;

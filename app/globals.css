@@ -1213,6 +1213,36 @@ input:focus, textarea:focus, select:focus { border-color: #f07b58; box-shadow: 0
 .chat-bubble p { margin: 4px 0; font-size: 13px; line-height: 1.5; white-space: pre-wrap; }
 .chat-bubble time { display: block; text-align: right; }
 .chat-empty { margin: auto; background: white; }
+.typing-presence {
+  align-self: flex-start;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 38px;
+}
+.typing-presence small { color: #74808a; font-size: 10px; }
+.typing-dots {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 11px 13px;
+  border-radius: 4px 14px 14px 14px;
+  background: white;
+  box-shadow: 0 2px 8px rgba(30,46,63,.07);
+}
+.typing-dots i {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #86919a;
+  animation: chatTypingBounce 1.15s ease-in-out infinite;
+}
+.typing-dots i:nth-child(2) { animation-delay: .16s; }
+.typing-dots i:nth-child(3) { animation-delay: .32s; }
+@keyframes chatTypingBounce {
+  0%, 60%, 100% { transform: translateY(0); opacity: .45; }
+  30% { transform: translateY(-4px); opacity: 1; }
+}
 .chat-composer { display: grid; grid-template-columns: 1fr auto; align-items: end; gap: 10px; padding: 14px; border-top: 1px solid #e5e9ec; }
 .chat-composer textarea { resize: none; }
 .chat-composer .btn { min-height: 52px; }
