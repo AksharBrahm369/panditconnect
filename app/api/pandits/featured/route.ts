@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+
 type FeaturedPandit = {
   id: string;
   name: string;
@@ -32,11 +34,14 @@ export async function GET() {
      ORDER BY p.is_online DESC,p.rating_count DESC,p.rating DESC,p.completed_jobs DESC,u.name
      LIMIT 6`,
   );
-  return NextResponse.json({
-    pandits: result.rows,
-    stats: {
-      approved: result.rows[0]?.total_approved ?? 0,
-      online: result.rows[0]?.online_count ?? 0,
+  return NextResponse.json(
+    {
+      pandits: result.rows,
+      stats: {
+        approved: result.rows[0]?.total_approved ?? 0,
+        online: result.rows[0]?.online_count ?? 0,
+      },
     },
-  });
+    { headers: { "Cache-Control": "no-store, max-age=0" } },
+  );
 }
