@@ -76,15 +76,15 @@ export function ConsultationPanel({ role, onBack }: { role: "CUSTOMER" | "PANDIT
   }
 
   async function startChat(pandit: ConsultationPandit) {
-    if (topic.trim().length < 5) {
-      setError("Briefly describe the occasion or question before starting the chat.");
-      return;
-    }
     setBusy(true); setError("");
     const response = await fetch("/api/consultations", {
       method: "POST",
       headers: { "content-type": "application/json" },
-      body: JSON.stringify({ panditId: pandit.id, topic, blocks }),
+      body: JSON.stringify({
+        panditId: pandit.id,
+        topic: topic.trim() || "General Puja and religious guidance",
+        blocks,
+      }),
     });
     const data = await readJson<{ consultation?: Consultation; error?: string }>(response);
     if (!response.ok || !data.consultation) setError(data.error ?? "Unable to start the consultation.");
@@ -152,10 +152,11 @@ export function ConsultationPanel({ role, onBack }: { role: "CUSTOMER" | "PANDIT
 
     {role === "CUSTOMER" && <>
       <div className="consultation-setup">
-        <label>What guidance do you need?<textarea rows={3} value={topic} onChange={(event) => setTopic(event.target.value)} placeholder="Example: We are opening a shop tomorrow. Which Puja and materials do we need?" /></label>
+        <label>What guidance do you need? <small>Optional—you can explain after the chat starts</small><textarea rows={3} value={topic} onChange={(event) => setTopic(event.target.value)} placeholder="Example: We are opening a shop tomorrow. Which Puja and materials do we need?" /></label>
         <label>Chat duration<select value={blocks} onChange={(event) => setBlocks(Number(event.target.value))}><option value={1}>5 minutes</option><option value={2}>10 minutes</option><option value={3}>15 minutes</option></select></label>
         <p><BadgeCheck size={15} /> Test payment mode is active. No real payment is collected yet.</p>
       </div>
+      {error && <div className="alert error consultation-error">{error}</div>}
       <div className="consultation-list">
         {pandits.length ? pandits.map((pandit) => <article className="consultation-pandit" key={pandit.id}>
           <div className="consultation-pandit-head"><span className="consultation-avatar">{pandit.name.split(" ").map((part) => part[0]).slice(0,2).join("")}</span><div><strong>{pandit.name}</strong><span><i /> Available for chat</span></div><b><Star size={13} fill="currentColor" /> {pandit.rating}</b></div>

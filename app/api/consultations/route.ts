@@ -33,10 +33,10 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Customer login required" }, { status: 401 });
   }
   const body = await request.json() as { panditId?: string; topic?: string; blocks?: number };
-  const topic = body.topic?.trim().slice(0, 500) ?? "";
+  const topic = body.topic?.trim().slice(0, 500) || "General Puja and religious guidance";
   const blocks = Math.min(6, Math.max(1, Math.floor(Number(body.blocks) || 1)));
-  if (!body.panditId || topic.length < 5) {
-    return NextResponse.json({ error: "Choose a Pandit and briefly describe what guidance you need." }, { status: 400 });
+  if (!body.panditId) {
+    return NextResponse.json({ error: "Choose an available Pandit to begin." }, { status: 400 });
   }
   const pandit = await sql<{ consultation_rate_5min: number }>(
     `SELECT consultation_rate_5min FROM pim_v2.pandit_profiles
