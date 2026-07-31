@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BadgeCheck, BellRing, Check, Clock3, MapPin, Power, Save } from "lucide-react";
+import { BadgeCheck, BellRing, Check, Clock3, KeyRound, MapPin, Power, Save } from "lucide-react";
 import { AppShell } from "./app-shell";
 import { readJson } from "@/lib/http";
 import { getCurrentCoordinates, type BrowserCoordinates } from "@/lib/browser-location";
@@ -22,6 +22,8 @@ export function PanditPortal() {
   const [busy, setBusy] = useState(false);
   const [locationBusy, setLocationBusy] = useState(false);
   const [coordinates, setCoordinates] = useState<BrowserCoordinates | null>(null);
+  const [arrivalOtps, setArrivalOtps] = useState<Record<string, string>>({});
+  const [actionErrors, setActionErrors] = useState<Record<string, string>>({});
 
   async function loadProfile(syncForm = false) {
     const response = await fetch(`/api/pandit/profile?fresh=${Date.now()}`, { cache: "no-store" });
@@ -135,12 +137,21 @@ export function PanditPortal() {
     await loadProfile(false);
   }
 
-  async function transition(id: string, status: string) {
+  async function transition(id: string, status: string, arrivalOtp?: string) {
     setBusy(true);
     setNotice("");
-    const response = await fetch(`/api/bookings/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) });
+    setActionErrors((current) => ({ ...current, [id]: "" }));
+    const response = await fetch(`/api/bookings/${id}`, {
+      method: "PATCH",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ status, ...(arrivalOtp ? { arrivalOtp } : {}) }),
+    });
     const data = await readJson<{ error?: string }>(response);
-    if (!response.ok) setNotice(data.error ?? "Action unavailable");
+    if (!response.ok) {
+      setActionErrors((current) => ({ ...current, [id]: data.error ?? "Action unavailable" }));
+    } else if (status === "IN_PROGRESS") {
+      setArrivalOtps((current) => ({ ...current, [id]: "" }));
+    }
     await loadBookings();
     setBusy(false);
   }
@@ -180,9 +191,24 @@ export function PanditPortal() {
             {b.status === "REQUESTED" && <><button className="btn btn-ghost" disabled={busy} onClick={() => transition(b.id, "DECLINED")}>Decline</button><button className="btn btn-primary" disabled={busy} onClick={() => transition(b.id, "ACCEPTED")}><Check size={16} /> Accept</button></>}
             {b.status === "ACCEPTED" && <button className="btn btn-primary btn-block" disabled={busy} onClick={() => transition(b.id, "ON_THE_WAY")}>Start journey</button>}
             {b.status === "ON_THE_WAY" && <button className="btn btn-primary btn-block" disabled={busy} onClick={() => transition(b.id, "ARRIVED")}>Mark arrived</button>}
-            {b.status === "ARRIVED" && <button className="btn btn-primary btn-block" disabled={busy} onClick={() => transition(b.id, "IN_PROGRESS")}>Start Puja</button>}
+            {b.status === "ARRIVED" && <div className="arrival-verification">
+              <label htmlFor={`arrival-otp-${b.id}`}><KeyRound size={16} /> Customer arrival OTP</label>
+              <p>Ask the customer for the 6-digit code shown in their live request.</p>
+              <div>
+                <input
+                  id={`arrival-otp-${b.id}`}
+                  inputMode="numeric"
+                  autoComplete="one-time-code"
+                  maxLength={6}
+                  placeholder="6-digit OTP"
+                  value={arrivalOtps[b.id] ?? ""}
+                  onChange={(event) => setArrivalOtps((current) => ({ ...current, [b.id]: event.target.value.replace(/\D/g, "").slice(0, 6) }))}
+                />
+                <button className="btn btn-primary" disabled={busy || (arrivalOtps[b.id]?.length ?? 0) !== 6} onClick={() => transition(b.id, "IN_PROGRESS", arrivalOtps[b.id])}>Verify OTP & start Puja</button>
+              </div>
+            </div>}
             {b.status === "IN_PROGRESS" && <button className="btn btn-primary btn-block" disabled={busy} onClick={() => transition(b.id, "COMPLETED")}>Complete Puja</button>}
-          </div></article>)}</div> : <div className="empty"><BellRing size={26} /><strong>No active requests</strong><span>Stay online. New urgent bookings will appear here automatically.</span></div>}
+          </div>{actionErrors[b.id] && <div className="inline-action-error">{actionErrors[b.id]}</div>}</article>)}</div> : <div className="empty"><BellRing size={26} /><strong>No active requests</strong><span>Stay online. New urgent bookings will appear here automatically.</span></div>}
         </section>
       </>}
     </AppShell>

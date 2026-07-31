@@ -14,9 +14,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "Please log in" }, { status: 401 });
   const { id } = await context.params;
-  const body = await request.json() as { status?: string };
-  const current = await sql<{ status: string; customer_id: string; pandit_id: string }>(
-    `SELECT status,customer_id,pandit_id FROM pim_v2.bookings WHERE id=$1`,
+  const body = await request.json() as { status?: string; arrivalOtp?: string };
+  const current = await sql<{ status: string; customer_id: string; pandit_id: string; arrival_otp: string }>(
+    `SELECT status,customer_id,pandit_id,arrival_otp FROM pim_v2.bookings WHERE id=$1`,
     [id],
   );
   const booking = current.rows[0];
@@ -31,6 +31,15 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   }
   if (!body.status || !transitions[booking.status]?.includes(body.status)) {
     return NextResponse.json({ error: "This booking action is not available" }, { status: 409 });
+  }
+  if (body.status === "IN_PROGRESS") {
+    const submittedOtp = body.arrivalOtp?.replace(/\D/g, "") ?? "";
+    if (!/^\d{6}$/.test(submittedOtp) || submittedOtp !== booking.arrival_otp) {
+      return NextResponse.json(
+        { error: "Incorrect arrival OTP. Ask the customer for the current 6-digit code." },
+        { status: 400 },
+      );
+    }
   }
   const updated = await sql<{ status: string }>(
     `UPDATE pim_v2.bookings SET status=$2,
