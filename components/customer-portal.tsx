@@ -6,6 +6,7 @@ import {
   Compass, MapPin, Mic, PackageCheck, RefreshCw, ShieldCheck, Sparkles,
 } from "lucide-react";
 import { AppShell } from "./app-shell";
+import { ConsultationPanel } from "./consultation-panel";
 import { readJson } from "@/lib/http";
 import { getCurrentCoordinates, type BrowserCoordinates } from "@/lib/browser-location";
 import { recommendRitual, ritualForService, type RequestType, type RitualRecommendation } from "@/lib/ritual-guide";
@@ -61,6 +62,7 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
   const [match, setMatch] = useState<{ name: string; distanceKm: string; etaMinutes: number } | null>(null);
   const [rematchingId, setRematchingId] = useState<string | null>(null);
   const [rematchErrors, setRematchErrors] = useState<Record<string, string>>({});
+  const [consultationMode, setConsultationMode] = useState(false);
 
   const refreshBookings = useCallback(async () => {
     const response = await fetch(`/api/bookings?fresh=${Date.now()}`, {
@@ -215,7 +217,7 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
     <AppShell role="Customer" title="What religious help do you need?" subtitle="Describe the situation. We guide you and find the best available nearby Pandit.">
       {message && <div className="alert error">{message}</div>}
 
-      {!requestType && !match && (
+      {!requestType && !match && !consultationMode && (
         <section className="intent-shell" id="request-assistance">
           <div className="new-user-guide">
             <span className="guide-symbol"><Sparkles /></span>
@@ -225,12 +227,14 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
           <div className="section-title intent-title"><div><h2>What best describes your situation?</h2><p>There is no wrong choice—you can review everything before sending.</p></div></div>
           <div className="intent-grid">
             <button className="intent-card urgent" onClick={() => choosePath("PANDIT_SOS")}><AlertTriangle /><span><b className="intent-kicker">Urgent replacement</b><strong>My Pandit cancelled</strong><small>Use the Puja details you already have and find another qualified Pandit now.</small></span><ChevronRight /></button>
-            <button className="intent-card" onClick={() => choosePath("NEED_GUIDANCE")}><BadgeHelp /><span><b className="intent-kicker">Best for first-time users</b><strong>I need guidance</strong><small>Describe the occasion in simple words and receive a clear recommendation.</small></span><ChevronRight /></button>
+            <button className="intent-card guidance-live" onClick={() => setConsultationMode(true)}><BadgeHelp /><span><b className="intent-kicker">Live online guidance</b><strong>I need guidance</strong><small>Chat privately with an available Pandit. Charges are shown per five minutes.</small></span><ChevronRight /></button>
             <button className="intent-card" onClick={() => choosePath("KNOWN_PUJA")}><Sparkles /><span><b className="intent-kicker">Fastest path</b><strong>I know the Puja</strong><small>Select the ritual directly and search for a nearby available Pandit.</small></span><ChevronRight /></button>
           </div>
           <div className="privacy-band"><ShieldCheck size={18} /><span><strong>Private by design</strong>Your phone and exact address are never shown publicly.</span></div>
         </section>
       )}
+
+      {consultationMode && <ConsultationPanel role="CUSTOMER" onBack={() => setConsultationMode(false)} />}
 
       {requestType && !match && (
         <>

@@ -1,12 +1,13 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BadgeCheck, BellRing, Check, Clock3, KeyRound, MapPin, Power, Save } from "lucide-react";
+import { BadgeCheck, BellRing, Check, Clock3, KeyRound, MapPin, MessageCircle, Power, Save } from "lucide-react";
 import { AppShell } from "./app-shell";
+import { ConsultationPanel } from "./consultation-panel";
 import { readJson } from "@/lib/http";
 import { getCurrentCoordinates, type BrowserCoordinates } from "@/lib/browser-location";
 
-type Profile = { name: string | null; city: string | null; experience_years: number; languages: string[]; specialities: string[]; bio: string | null; verification_status: string; review_note?: string | null; is_online: boolean; rating: string; completed_jobs: number; latitude: number | null; longitude: number | null };
+type Profile = { name: string | null; city: string | null; experience_years: number; languages: string[]; specialities: string[]; bio: string | null; verification_status: string; review_note?: string | null; is_online: boolean; rating: string; completed_jobs: number; latitude: number | null; longitude: number | null; consultation_online: boolean; consultation_rate_5min: number };
 type Booking = {
   id: string; status: string; service_name: string; customer_name: string | null; amount: number;
   address: string; created_at: string; request_type: string; situation: string | null;
@@ -24,12 +25,14 @@ export function PanditPortal() {
   const [coordinates, setCoordinates] = useState<BrowserCoordinates | null>(null);
   const [arrivalOtps, setArrivalOtps] = useState<Record<string, string>>({});
   const [actionErrors, setActionErrors] = useState<Record<string, string>>({});
+  const [consultationRate, setConsultationRate] = useState(99);
 
   async function loadProfile(syncForm = false) {
     const response = await fetch(`/api/pandit/profile?fresh=${Date.now()}`, { cache: "no-store" });
     const data = await readJson<{ profile?: Profile & { base_charge?: number } }>(response);
     if (!data.profile) return;
     setProfile(data.profile);
+    setConsultationRate(data.profile.consultation_rate_5min ?? 99);
     if (syncForm) {
       setForm({ name: data.profile.name ?? "", city: data.profile.city ?? "", experienceYears: data.profile.experience_years ?? 0, languages: (data.profile.languages ?? []).join(", "), specialities: (data.profile.specialities ?? []).join(", "), bio: data.profile.bio ?? "", baseCharge: data.profile.base_charge ?? 1100 });
     }
@@ -47,17 +50,20 @@ export function PanditPortal() {
   }
 
   useEffect(() => {
-    load(true);
+    const initial = window.setTimeout(() => load(true), 0);
     const refresh = () => { load(false); };
     const timer = window.setInterval(refresh, 5_000);
     const onVisibility = () => { if (document.visibilityState === "visible") refresh(); };
     window.addEventListener("focus", refresh);
     document.addEventListener("visibilitychange", onVisibility);
     return () => {
+      window.clearTimeout(initial);
       window.clearInterval(timer);
       window.removeEventListener("focus", refresh);
       document.removeEventListener("visibilitychange", onVisibility);
     };
+    // load is intentionally stable for the lifetime of this mounted portal.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   useEffect(() => {
@@ -156,6 +162,25 @@ export function PanditPortal() {
     setBusy(false);
   }
 
+  async function toggleConsultation() {
+    if (!profile) return;
+    setBusy(true); setNotice("");
+    const response = await fetch("/api/pandit/profile", {
+      method: "PUT",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        consultationOnline: !profile.consultation_online,
+        consultationRate5Min: consultationRate,
+      }),
+    });
+    const data = await readJson<{ error?: string }>(response);
+    setNotice(response.ok
+      ? profile.consultation_online ? "Online guidance is now paused." : "You are now available for paid live guidance."
+      : data.error ?? "Unable to update consultation availability.");
+    setBusy(false);
+    await loadProfile(false);
+  }
+
   if (!profile) return <AppShell role="Pandit" title="Loading your portal…" subtitle="Preparing your profile and requests."><div className="loading-card">Loading…</div></AppShell>;
   const incomplete = ["INCOMPLETE", "CHANGES_REQUESTED"].includes(profile.verification_status);
   const active = bookings.filter((b) => !["COMPLETED", "DECLINED", "CANCELLED"].includes(b.status));
@@ -188,6 +213,13 @@ export function PanditPortal() {
           <article><span>Verification</span><strong>{profile.verification_status.replaceAll("_", " ")}</strong><small><BadgeCheck size={14} /> Admin review status</small></article>
           <article><span>Rating</span><strong>{profile.rating} ★</strong><small>{profile.completed_jobs} completed Puja visits</small></article>
         </section>
+        <section className={`consultation-availability ${profile.consultation_online ? "online" : ""}`}>
+          <span><MessageCircle /></span>
+          <div><span className="eyebrow">Remote guidance</span><h2>{profile.consultation_online ? "You are available for live chat" : "Offer paid online guidance"}</h2><p>Useful when you cannot travel or when a customer only needs quick ritual guidance.</p></div>
+          <label>Charge per 5 minutes<input type="number" min="20" max="5000" value={consultationRate} onChange={(event) => setConsultationRate(Number(event.target.value))} /></label>
+          <button className={`btn ${profile.consultation_online ? "btn-ghost" : "btn-primary"}`} disabled={busy} onClick={toggleConsultation}>{profile.consultation_online ? "Pause live chat" : "Go online for chat"}</button>
+        </section>
+        <ConsultationPanel role="PANDIT" />
         <section className="history" id="pandit-requests"><div className="section-title"><div><h2>Urgent requests</h2><p>Only clear, actionable requests appear here.</p></div><span className="live-pill"><i /> {active.length} active</span></div>
           {active.length ? <div className="request-grid">{active.map((b) => <article className="request-card" key={b.id}><div className="request-top"><span className="service-icon">ॐ</span><div><strong>{b.service_name}</strong><small><Clock3 size={13} /> {b.request_type.replaceAll("_", " ")}</small></div><b>₹{b.amount.toLocaleString("en-IN")}</b></div>
             {b.situation && <div className="request-context"><span>Customer&apos;s situation</span><p>{b.situation}</p></div>}

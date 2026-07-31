@@ -23,10 +23,26 @@ export async function PUT(request: Request) {
   const body = await request.json() as {
     name?: string; city?: string; experienceYears?: number; languages?: string[]; specialities?: string[];
     bio?: string; baseCharge?: number; isOnline?: boolean; latitude?: number; longitude?: number;
+    consultationOnline?: boolean; consultationRate5Min?: number;
   };
   const validCoordinates = Number.isFinite(body.latitude) && Number.isFinite(body.longitude) &&
     body.latitude! >= -90 && body.latitude! <= 90 && body.longitude! >= -180 && body.longitude! <= 180;
   const availabilityKeys = Object.keys(body).every((key) => ["isOnline", "latitude", "longitude"].includes(key));
+  const consultationKeys = Object.keys(body).every((key) => ["consultationOnline", "consultationRate5Min"].includes(key));
+  if (consultationKeys && typeof body.consultationOnline === "boolean") {
+    const rate = Math.min(5000, Math.max(20, Math.floor(Number(body.consultationRate5Min) || 99)));
+    const consultation = await sql(
+      `UPDATE pim_v2.pandit_profiles
+       SET consultation_online=$2,consultation_rate_5min=$3,updated_at=now()
+       WHERE user_id=$1 AND ($2=false OR verification_status='APPROVED')
+       RETURNING consultation_online,consultation_rate_5min`,
+      [user.id, body.consultationOnline, rate],
+    );
+    if (!consultation.rows[0]) {
+      return NextResponse.json({ error: "Admin approval is required before offering live guidance." }, { status: 409 });
+    }
+    return NextResponse.json({ success: true, profile: consultation.rows[0] });
+  }
   if (typeof body.isOnline !== "boolean" && validCoordinates &&
       Object.keys(body).every((key) => ["latitude", "longitude"].includes(key))) {
     const location = await sql(

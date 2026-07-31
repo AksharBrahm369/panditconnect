@@ -3,18 +3,20 @@
 import Link from "next/link";
 import {
   Activity, BadgeCheck, BookOpenCheck, LayoutDashboard,
-  LogOut, MapPinned, Radio, ShieldCheck, Sparkles, UsersRound,
+  LogOut, MapPinned, MessageCircle, Radio, ShieldCheck, Sparkles, UsersRound,
 } from "lucide-react";
 
 const roleNavigation = {
   Customer: [
     { label: "Overview", href: "#portal-overview", icon: LayoutDashboard },
     { label: "Request help", href: "#request-assistance", icon: Sparkles },
+    { label: "Live guidance", href: "#online-guidance", icon: MessageCircle },
     { label: "Live requests", href: "#live-requests", icon: Activity },
   ],
   Pandit: [
     { label: "Overview", href: "#portal-overview", icon: LayoutDashboard },
     { label: "Availability", href: "#pandit-status", icon: Radio },
+    { label: "Live chats", href: "#online-guidance", icon: MessageCircle },
     { label: "Urgent requests", href: "#pandit-requests", icon: MapPinned },
   ],
   Admin: [
