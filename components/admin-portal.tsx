@@ -75,14 +75,14 @@ export function AdminPortal() {
       <article><CalendarCheck size={21} /><span>Total bookings</span><strong>{data?.stats.bookings ?? "—"}</strong></article>
       <article><BadgeCheck size={21} /><span>Approved Pandits</span><strong>{data?.stats.approvedPandits ?? approved.length}</strong></article>
     </section>
-    <section className="workspace admin-workspace">
+    <section className="workspace admin-workspace" id="admin-bookings">
       <div className="workspace-main"><div className="section-title"><div><h2>Recent bookings</h2><p>Monitor status without exposing customer contact details.</p></div></div>
         {data?.recent.length ? <div className="table-wrap"><table><thead><tr><th>Puja</th><th>Pandit</th><th>Customer</th><th>Status</th><th>Amount</th></tr></thead><tbody>{data.recent.map((row) => <tr key={row.id}><td>{row.service_name}</td><td>{row.pandit_name}</td><td>••••{row.customer_phone.slice(-4)}</td><td><span className="status">{row.status}</span></td><td>₹{row.amount.toLocaleString("en-IN")}</td></tr>)}</tbody></table></div> : <div className="empty">No bookings yet.</div>}
       </div>
       <aside className="side-card"><h3>Review queue</h3><div className="queue-item"><span className="avatar">P</span><div><strong>{data?.stats.pendingPandits ?? 0} Pandit {(data?.stats.pendingPandits ?? 0) === 1 ? "profile" : "profiles"}</strong><small>Identity and experience review</small></div></div><button className="btn btn-primary btn-block" onClick={openQueue} disabled={queueLoading}>{queueLoading ? "Refreshing queue…" : "Open verification queue"}</button><p className="privacy-note">Review experience, languages and specialities before approval.</p></aside>
     </section>
     {notice && <div className="alert success admin-notice">{notice}</div>}
-    <section className="history approved-directory">
+    <section className="history approved-directory" id="admin-pandits">
       <div className="section-title"><div><h2>Approved Pandits</h2><p>All active approved profiles remain visible here after leaving the review queue.</p></div><button className="btn btn-ghost" onClick={load}><RefreshCw size={16} /> Refresh</button></div>
       {approved.length ? <div className="approved-grid">{approved.map((pandit) => <article className="approved-card" key={pandit.id}>
         <div className="approved-head"><span className="avatar">{(pandit.name ?? "P").split(" ").map((part) => part[0]).slice(0,2).join("")}</span><div><strong>{pandit.name ?? "Pandit"}</strong><span><MapPin size={13} /> {pandit.city ?? "City not provided"}</span></div><span className={`availability-dot ${pandit.is_online ? "online" : ""}`}>{pandit.is_online ? "Online" : "Offline"}</span></div>

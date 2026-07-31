@@ -198,7 +198,7 @@ export function CustomerPortal() {
       {message && <div className="alert error">{message}</div>}
 
       {!requestType && !match && (
-        <section className="intent-shell">
+        <section className="intent-shell" id="request-assistance">
           <div className="section-title"><div><h2>Start with your situation</h2><p>You do not need to know the Puja name.</p></div></div>
           <div className="intent-grid">
             <button className="intent-card urgent" onClick={() => choosePath("PANDIT_SOS")}><AlertTriangle /><span><strong>My Pandit cancelled</strong><small>Find an urgent qualified replacement.</small></span><ChevronRight /></button>
@@ -213,7 +213,7 @@ export function CustomerPortal() {
         <>
           <div className="progress"><span className="active">1 Your need</span><i /><span className={serviceId ? "active" : ""}>2 Guidance</span><i /><span>3 Match & track</span></div>
           <button className="back-review flow-back" onClick={() => setRequestType(null)}><ArrowLeft size={16} /> Choose another path</button>
-          <section className="guided-workspace">
+          <section className="guided-workspace" id="request-assistance">
             <div className="guided-main">
               <div className="flow-heading">
                 <span className="eyebrow">{requestType === "PANDIT_SOS" ? "Urgent replacement" : requestType === "NEED_GUIDANCE" ? "Ritual guidance" : "Known Puja"}</span>
@@ -270,7 +270,7 @@ export function CustomerPortal() {
         <section className="success-panel match-success"><CheckCircle2 size={48} /><span className="eyebrow">Request sent</span><h2>Waiting for {match.name} to accept</h2><p>Your request was sent to a Pandit {match.distanceKm} km away. This does not mean it has been accepted yet. The confirmed status will appear below.</p><button className="btn btn-primary" onClick={() => { setMatch(null); setRequestType(null); }}>View live status</button></section>
       )}
 
-      <section className="history tracking-history">
+      <section className="history tracking-history" id="live-requests">
         <div className="section-title"><div><h2>Live requests</h2><p>Acceptance, journey and arrival verification in one place.</p></div><button className="icon-button" onClick={refreshBookings} aria-label="Refresh requests"><RefreshCw size={17} /></button></div>
         {bookings.length ? <div className="tracking-list">{bookings.map((booking) => {
           const activeIndex = statusOrder.indexOf(booking.status);

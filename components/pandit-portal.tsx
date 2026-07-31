@@ -178,12 +178,12 @@ export function PanditPortal() {
           <button className="btn btn-primary span-2" onClick={saveProfile} disabled={busy || !form.name || !form.city || !form.bio}>{busy ? "Saving…" : <><Save size={17} /> Save profile for review</>}</button>
         </div>
       </section> : <>
-        <section className="stat-grid">
+        <section className="stat-grid" id="pandit-status">
           <article><span>Availability</span><strong className={profile.is_online ? "green" : ""}>{profile.is_online ? "Online" : "Offline"}</strong><button className={`switch ${profile.is_online ? "on" : ""}`} onClick={toggleOnline} disabled={busy || locationBusy}><i /><Power size={14} /></button><small><MapPin size={14} /> {profile.is_online ? "Live GPS location active" : "Location refreshes when you go online"}</small></article>
           <article><span>Verification</span><strong>{profile.verification_status.replaceAll("_", " ")}</strong><small><BadgeCheck size={14} /> Admin review status</small></article>
           <article><span>Rating</span><strong>{profile.rating} ★</strong><small>{profile.completed_jobs} completed Puja visits</small></article>
         </section>
-        <section className="history"><div className="section-title"><div><h2>Urgent requests</h2><p>Only clear, actionable requests appear here.</p></div><span className="live-pill"><i /> {active.length} active</span></div>
+        <section className="history" id="pandit-requests"><div className="section-title"><div><h2>Urgent requests</h2><p>Only clear, actionable requests appear here.</p></div><span className="live-pill"><i /> {active.length} active</span></div>
           {active.length ? <div className="request-grid">{active.map((b) => <article className="request-card" key={b.id}><div className="request-top"><span className="service-icon">ॐ</span><div><strong>{b.service_name}</strong><small><Clock3 size={13} /> {b.request_type.replaceAll("_", " ")}</small></div><b>₹{b.amount.toLocaleString("en-IN")}</b></div>
             {b.situation && <div className="request-context"><span>Customer&apos;s situation</span><p>{b.situation}</p></div>}
             <div className="request-tags"><span>{b.preferred_language ?? "Any language"}</span><span>{b.materials_option.replaceAll("_", " ")}</span></div>
