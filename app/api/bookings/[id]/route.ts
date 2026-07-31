@@ -22,16 +22,26 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const booking = current.rows[0];
   if (!booking) return NextResponse.json({ error: "Booking not found" }, { status: 404 });
   if (user.id !== booking.customer_id && user.id !== booking.pandit_id) return NextResponse.json({ error: "Not allowed" }, { status: 403 });
+  const isPanditAction = ["ACCEPTED", "DECLINED", "ON_THE_WAY", "ARRIVED", "IN_PROGRESS", "COMPLETED"].includes(body.status ?? "");
+  if (isPanditAction && (user.role !== "PANDIT" || user.id !== booking.pandit_id)) {
+    return NextResponse.json({ error: "Only the assigned Pandit can perform this action" }, { status: 403 });
+  }
+  if (body.status === "CANCELLED" && (user.role !== "CUSTOMER" || user.id !== booking.customer_id)) {
+    return NextResponse.json({ error: "Only the customer can cancel this request" }, { status: 403 });
+  }
   if (!body.status || !transitions[booking.status]?.includes(body.status)) {
     return NextResponse.json({ error: "This booking action is not available" }, { status: 409 });
   }
-  await sql(
+  const updated = await sql<{ status: string }>(
     `UPDATE pim_v2.bookings SET status=$2,
       accepted_at=CASE WHEN $2='ACCEPTED' THEN now() ELSE accepted_at END,
       completed_at=CASE WHEN $2='COMPLETED' THEN now() ELSE completed_at END
-     WHERE id=$1`,
-    [id, body.status],
+     WHERE id=$1 AND status=$3
+     RETURNING status`,
+    [id, body.status, booking.status],
   );
-  return NextResponse.json({ success: true });
+  if (!updated.rows[0]) {
+    return NextResponse.json({ error: "This request changed on another screen. Please refresh and try again." }, { status: 409 });
+  }
+  return NextResponse.json({ success: true, status: updated.rows[0].status });
 }
-

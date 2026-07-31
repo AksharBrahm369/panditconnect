@@ -241,7 +241,7 @@ export function CustomerPortal() {
       )}
 
       {match && (
-        <section className="success-panel match-success"><CheckCircle2 size={48} /><span className="eyebrow">Request delivered</span><h2>{match.name} received your request</h2><p>{match.distanceKm} km away · approximately {match.etaMinutes} minutes. You will see every status change below.</p><button className="btn btn-primary" onClick={() => { setMatch(null); setRequestType(null); }}>Done</button></section>
+        <section className="success-panel match-success"><CheckCircle2 size={48} /><span className="eyebrow">Request sent</span><h2>Waiting for {match.name} to accept</h2><p>Your request was sent to a Pandit {match.distanceKm} km away. This does not mean it has been accepted yet. The confirmed status will appear below.</p><button className="btn btn-primary" onClick={() => { setMatch(null); setRequestType(null); }}>View live status</button></section>
       )}
 
       <section className="history tracking-history">

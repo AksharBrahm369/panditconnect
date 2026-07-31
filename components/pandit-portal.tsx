@@ -33,15 +33,21 @@ export function PanditPortal() {
     }
   }
 
-  function load() {
-    void loadProfile(true);
-    fetch(`/api/bookings?fresh=${Date.now()}`, { cache: "no-store" }).then((r) => readJson<{ bookings: Booking[] }>(r)).then((data) => setBookings(data.bookings ?? []));
+  async function loadBookings() {
+    const response = await fetch(`/api/bookings?fresh=${Date.now()}`, { cache: "no-store" });
+    const data = await readJson<{ bookings?: Booking[]; error?: string }>(response);
+    if (response.ok) setBookings(data.bookings ?? []);
+  }
+
+  function load(syncForm = false) {
+    void loadProfile(syncForm);
+    void loadBookings();
   }
 
   useEffect(() => {
-    load();
-    const refresh = () => { void loadProfile(false); };
-    const timer = window.setInterval(refresh, 15_000);
+    load(true);
+    const refresh = () => { load(false); };
+    const timer = window.setInterval(refresh, 5_000);
     const onVisibility = () => { if (document.visibilityState === "visible") refresh(); };
     window.addEventListener("focus", refresh);
     document.addEventListener("visibilitychange", onVisibility);
@@ -130,10 +136,13 @@ export function PanditPortal() {
   }
 
   async function transition(id: string, status: string) {
+    setBusy(true);
+    setNotice("");
     const response = await fetch(`/api/bookings/${id}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status }) });
     const data = await readJson<{ error?: string }>(response);
     if (!response.ok) setNotice(data.error ?? "Action unavailable");
-    load();
+    await loadBookings();
+    setBusy(false);
   }
 
   if (!profile) return <AppShell role="Pandit" title="Loading your portal…" subtitle="Preparing your profile and requests."><div className="loading-card">Loading…</div></AppShell>;
@@ -168,11 +177,11 @@ export function PanditPortal() {
             {b.situation && <div className="request-context"><span>Customer&apos;s situation</span><p>{b.situation}</p></div>}
             <div className="request-tags"><span>{b.preferred_language ?? "Any language"}</span><span>{b.materials_option.replaceAll("_", " ")}</span></div>
             <p><MapPin size={16} /> {b.address}</p><span className="status">{b.status.replaceAll("_", " ")}</span><div className="button-row">
-            {b.status === "REQUESTED" && <><button className="btn btn-ghost" onClick={() => transition(b.id, "DECLINED")}>Decline</button><button className="btn btn-primary" onClick={() => transition(b.id, "ACCEPTED")}><Check size={16} /> Accept</button></>}
-            {b.status === "ACCEPTED" && <button className="btn btn-primary btn-block" onClick={() => transition(b.id, "ON_THE_WAY")}>Start journey</button>}
-            {b.status === "ON_THE_WAY" && <button className="btn btn-primary btn-block" onClick={() => transition(b.id, "ARRIVED")}>Mark arrived</button>}
-            {b.status === "ARRIVED" && <button className="btn btn-primary btn-block" onClick={() => transition(b.id, "IN_PROGRESS")}>Start Puja</button>}
-            {b.status === "IN_PROGRESS" && <button className="btn btn-primary btn-block" onClick={() => transition(b.id, "COMPLETED")}>Complete Puja</button>}
+            {b.status === "REQUESTED" && <><button className="btn btn-ghost" disabled={busy} onClick={() => transition(b.id, "DECLINED")}>Decline</button><button className="btn btn-primary" disabled={busy} onClick={() => transition(b.id, "ACCEPTED")}><Check size={16} /> Accept</button></>}
+            {b.status === "ACCEPTED" && <button className="btn btn-primary btn-block" disabled={busy} onClick={() => transition(b.id, "ON_THE_WAY")}>Start journey</button>}
+            {b.status === "ON_THE_WAY" && <button className="btn btn-primary btn-block" disabled={busy} onClick={() => transition(b.id, "ARRIVED")}>Mark arrived</button>}
+            {b.status === "ARRIVED" && <button className="btn btn-primary btn-block" disabled={busy} onClick={() => transition(b.id, "IN_PROGRESS")}>Start Puja</button>}
+            {b.status === "IN_PROGRESS" && <button className="btn btn-primary btn-block" disabled={busy} onClick={() => transition(b.id, "COMPLETED")}>Complete Puja</button>}
           </div></article>)}</div> : <div className="empty"><BellRing size={26} /><strong>No active requests</strong><span>Stay online. New urgent bookings will appear here automatically.</span></div>}
         </section>
       </>}
