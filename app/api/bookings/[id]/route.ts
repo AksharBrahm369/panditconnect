@@ -35,7 +35,12 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const updated = await sql<{ status: string }>(
     `UPDATE pim_v2.bookings SET status=$2,
       accepted_at=CASE WHEN $2='ACCEPTED' THEN now() ELSE accepted_at END,
-      completed_at=CASE WHEN $2='COMPLETED' THEN now() ELSE completed_at END
+      completed_at=CASE WHEN $2='COMPLETED' THEN now() ELSE completed_at END,
+      declined_pandit_ids=CASE
+        WHEN $2='DECLINED' AND NOT (pandit_id = ANY(declined_pandit_ids))
+          THEN array_append(declined_pandit_ids,pandit_id)
+        ELSE declined_pandit_ids
+      END
      WHERE id=$1 AND status=$3
      RETURNING status`,
     [id, body.status, booking.status],

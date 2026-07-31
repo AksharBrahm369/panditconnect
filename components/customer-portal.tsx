@@ -58,17 +58,19 @@ export function CustomerPortal() {
   const [locationBusy, setLocationBusy] = useState(false);
   const [listening, setListening] = useState(false);
   const [match, setMatch] = useState<{ name: string; distanceKm: string; etaMinutes: number } | null>(null);
+  const [rematchingId, setRematchingId] = useState<string | null>(null);
+  const [rematchErrors, setRematchErrors] = useState<Record<string, string>>({});
 
-  function refreshBookings() {
-    fetch(`/api/bookings?fresh=${Date.now()}`, { cache: "no-store" })
-      .then((response) => readJson<{ bookings?: Booking[] }>(response))
-      .then((data) => setBookings(data.bookings ?? []));
+  async function refreshBookings() {
+    const response = await fetch(`/api/bookings?fresh=${Date.now()}`, { cache: "no-store" });
+    const data = await readJson<{ bookings?: Booking[] }>(response);
+    setBookings(data.bookings ?? []);
   }
 
   useEffect(() => {
     fetch("/api/services").then((response) => readJson<{ services: Service[] }>(response))
       .then((data) => setServices(data.services ?? []));
-    refreshBookings();
+    void refreshBookings();
     const timer = window.setInterval(refreshBookings, 10_000);
     return () => window.clearInterval(timer);
   }, []);
@@ -168,7 +170,21 @@ export function CustomerPortal() {
     }
     setMatch(data.matchedPandit ?? null);
     setBusy(false);
-    refreshBookings();
+    void refreshBookings();
+  }
+
+  async function findAnotherPandit(bookingId: string) {
+    setRematchingId(bookingId);
+    setRematchErrors((current) => ({ ...current, [bookingId]: "" }));
+    const response = await fetch(`/api/bookings/${bookingId}/rematch`, { method: "POST" });
+    const data = await readJson<{ error?: string }>(response);
+    if (!response.ok) {
+      setRematchErrors((current) => ({ ...current, [bookingId]: data.error ?? "Unable to find another Pandit right now." }));
+      setRematchingId(null);
+      return;
+    }
+    await refreshBookings();
+    setRematchingId(null);
   }
 
   return (
@@ -256,8 +272,8 @@ export function CustomerPortal() {
             <div className="tracking-head"><div><span className="status">{booking.request_type.replaceAll("_", " ")}</span><h3>{booking.service_name}</h3><p>{booking.pandit_name ?? "Finding a Pandit"}</p></div><strong>₹{booking.amount.toLocaleString("en-IN")}</strong></div>
             {isDeclined ? <div className="request-unavailable">
               <AlertTriangle size={22} />
-              <div><strong>This Pandit is unavailable</strong><p>{booking.pandit_name ?? "The selected Pandit"} could not accept your request. No booking has been confirmed or charged. Send a new request and we will find another available nearby Pandit.</p></div>
-              <button className="btn btn-primary" onClick={() => { choosePath(booking.request_type); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Find another Pandit</button>
+              <div><strong>This Pandit is unavailable</strong><p>{booking.pandit_name ?? "The selected Pandit"} could not accept your request. No booking has been confirmed or charged. Search now for another available nearby Pandit.</p>{rematchErrors[booking.id] && <small className="rematch-error">{rematchErrors[booking.id]}</small>}</div>
+              <button className="btn btn-primary" disabled={rematchingId === booking.id} onClick={() => findAnotherPandit(booking.id)}>{rematchingId === booking.id ? "Searching nearby…" : "Find another Pandit"}</button>
             </div> : isCancelled ? <div className="request-cancelled"><strong>Request cancelled</strong><p>This request is closed and no booking is active.</p></div> :
             <div className="status-track">{statusOrder.slice(0, 5).map((status, index) => <span className={index <= activeIndex ? "done" : ""} key={status}><i />{status.replaceAll("_", " ")}</span>)}</div>}
             <div className="tracking-meta">

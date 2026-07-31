@@ -161,6 +161,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--saffron); box-sh
 .request-unavailable { display: grid; grid-template-columns: auto 1fr auto; align-items: center; gap: 14px; margin: 20px 0; padding: 16px; border: 1px solid #efc4b8; border-radius: 13px; color: #8d2e19; background: #fff3ef; }
 .request-unavailable strong { display: block; margin-bottom: 3px; color: #762511; }
 .request-unavailable p, .request-cancelled p { margin: 0; color: #755f56; font-size: 13px; line-height: 1.5; }
+.request-unavailable .rematch-error { display: block; margin-top: 7px; color: #a5270c; font-weight: 700; }
 .request-unavailable .btn { white-space: nowrap; }
 .request-cancelled { margin: 20px 0; padding: 15px 16px; border: 1px solid var(--line); border-radius: 13px; background: #f6f2ed; }
 .request-cancelled strong { display: block; margin-bottom: 3px; }
