@@ -17,8 +17,9 @@ test("renders the Pandit in Minutes landing page", async () => {
   assert.equal(response.status, 200);
   const html = await response.text();
   assert.match(html, /Pandit in Minutes/);
-  assert.match(html, /trusted Pandit/i);
-  assert.match(html, /Book a Pandit/);
+  assert.match(html, /We’ll find the right Pandit/i);
+  assert.match(html, /Find my Pandit/);
+  assert.match(html, /I need guidance/);
   assert.doesNotMatch(html, /codex-preview|Your site is taking shape/);
 });
 
@@ -26,7 +27,8 @@ test("renders the OTP login entry point", async () => {
   const response = await render("/login?role=customer");
   assert.equal(response.status, 200);
   const html = await response.text();
-  assert.match(html, /Continue with mobile/);
+  assert.match(html, /Continue with OTP/);
+  assert.match(html, /Let’s get you started/);
   assert.match(html, /Customer/);
   assert.match(html, /Pandit/);
 });

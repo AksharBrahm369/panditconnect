@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BadgeCheck, CalendarX2, CircleHelp, Clock3, Flame, Flower2, House, MapPin, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, BadgeCheck, CalendarX2, CircleHelp, Clock3, House, ShieldCheck, Sparkles } from "lucide-react";
 import { LiveAvailabilityCard } from "@/components/live-availability-card";
 import { FeaturedPandits } from "@/components/featured-pandits";
 
@@ -8,26 +8,26 @@ export default function Home() {
     <main>
       <nav className="topbar">
         <Link href="/" className="brand"><span className="brand-mark">ॐ</span><span>Pandit in Minutes</span></Link>
-        <div className="public-nav"><a href="#common-pujas">Popular Pujas</a><a href="#pandit-network">Pandit network</a><a href="#how-it-works">How it works</a></div>
+        <div className="public-nav"><a href="#how-it-works">How it works</a><a href="#pandit-network">Our Pandits</a></div>
         <div className="nav-actions">
-          <Link href="/login?role=pandit" className="btn btn-ghost">For Pandits</Link>
-          <Link href="/login?role=customer" className="btn btn-primary">Find a Pandit now</Link>
+          <Link href="/login?role=pandit" className="btn btn-ghost">Join as Pandit</Link>
+          <Link href="/login?role=customer" className="btn btn-primary">Get Puja help</Link>
         </div>
       </nav>
 
       <section className="hero">
         <div className="hero-copy">
-          <span className="eyebrow"><Sparkles size={15} /> Urgent Puja help, guided end to end</span>
-          <h1>Religious help, without the calling around.</h1>
-          <p>Tell us your situation in simple words. We guide you to the right Puja, find an approved nearby Pandit and keep you updated until arrival.</p>
+          <span className="eyebrow"><Sparkles size={15} /> Simple, trusted Puja assistance</span>
+          <h1>Tell us what you need. We’ll find the right Pandit.</h1>
+          <p>You don’t need to know the Puja name. Share your situation and get clear guidance, a verified nearby Pandit, and live updates.</p>
           <div className="hero-actions">
-            <Link href="/login?role=customer" className="btn btn-primary btn-lg">Get help now <ArrowRight size={18} /></Link>
-            <a href="#how-it-works" className="btn btn-ghost btn-lg">See how it works</a>
+            <Link href="/login?role=customer" className="btn btn-primary btn-lg">Find my Pandit <ArrowRight size={18} /></Link>
+            <a href="#how-it-works" className="text-button">How it works</a>
           </div>
-          <div className="trust-row">
-            <span><BadgeCheck size={18} /> Admin-approved Pandits</span>
-            <span><Clock3 size={18} /> Built for urgent needs</span>
-            <span><ShieldCheck size={18} /> Your number stays private</span>
+          <div className="hero-choices">
+            <Link href="/login?role=customer"><CalendarX2 /><span><strong>My Pandit cancelled</strong><small>Find a replacement quickly</small></span><ArrowRight /></Link>
+            <Link href="/login?role=customer"><CircleHelp /><span><strong>I need guidance</strong><small>Help me choose the right Puja</small></span><ArrowRight /></Link>
+            <Link href="/login?role=customer"><House /><span><strong>I know the Puja</strong><small>Match me with a nearby Pandit</small></span><ArrowRight /></Link>
           </div>
         </div>
         <div className="hero-showcase">
@@ -41,32 +41,17 @@ export default function Home() {
         </div>
       </section>
 
-      <div className="feature-ticker" aria-label="Platform benefits"><div><span><BadgeCheck /> Approved Pandit profiles</span><i>◆</i><span><Clock3 /> Urgent nearby matching</span><i>◆</i><span><ShieldCheck /> Private phone and address</span><i>◆</i><span><MapPin /> Live journey updates</span></div></div>
-
-      <section className="common-pujas" id="common-pujas">
-        <div className="common-heading"><div><span className="eyebrow">Popular requests</span><h2>Choose a Puja—or simply ask for guidance</h2><p>Know what you need? Start faster. Unsure? Describe the occasion and we will recommend the right ritual.</p></div><Link href="/login?role=customer" className="btn btn-ghost">I need guidance <ArrowRight size={16} /></Link></div>
-        <div className="common-grid">
-          <Link href="/login?role=customer"><span><Flower2 /></span><div><strong>Ganesh Puja</strong><small>New beginnings and prosperity</small></div><ArrowRight /></Link>
-          <Link href="/login?role=customer"><span><House /></span><div><strong>Griha Pravesh</strong><small>Blessing for a new home</small></div><ArrowRight /></Link>
-          <Link href="/login?role=customer"><span><Sparkles /></span><div><strong>Satyanarayan Puja</strong><small>Family wellbeing and gratitude</small></div><ArrowRight /></Link>
-          <Link href="/login?role=customer"><span><Flame /></span><div><strong>Havan / Homam</strong><small>Purification and sacred ceremony</small></div><ArrowRight /></Link>
-        </div>
+      <section className="simple-trust" aria-label="Why customers trust the service">
+        <div><BadgeCheck /><span><strong>Verified Pandits</strong><small>Profiles reviewed before approval</small></span></div>
+        <div><Clock3 /><span><strong>Quick nearby matching</strong><small>Designed for urgent requirements</small></span></div>
+        <div><ShieldCheck /><span><strong>Private by default</strong><small>Your contact details stay protected</small></span></div>
       </section>
 
       <FeaturedPandits />
 
-      <section className="scenario-section">
-        <div className="scenario-intro"><span className="eyebrow">Start from your problem</span><h2>You do not need to know the Puja name.</h2><p>Choose the situation that feels closest. The app handles the religious terminology and matching.</p></div>
-        <div className="scenario-grid">
-          <article><span><CalendarX2 /></span><div><strong>My Pandit cancelled</strong><p>Get an urgent replacement using your existing Puja details.</p></div></article>
-          <article><span><CircleHelp /></span><div><strong>I need guidance</strong><p>Explain the occasion and see a suitable ritual with preparation steps.</p></div></article>
-          <article><span><House /></span><div><strong>I know the Puja</strong><p>Choose it directly and find the best available nearby Pandit.</p></div></article>
-        </div>
-      </section>
-
       <section className="how" id="how-it-works">
-        <span className="eyebrow">Simple by design</span>
-        <h2>Three clear steps. No confusion.</h2>
+        <span className="eyebrow">How it works</span>
+        <h2>Puja help in three easy steps</h2>
         <div className="steps-grid">
           <article><b>01</b><h3>Tell us what happened</h3><p>Type or speak naturally. It takes less than a minute and no religious terminology is required.</p></article>
           <article><b>02</b><h3>Confirm the recommendation</h3><p>Review the suggested Puja, materials guidance, language and transparent price before requesting.</p></article>
