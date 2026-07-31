@@ -17,43 +17,43 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
   const { id } = await context.params;
   const otp = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, "0");
   const result = await sql<RematchResult>(
-    `WITH marked AS (
-       UPDATE pim_v2.bookings
-       SET declined_pandit_ids =
+    `WITH original AS (
+       SELECT id,service_id,latitude,longitude,preferred_language,pandit_id,
          CASE WHEN pandit_id = ANY(declined_pandit_ids)
            THEN declined_pandit_ids
-           ELSE array_append(declined_pandit_ids, pandit_id)
-         END
+           ELSE array_append(declined_pandit_ids,pandit_id)
+         END AS excluded_pandit_ids
+       FROM pim_v2.bookings
        WHERE id=$1 AND customer_id=$2 AND status='DECLINED'
-       RETURNING id,service_id,latitude,longitude,preferred_language,declined_pandit_ids
      ),
      matches AS (
        SELECT u.id,u.name,ps.charge,p.rating,
          6371 * acos(least(1, greatest(-1,
-           cos(radians(m.latitude)) * cos(radians(p.latitude)) *
-           cos(radians(p.longitude) - radians(m.longitude)) +
-           sin(radians(m.latitude)) * sin(radians(p.latitude))
+           cos(radians(o.latitude)) * cos(radians(p.latitude)) *
+           cos(radians(p.longitude) - radians(o.longitude)) +
+           sin(radians(o.latitude)) * sin(radians(p.latitude))
          ))) AS distance
-       FROM marked m
+       FROM original o
        JOIN pim_v2.pandit_profiles p
          ON p.verification_status='APPROVED'
         AND p.is_online=true
         AND p.latitude IS NOT NULL
         AND p.longitude IS NOT NULL
-        AND NOT (p.user_id = ANY(m.declined_pandit_ids))
+        AND NOT (p.user_id = ANY(o.excluded_pandit_ids))
        JOIN pim_v2.users u ON u.id=p.user_id
-       JOIN pim_v2.pandit_services ps ON ps.pandit_id=p.user_id AND ps.service_id=m.service_id
+       JOIN pim_v2.pandit_services ps ON ps.pandit_id=p.user_id AND ps.service_id=o.service_id
        ORDER BY
-         CASE WHEN m.preferred_language IS NULL OR m.preferred_language=ANY(p.languages) THEN 0 ELSE 1 END,
+         CASE WHEN o.preferred_language IS NULL OR o.preferred_language=ANY(p.languages) THEN 0 ELSE 1 END,
          distance,p.rating DESC
        LIMIT 1
      ),
      reassigned AS (
        UPDATE pim_v2.bookings b
        SET pandit_id=matches.id,amount=matches.charge,status='REQUESTED',
-         arrival_otp=$3,accepted_at=NULL
-       FROM matches
-       WHERE b.id=$1
+         arrival_otp=$3,accepted_at=NULL,
+         declined_pandit_ids=original.excluded_pandit_ids
+       FROM matches,original
+       WHERE b.id=original.id
        RETURNING matches.name,matches.distance
      )
      SELECT name,round(distance::numeric,1)::text AS distance_km,
