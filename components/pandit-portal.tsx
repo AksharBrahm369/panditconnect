@@ -178,6 +178,11 @@ export function PanditPortal() {
           <button className="btn btn-primary span-2" onClick={saveProfile} disabled={busy || !form.name || !form.city || !form.bio}>{busy ? "Saving…" : <><Save size={17} /> Save profile for review</>}</button>
         </div>
       </section> : <>
+        <section className={`role-action-banner ${profile.is_online ? "online" : ""}`}>
+          <span className="role-action-icon"><Power /></span>
+          <div><span className="eyebrow">Your availability</span><h2>{profile.is_online ? "You are visible to nearby customers" : "Go online when you are ready for requests"}</h2><p>{profile.is_online ? "Keep this page open. New urgent requests appear automatically with a sound-ready action card." : "Your GPS location is captured only when you choose to go online."}</p></div>
+          <button className={`btn ${profile.is_online ? "btn-ghost" : "btn-primary"}`} onClick={toggleOnline} disabled={busy || locationBusy}>{profile.is_online ? "Go offline" : "Go online now"}</button>
+        </section>
         <section className="stat-grid" id="pandit-status">
           <article><span>Availability</span><strong className={profile.is_online ? "green" : ""}>{profile.is_online ? "Online" : "Offline"}</strong><button className={`switch ${profile.is_online ? "on" : ""}`} onClick={toggleOnline} disabled={busy || locationBusy}><i /><Power size={14} /></button><small><MapPin size={14} /> {profile.is_online ? "Live GPS location active" : "Location refreshes when you go online"}</small></article>
           <article><span>Verification</span><strong>{profile.verification_status.replaceAll("_", " ")}</strong><small><BadgeCheck size={14} /> Admin review status</small></article>

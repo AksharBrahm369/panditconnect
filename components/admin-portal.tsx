@@ -68,7 +68,7 @@ export function AdminPortal() {
   }
 
   return <AppShell role="Admin" title="Operations overview" subtitle="A compact control room for verification, urgent bookings and platform health.">
-    <div className="demo-banner"><ShieldCheck size={17} /> Local admin demo. Authentication will be locked before deployment.</div>
+    <div className="demo-banner"><ShieldCheck size={17} /><div><strong>Protected operations workspace</strong><span>Customer phone numbers remain masked while you review bookings and Pandit quality.</span></div></div>
     <section className="stat-grid admin-stats">
       <article><Users size={21} /><span>Registered users</span><strong>{data?.stats.users ?? "—"}</strong></article>
       <article><ShieldCheck size={21} /><span>Pandits to review</span><strong>{data?.stats.pendingPandits ?? "—"}</strong></article>

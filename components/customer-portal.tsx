@@ -199,11 +199,16 @@ export function CustomerPortal() {
 
       {!requestType && !match && (
         <section className="intent-shell" id="request-assistance">
-          <div className="section-title"><div><h2>Start with your situation</h2><p>You do not need to know the Puja name.</p></div></div>
+          <div className="new-user-guide">
+            <span className="guide-symbol"><Sparkles /></span>
+            <div><span className="eyebrow">New here?</span><h2>Start with what you need—not the Puja name.</h2><p>Choose one option below. We will guide the ritual, preparation and nearby Pandit matching.</p></div>
+            <div className="guide-steps"><span><b>1</b> Choose your situation</span><span><b>2</b> Confirm our guidance</span><span><b>3</b> Track your Pandit</span></div>
+          </div>
+          <div className="section-title intent-title"><div><h2>What best describes your situation?</h2><p>There is no wrong choice—you can review everything before sending.</p></div></div>
           <div className="intent-grid">
-            <button className="intent-card urgent" onClick={() => choosePath("PANDIT_SOS")}><AlertTriangle /><span><strong>My Pandit cancelled</strong><small>Find an urgent qualified replacement.</small></span><ChevronRight /></button>
-            <button className="intent-card" onClick={() => choosePath("NEED_GUIDANCE")}><BadgeHelp /><span><strong>I need guidance</strong><small>Explain the occasion and get a recommendation.</small></span><ChevronRight /></button>
-            <button className="intent-card" onClick={() => choosePath("KNOWN_PUJA")}><Sparkles /><span><strong>I know the Puja</strong><small>Choose it directly and request a Pandit.</small></span><ChevronRight /></button>
+            <button className="intent-card urgent" onClick={() => choosePath("PANDIT_SOS")}><AlertTriangle /><span><b className="intent-kicker">Urgent replacement</b><strong>My Pandit cancelled</strong><small>Use the Puja details you already have and find another qualified Pandit now.</small></span><ChevronRight /></button>
+            <button className="intent-card" onClick={() => choosePath("NEED_GUIDANCE")}><BadgeHelp /><span><b className="intent-kicker">Best for first-time users</b><strong>I need guidance</strong><small>Describe the occasion in simple words and receive a clear recommendation.</small></span><ChevronRight /></button>
+            <button className="intent-card" onClick={() => choosePath("KNOWN_PUJA")}><Sparkles /><span><b className="intent-kicker">Fastest path</b><strong>I know the Puja</strong><small>Select the ritual directly and search for a nearby available Pandit.</small></span><ChevronRight /></button>
           </div>
           <div className="privacy-band"><ShieldCheck size={18} /><span><strong>Private by design</strong>Your phone and exact address are never shown publicly.</span></div>
         </section>
@@ -211,6 +216,7 @@ export function CustomerPortal() {
 
       {requestType && !match && (
         <>
+          <div className="flow-assurance"><ShieldCheck /><div><strong>You stay in control</strong><span>Nothing is sent until you review the Puja, language, materials and address.</span></div></div>
           <div className="progress"><span className="active">1 Your need</span><i /><span className={serviceId ? "active" : ""}>2 Guidance</span><i /><span>3 Match & track</span></div>
           <button className="back-review flow-back" onClick={() => setRequestType(null)}><ArrowLeft size={16} /> Choose another path</button>
           <section className="guided-workspace" id="request-assistance">
