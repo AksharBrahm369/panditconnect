@@ -6,7 +6,7 @@ import { readJson } from "@/lib/http";
 
 type ConsultationPandit = {
   id: string; name: string; city: string | null; experience_years: number; languages: string[];
-  specialities: string[]; rating: string; completed_jobs: number; consultation_rate_5min: number;
+  specialities: string[]; rating: string; rating_count: number; completed_jobs: number; consultation_rate_5min: number;
 };
 type Consultation = {
   id: string; topic: string; status: string; rate_5min: number; blocks: number; amount: number;
@@ -197,7 +197,7 @@ export function ConsultationPanel({ role, onBack }: { role: "CUSTOMER" | "PANDIT
       {error && <div className="alert error consultation-error">{error}</div>}
       <div className="consultation-list">
         {pandits.length ? pandits.map((pandit) => <article className="consultation-pandit" key={pandit.id}>
-          <div className="consultation-pandit-head"><span className="consultation-avatar">{pandit.name.split(" ").map((part) => part[0]).slice(0,2).join("")}</span><div><strong>{pandit.name}</strong><span><i /> Available for chat</span></div><b><Star size={13} fill="currentColor" /> {pandit.rating}</b></div>
+          <div className="consultation-pandit-head"><span className="consultation-avatar">{pandit.name.split(" ").map((part) => part[0]).slice(0,2).join("")}</span><div><strong>{pandit.name}</strong><span><i /> Available for chat</span></div><b>{pandit.rating_count ? <><Star size={13} fill="currentColor" /> {pandit.rating}</> : "New"}</b></div>
           <p>{pandit.experience_years} years experience · {pandit.languages.slice(0,3).join(", ")}</p>
           <div className="tag-row">{pandit.specialities.slice(0,3).map((item) => <span key={item}>{item}</span>)}</div>
           <button className="btn btn-primary btn-block" disabled={busy} onClick={() => startChat(pandit)}>Start {blocks * 5}-minute chat · ₹{pandit.consultation_rate_5min * blocks}</button>

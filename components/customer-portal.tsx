@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle, ArrowLeft, BadgeHelp, CheckCircle2, ChevronRight, Clock3,
-  Compass, MapPin, Mic, PackageCheck, RefreshCw, ShieldCheck, Sparkles,
+  Compass, MapPin, Mic, PackageCheck, RefreshCw, ShieldCheck, Sparkles, Star,
 } from "lucide-react";
 import { AppShell } from "./app-shell";
 import { ConsultationPanel } from "./consultation-panel";
@@ -17,6 +17,7 @@ type Booking = {
   address: string; arrival_otp: string; created_at: string; request_type: RequestType;
   situation: string | null; materials_option: string; latitude: number; longitude: number;
   pandit_latitude: number | null; pandit_longitude: number | null; location_updated_at: string | null;
+  customer_rating: number | null; rating_comment: string | null; rated_at: string | null;
 };
 type SpeechRecognitionLike = {
   lang: string; interimResults: boolean; continuous: boolean;
@@ -63,6 +64,10 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
   const [rematchingId, setRematchingId] = useState<string | null>(null);
   const [rematchErrors, setRematchErrors] = useState<Record<string, string>>({});
   const [consultationMode, setConsultationMode] = useState(false);
+  const [ratingDrafts, setRatingDrafts] = useState<Record<string, number>>({});
+  const [ratingComments, setRatingComments] = useState<Record<string, string>>({});
+  const [ratingBusy, setRatingBusy] = useState<string | null>(null);
+  const [ratingMessages, setRatingMessages] = useState<Record<string, string>>({});
 
   const refreshBookings = useCallback(async () => {
     const response = await fetch(`/api/bookings?fresh=${Date.now()}`, {
@@ -213,6 +218,28 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
     setRematchingId(null);
   }
 
+  async function submitRating(bookingId: string) {
+    const rating = ratingDrafts[bookingId] ?? 0;
+    if (!rating) {
+      setRatingMessages((current) => ({ ...current, [bookingId]: "Choose a star rating first." }));
+      return;
+    }
+    setRatingBusy(bookingId);
+    setRatingMessages((current) => ({ ...current, [bookingId]: "" }));
+    const response = await fetch(`/api/bookings/${bookingId}/rating`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ rating, comment: ratingComments[bookingId] ?? "" }),
+    });
+    const data = await readJson<{ error?: string }>(response);
+    if (!response.ok) {
+      setRatingMessages((current) => ({ ...current, [bookingId]: data.error ?? "Unable to save your rating." }));
+    } else {
+      await refreshBookings();
+    }
+    setRatingBusy(null);
+  }
+
   return (
     <AppShell role="Customer" title="What religious help do you need?" subtitle="Describe the situation. We guide you and find the best available nearby Pandit.">
       {message && <div className="alert error">{message}</div>}
@@ -321,6 +348,13 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
             </div>
             {hasLiveLocation && <a className="text-button map-link" target="_blank" rel="noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${booking.pandit_latitude},${booking.pandit_longitude}`}>Open current Pandit location</a>}
             {!["REQUESTED", "DECLINED", "CANCELLED"].includes(booking.status) && <div className="arrival-code"><span>Arrival verification code</span><code>{booking.arrival_otp}</code></div>}
+            {booking.status === "COMPLETED" && (booking.customer_rating ? <div className="rating-submitted"><span><Star size={18} fill="currentColor" /> You rated this Puja <strong>{booking.customer_rating}/5</strong></span>{booking.rating_comment && <p>“{booking.rating_comment}”</p>}</div> : <div className="rate-puja">
+              <div><span className="eyebrow">Puja completed</span><h4>How was your experience with {booking.pandit_name ?? "the Pandit"}?</h4><p>Your verified rating helps other families choose confidently.</p></div>
+              <div className="star-picker" aria-label="Choose a rating">{[1,2,3,4,5].map((star) => <button className={star <= (ratingDrafts[booking.id] ?? 0) ? "selected" : ""} aria-label={`${star} star${star === 1 ? "" : "s"}`} onClick={() => setRatingDrafts((current) => ({ ...current, [booking.id]: star }))} key={star}><Star fill="currentColor" /></button>)}</div>
+              <textarea rows={2} maxLength={500} value={ratingComments[booking.id] ?? ""} onChange={(event) => setRatingComments((current) => ({ ...current, [booking.id]: event.target.value }))} placeholder="Share a short comment (optional)" />
+              {ratingMessages[booking.id] && <small className="rating-error">{ratingMessages[booking.id]}</small>}
+              <button className="btn btn-primary" disabled={ratingBusy === booking.id} onClick={() => submitRating(booking.id)}>{ratingBusy === booking.id ? "Saving rating…" : "Submit rating"}</button>
+            </div>)}
           </article>;
         })}</div> : <div className="empty"><Clock3 size={26} /><strong>No active help requests</strong><span>Choose one of the three paths above when you need religious assistance.</span></div>}
       </section>

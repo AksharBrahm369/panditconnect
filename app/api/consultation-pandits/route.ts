@@ -10,7 +10,7 @@ export async function GET() {
     return NextResponse.json({ error: "Customer login required" }, { status: 401 });
   }
   const result = await sql(
-    `SELECT u.id,u.name,u.city,p.experience_years,p.languages,p.specialities,p.rating,
+    `SELECT u.id,u.name,u.city,p.experience_years,p.languages,p.specialities,p.rating,p.rating_count,
        p.completed_jobs,p.consultation_rate_5min
      FROM pim_v2.pandit_profiles p
      JOIN pim_v2.users u ON u.id=p.user_id

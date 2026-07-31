@@ -7,6 +7,7 @@ type FeaturedPandit = {
   experience_years: number;
   languages: string[];
   rating: string;
+  rating_count: number;
   completed_jobs: number;
   is_online: boolean;
   starting_charge: number;
@@ -17,7 +18,7 @@ type FeaturedPandit = {
 
 export async function GET() {
   const result = await sql<FeaturedPandit>(
-    `SELECT u.id,u.name,p.experience_years,p.languages,p.rating,p.completed_jobs,p.is_online,
+    `SELECT u.id,u.name,p.experience_years,p.languages,p.rating,p.rating_count,p.completed_jobs,p.is_online,
        min(ps.charge)::int AS starting_charge,
        array_agg(DISTINCT s.name ORDER BY s.name) AS services,
        count(*) OVER()::int AS total_approved,
@@ -27,8 +28,8 @@ export async function GET() {
      JOIN pim_v2.pandit_services ps ON ps.pandit_id=p.user_id
      JOIN pim_v2.services s ON s.id=ps.service_id
      WHERE p.verification_status='APPROVED'
-     GROUP BY u.id,u.name,p.experience_years,p.languages,p.rating,p.completed_jobs,p.is_online
-     ORDER BY p.is_online DESC,p.rating DESC,p.completed_jobs DESC,u.name
+     GROUP BY u.id,u.name,p.experience_years,p.languages,p.rating,p.rating_count,p.completed_jobs,p.is_online
+     ORDER BY p.is_online DESC,p.rating_count DESC,p.rating DESC,p.completed_jobs DESC,u.name
      LIMIT 6`,
   );
   return NextResponse.json({

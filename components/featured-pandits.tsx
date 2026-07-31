@@ -11,6 +11,7 @@ type FeaturedPandit = {
   experience_years: number;
   languages: string[];
   rating: string;
+  rating_count: number;
   completed_jobs: number;
   is_online: boolean;
   starting_charge: number;
@@ -47,7 +48,7 @@ export function FeaturedPandits() {
         <div className="expert-tags">{pandit.services.slice(0, 3).map((service) => <span key={service}>{service}</span>)}</div>
         <div className="expert-details">
           <span><strong>{pandit.experience_years} yrs</strong> experience</span>
-          <span><strong><Star size={13} fill="currentColor" /> {pandit.rating}</strong> rating</span>
+          <span><strong>{pandit.rating_count ? <><Star size={13} fill="currentColor" /> {pandit.rating}</> : "New"}</strong>{pandit.rating_count ? `${pandit.rating_count} rating${pandit.rating_count === 1 ? "" : "s"}` : "not rated yet"}</span>
           <span><strong>{pandit.completed_jobs}</strong> Pujas done</span>
         </div>
         <p><Languages size={15} /> {pandit.languages.slice(0, 3).join(" · ")}</p>

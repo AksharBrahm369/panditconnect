@@ -10,7 +10,7 @@ type ReviewPandit = {
   id: string; name: string | null; phone: string; city: string | null; experience_years: number;
   languages: string[]; specialities: string[]; bio: string | null; base_charge: number;
   verification_status: string; review_note: string | null; created_at: string; is_online?: boolean;
-  rating?: string; completed_jobs?: number; services?: string[];
+  rating?: string; rating_count?: number; completed_jobs?: number; services?: string[];
 };
 
 export function AdminPortal() {
@@ -86,7 +86,7 @@ export function AdminPortal() {
       <div className="section-title"><div><h2>Approved Pandits</h2><p>All active approved profiles remain visible here after leaving the review queue.</p></div><button className="btn btn-ghost" onClick={load}><RefreshCw size={16} /> Refresh</button></div>
       {approved.length ? <div className="approved-grid">{approved.map((pandit) => <article className="approved-card" key={pandit.id}>
         <div className="approved-head"><span className="avatar">{(pandit.name ?? "P").split(" ").map((part) => part[0]).slice(0,2).join("")}</span><div><strong>{pandit.name ?? "Pandit"}</strong><span><MapPin size={13} /> {pandit.city ?? "City not provided"}</span></div><span className={`availability-dot ${pandit.is_online ? "online" : ""}`}>{pandit.is_online ? "Online" : "Offline"}</span></div>
-        <div className="approved-metrics"><span><b>{pandit.experience_years}</b> years</span><span><b>{pandit.rating ?? "5.0"} <Star size={12} fill="currentColor" /></b> rating</span><span><b>{pandit.completed_jobs ?? 0}</b> visits</span></div>
+        <div className="approved-metrics"><span><b>{pandit.experience_years}</b> years</span><span><b>{pandit.rating_count ? <>{pandit.rating} <Star size={12} fill="currentColor" /></> : "New"}</b>{pandit.rating_count ? `${pandit.rating_count} ratings` : "not rated"}</span><span><b>{pandit.completed_jobs ?? 0}</b> visits</span></div>
         <div className="tag-row">{(pandit.services?.length ? pandit.services : pandit.specialities).slice(0,4).map((item) => <b key={item}>{item}</b>)}</div>
         <div className="approved-foot"><span>+91 ••••••{pandit.phone.slice(-4)}</span><strong>APPROVED</strong></div>
       </article>)}</div> : <div className="empty">No approved Pandits yet.</div>}

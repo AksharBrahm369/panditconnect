@@ -7,7 +7,7 @@ import { ConsultationPanel } from "./consultation-panel";
 import { readJson } from "@/lib/http";
 import { getCurrentCoordinates, type BrowserCoordinates } from "@/lib/browser-location";
 
-type Profile = { name: string | null; city: string | null; experience_years: number; languages: string[]; specialities: string[]; bio: string | null; verification_status: string; review_note?: string | null; is_online: boolean; rating: string; completed_jobs: number; latitude: number | null; longitude: number | null; consultation_online: boolean; consultation_rate_5min: number };
+type Profile = { name: string | null; city: string | null; experience_years: number; languages: string[]; specialities: string[]; bio: string | null; verification_status: string; review_note?: string | null; is_online: boolean; rating: string; rating_count: number; completed_jobs: number; latitude: number | null; longitude: number | null; consultation_online: boolean; consultation_rate_5min: number };
 type Booking = {
   id: string; status: string; service_name: string; customer_name: string | null; amount: number;
   address: string; created_at: string; request_type: string; situation: string | null;
@@ -211,7 +211,7 @@ export function PanditPortal() {
         <section className="stat-grid" id="pandit-status">
           <article><span>Availability</span><strong className={profile.is_online ? "green" : ""}>{profile.is_online ? "Online" : "Offline"}</strong><button className={`switch ${profile.is_online ? "on" : ""}`} onClick={toggleOnline} disabled={busy || locationBusy}><i /><Power size={14} /></button><small><MapPin size={14} /> {profile.is_online ? "Live GPS location active" : "Location refreshes when you go online"}</small></article>
           <article><span>Verification</span><strong>{profile.verification_status.replaceAll("_", " ")}</strong><small><BadgeCheck size={14} /> Admin review status</small></article>
-          <article><span>Rating</span><strong>{profile.rating} ★</strong><small>{profile.completed_jobs} completed Puja visits</small></article>
+          <article><span>Customer rating</span><strong>{profile.rating_count ? `${profile.rating} ★` : "New"}</strong><small>{profile.rating_count ? `${profile.rating_count} verified rating${profile.rating_count === 1 ? "" : "s"}` : "No customer ratings yet"} · {profile.completed_jobs} completed Puja visits</small></article>
         </section>
         <section className={`consultation-availability ${profile.consultation_online ? "online" : ""}`}>
           <span><MessageCircle /></span>

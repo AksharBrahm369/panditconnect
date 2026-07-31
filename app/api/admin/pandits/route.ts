@@ -11,7 +11,7 @@ export async function GET(request: Request) {
       const approved = await sql(
         `SELECT u.id,u.name,u.phone,u.city,u.created_at,p.experience_years,p.languages,
           p.specialities,p.bio,p.base_charge,p.verification_status,p.review_note,
-          p.is_online,p.rating,p.completed_jobs,
+          p.is_online,p.rating,p.rating_count,p.completed_jobs,
           COALESCE(array_agg(DISTINCT s.name) FILTER (WHERE s.name IS NOT NULL),'{}') AS services
          FROM pim_v2.pandit_profiles p
          JOIN pim_v2.users u ON u.id=p.user_id
@@ -20,7 +20,7 @@ export async function GET(request: Request) {
          WHERE p.verification_status='APPROVED'
          GROUP BY u.id,u.name,u.phone,u.city,u.created_at,p.experience_years,p.languages,
           p.specialities,p.bio,p.base_charge,p.verification_status,p.review_note,
-          p.is_online,p.rating,p.completed_jobs
+          p.is_online,p.rating,p.rating_count,p.completed_jobs
          ORDER BY p.is_online DESC,p.rating DESC,u.name`,
       );
       return NextResponse.json(

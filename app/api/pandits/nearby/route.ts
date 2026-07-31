@@ -3,7 +3,7 @@ import { sql } from "@/lib/db";
 
 type NearbyPandit = {
   id: string; name: string; experience_years: number; languages: string[]; rating: string;
-  completed_jobs: number; charge: number; distance_km: string; eta_minutes: number;
+  rating_count: number; completed_jobs: number; charge: number; distance_km: string; eta_minutes: number;
 };
 
 type NearbyCacheEntry = { expiresAt: number; pandits: NearbyPandit[] };
@@ -35,7 +35,7 @@ export async function GET(request: Request) {
     }
     const result = await sql<NearbyPandit>(
       `WITH available AS (
-         SELECT u.id,u.name,p.experience_years,p.languages,p.rating,p.completed_jobs,ps.charge,
+         SELECT u.id,u.name,p.experience_years,p.languages,p.rating,p.rating_count,p.completed_jobs,ps.charge,
            6371 * acos(least(1, greatest(-1,
              cos(radians($2)) * cos(radians(p.latitude)) *
              cos(radians(p.longitude) - radians($3)) +
@@ -47,7 +47,7 @@ export async function GET(request: Request) {
          WHERE p.verification_status='APPROVED' AND p.is_online=true
            AND p.latitude IS NOT NULL AND p.longitude IS NOT NULL
        )
-       SELECT id,name,experience_years,languages,rating,completed_jobs,charge,
+       SELECT id,name,experience_years,languages,rating,rating_count,completed_jobs,charge,
          round(distance::numeric,1)::text AS distance_km,
          greatest(10,round(distance*3)::int+8) AS eta_minutes
        FROM available

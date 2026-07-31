@@ -167,6 +167,29 @@ input:focus, textarea:focus, select:focus { border-color: var(--saffron); box-sh
 .request-unavailable .btn { white-space: nowrap; }
 .request-cancelled { margin: 20px 0; padding: 15px 16px; border: 1px solid var(--line); border-radius: 13px; background: #f6f2ed; }
 .request-cancelled strong { display: block; margin-bottom: 3px; }
+.rate-puja {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) auto;
+  gap: 12px 18px;
+  margin-top: 18px;
+  padding: 18px;
+  border: 1px solid #f0d7a8;
+  border-radius: 15px;
+  background: #fffbf2;
+}
+.rate-puja h4 { margin: 5px 0 3px; font-size: 16px; }
+.rate-puja p { margin: 0; color: var(--muted); font-size: 11px; }
+.star-picker { display: flex; align-items: center; gap: 3px; }
+.star-picker button { width: 34px; height: 34px; padding: 5px; border: 0; color: #d7dce0; background: transparent; }
+.star-picker button.selected { color: #f0aa27; transform: scale(1.08); }
+.star-picker svg { width: 23px; }
+.rate-puja textarea { grid-column: 1 / -1; resize: none; background: white; }
+.rate-puja > .btn { justify-self: end; }
+.rating-error { align-self: center; color: #a5341d; font-weight: 700; }
+.rating-submitted { display: grid; gap: 6px; margin-top: 17px; padding: 13px 15px; border-radius: 12px; color: #6e531d; background: #fff7df; }
+.rating-submitted span { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.rating-submitted svg { color: #eca826; }
+.rating-submitted p { margin: 0; color: #7d6b48; font-size: 11px; }
 @media (max-width: 760px) { .request-unavailable { grid-template-columns: auto 1fr; } .request-unavailable .btn { grid-column: 1 / -1; width: 100%; } }
 .map-link { display: inline-flex; margin-top: 14px; }
 .arrival-code { display: flex; justify-content: space-between; align-items: center; padding: 12px 14px; margin-top: 15px; border-radius: 11px; background: var(--soft); }
@@ -1264,4 +1287,6 @@ input:focus, textarea:focus, select:focus { border-color: #f07b58; box-shadow: 0
   .consultation-topic { grid-template-columns: 1fr; }
   .chat-bubble { max-width: 88%; }
   .chat-composer { grid-template-columns: 1fr; }
+  .rate-puja { grid-template-columns: 1fr; }
+  .rate-puja textarea, .rate-puja > .btn { grid-column: auto; width: 100%; }
 }
