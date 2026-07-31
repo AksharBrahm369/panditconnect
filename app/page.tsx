@@ -1,13 +1,15 @@
 import Link from "next/link";
 import Image from "next/image";
-import { ArrowRight, BadgeCheck, CalendarX2, CircleHelp, Clock3, House, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, BadgeCheck, CalendarX2, CircleHelp, Clock3, Flame, Flower2, House, MapPin, ShieldCheck, Sparkles } from "lucide-react";
 import { LiveAvailabilityCard } from "@/components/live-availability-card";
+import { FeaturedPandits } from "@/components/featured-pandits";
 
 export default function Home() {
   return (
     <main>
       <nav className="topbar">
         <Link href="/" className="brand"><span className="brand-mark">ॐ</span><span>Pandit in Minutes</span></Link>
+        <div className="public-nav"><a href="#common-pujas">Popular Pujas</a><a href="#pandit-network">Pandit network</a><a href="#how-it-works">How it works</a></div>
         <div className="nav-actions">
           <Link href="/login?role=pandit" className="btn btn-ghost">For Pandits</Link>
           <Link href="/login?role=customer" className="btn btn-primary">Find a Pandit now</Link>
@@ -37,6 +39,20 @@ export default function Home() {
           <LiveAvailabilityCard />
         </div>
       </section>
+
+      <div className="feature-ticker" aria-label="Platform benefits"><div><span><BadgeCheck /> Approved Pandit profiles</span><i>◆</i><span><Clock3 /> Urgent nearby matching</span><i>◆</i><span><ShieldCheck /> Private phone and address</span><i>◆</i><span><MapPin /> Live journey updates</span></div></div>
+
+      <section className="common-pujas" id="common-pujas">
+        <div className="common-heading"><div><span className="eyebrow">Popular requests</span><h2>Choose a Puja—or simply ask for guidance</h2><p>Know what you need? Start faster. Unsure? Describe the occasion and we will recommend the right ritual.</p></div><Link href="/login?role=customer" className="btn btn-ghost">I need guidance <ArrowRight size={16} /></Link></div>
+        <div className="common-grid">
+          <Link href="/login?role=customer"><span><Flower2 /></span><div><strong>Ganesh Puja</strong><small>New beginnings and prosperity</small></div><ArrowRight /></Link>
+          <Link href="/login?role=customer"><span><House /></span><div><strong>Griha Pravesh</strong><small>Blessing for a new home</small></div><ArrowRight /></Link>
+          <Link href="/login?role=customer"><span><Sparkles /></span><div><strong>Satyanarayan Puja</strong><small>Family wellbeing and gratitude</small></div><ArrowRight /></Link>
+          <Link href="/login?role=customer"><span><Flame /></span><div><strong>Havan / Homam</strong><small>Purification and sacred ceremony</small></div><ArrowRight /></Link>
+        </div>
+      </section>
+
+      <FeaturedPandits />
 
       <section className="scenario-section">
         <div className="scenario-intro"><span className="eyebrow">Start from your problem</span><h2>You do not need to know the Puja name.</h2><p>Choose the situation that feels closest. The app handles the religious terminology and matching.</p></div>
