@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { digest, normalizePhone, randomToken, rememberSession, SESSION_COOKIE, type AppUser, type Role } from "@/lib/auth";
+import { digest, forgetSession, normalizePhone, randomToken, rememberSession, SESSION_COOKIE, type AppUser, type Role } from "@/lib/auth";
 import { sql } from "@/lib/db";
 
 export async function POST(request: Request) {
@@ -34,6 +34,15 @@ export async function POST(request: Request) {
     if (role === "PANDIT") {
       await sql(`INSERT INTO pim_v2.pandit_profiles(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`, [user.id]);
     }
+
+    // A browser may verify a second number without explicitly signing out first.
+    // Retire that browser's previous session before assigning the new account.
+    const previousToken = request.headers.get("cookie")?.match(/(?:^|;\s*)pim_v2_session=([^;]+)/)?.[1];
+    if (previousToken) {
+      await sql(`DELETE FROM pim_v2.sessions WHERE token_hash=$1`, [await digest(previousToken)]);
+      await forgetSession(previousToken);
+    }
+
     const token = randomToken();
     await sql(
       `INSERT INTO pim_v2.sessions(id,user_id,token_hash,expires_at)
@@ -42,7 +51,10 @@ export async function POST(request: Request) {
     );
     await rememberSession(token, user);
     await sql(`UPDATE pim_v2.otp_challenges SET verified_at=now() WHERE id=$1`, [latest.id]);
-    const response = NextResponse.json({ success: true, redirectTo: role === "PANDIT" ? "/pandit" : "/customer" });
+    const response = NextResponse.json(
+      { success: true, redirectTo: role === "PANDIT" ? "/pandit" : "/customer" },
+      { headers: { "Cache-Control": "private, no-store, max-age=0", Vary: "Cookie" } },
+    );
     response.cookies.set(SESSION_COOKIE, token, {
       httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 * 24 * 30,
     });

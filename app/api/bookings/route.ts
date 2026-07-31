@@ -2,9 +2,22 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
+const privateResponse = <T,>(body: T, init?: ResponseInit) =>
+  NextResponse.json(body, {
+    ...init,
+    headers: {
+      ...init?.headers,
+      "Cache-Control": "private, no-store, max-age=0, must-revalidate",
+      Vary: "Cookie",
+    },
+  });
+
 export async function GET() {
   const user = await currentUser();
-  if (!user) return NextResponse.json({ error: "Please log in" }, { status: 401 });
+  if (!user) return privateResponse({ error: "Please log in" }, { status: 401 });
 
   if (user.role === "CUSTOMER") {
     const result = await sql(
@@ -19,7 +32,7 @@ export async function GET() {
        WHERE b.customer_id=$1 ORDER BY b.created_at DESC LIMIT 20`,
       [user.id],
     );
-    return NextResponse.json({ bookings: result.rows });
+    return privateResponse({ customerId: user.id, bookings: result.rows });
   }
 
   if (user.role === "PANDIT") {
@@ -35,10 +48,10 @@ export async function GET() {
        WHERE b.pandit_id=$1 ORDER BY b.created_at DESC LIMIT 20`,
       [user.id],
     );
-    return NextResponse.json({ bookings: result.rows });
+    return privateResponse({ panditId: user.id, bookings: result.rows });
   }
 
-  return NextResponse.json({ bookings: [] });
+  return privateResponse({ bookings: [] });
 }
 
 export async function POST(request: Request) {

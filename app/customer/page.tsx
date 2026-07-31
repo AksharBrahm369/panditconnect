@@ -8,6 +8,5 @@ export default async function CustomerPage() {
   const user = await currentUser();
   if (!user) redirect("/login?role=customer");
   if (user.role !== "CUSTOMER") redirect("/pandit");
-  return <CustomerPortal />;
+  return <CustomerPortal key={user.id} customerId={user.id} />;
 }
-

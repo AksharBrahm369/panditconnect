@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle, ArrowLeft, BadgeHelp, CheckCircle2, ChevronRight, Clock3,
   Compass, MapPin, Mic, PackageCheck, RefreshCw, ShieldCheck, Sparkles,
@@ -41,7 +41,7 @@ function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number) {
   return 6371 * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
 }
 
-export function CustomerPortal() {
+export function CustomerPortal({ customerId }: { customerId: string }) {
   const [services, setServices] = useState<Service[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [requestType, setRequestType] = useState<RequestType | null>(null);
@@ -62,21 +62,39 @@ export function CustomerPortal() {
   const [rematchingId, setRematchingId] = useState<string | null>(null);
   const [rematchErrors, setRematchErrors] = useState<Record<string, string>>({});
 
-  async function refreshBookings() {
-    const response = await fetch(`/api/bookings?fresh=${Date.now()}`, { cache: "no-store" });
-    const data = await readJson<{ bookings?: Booking[] }>(response);
+  const refreshBookings = useCallback(async () => {
+    const response = await fetch(`/api/bookings?fresh=${Date.now()}`, {
+      cache: "no-store",
+      credentials: "same-origin",
+      headers: { "Cache-Control": "no-cache" },
+    });
+    const data = await readJson<{ customerId?: string; bookings?: Booking[] }>(response);
+    if (response.status === 401) {
+      setBookings([]);
+      window.location.assign("/login?role=customer");
+      return;
+    }
+    if (!response.ok || data.customerId !== customerId) {
+      setBookings([]);
+      setMessage("Your account session changed. Please sign in again to protect your booking history.");
+      await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
+      window.location.assign("/login?role=customer");
+      return;
+    }
     setBookings(data.bookings ?? []);
-  }
+  }, [customerId]);
 
   useEffect(() => {
     fetch("/api/services").then((response) => readJson<{ services: Service[] }>(response))
       .then((data) => setServices(data.services ?? []));
-    void refreshBookings();
+    const initialLoad = window.setTimeout(() => void refreshBookings(), 0);
     const timer = window.setInterval(refreshBookings, 10_000);
-    return () => window.clearInterval(timer);
-  }, []);
+    return () => {
+      window.clearTimeout(initialLoad);
+      window.clearInterval(timer);
+    };
+  }, [refreshBookings]);
 
-  const selectedService = services.find((service) => service.id === serviceId);
   const guidance = useMemo(
     () => recommendation ?? (serviceId ? ritualForService(serviceId) : null),
     [recommendation, serviceId],
