@@ -53,6 +53,7 @@ export function CustomerPortal() {
   const [notes, setNotes] = useState("");
   const [coordinates, setCoordinates] = useState<BrowserCoordinates | null>(null);
   const [recommendation, setRecommendation] = useState<RitualRecommendation | null>(null);
+  const [guidanceError, setGuidanceError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [locationBusy, setLocationBusy] = useState(false);
@@ -86,6 +87,7 @@ export function CustomerPortal() {
     setServiceId("");
     setSituation("");
     setRecommendation(null);
+    setGuidanceError("");
     setMatch(null);
     setMessage("");
   }
@@ -107,12 +109,13 @@ export function CustomerPortal() {
 
   function getGuidance() {
     if (situation.trim().length < 10) {
-      setMessage("Please briefly explain the occasion or problem so we can guide you.");
+      setGuidanceError("Please describe the occasion or problem in at least 10 characters so we can recommend the right ritual.");
       return;
     }
     const result = recommendRitual(situation);
     setRecommendation(result);
     setServiceId(result.serviceId);
+    setGuidanceError("");
     setMessage("");
   }
 
@@ -131,7 +134,10 @@ export function CustomerPortal() {
     recognition.lang = language === "Hindi" ? "hi-IN" : language === "Marathi" ? "mr-IN" : "en-IN";
     recognition.interimResults = false;
     recognition.continuous = false;
-    recognition.onresult = (event) => setSituation((current) => `${current} ${event.results[0][0].transcript}`.trim());
+    recognition.onresult = (event) => {
+      setSituation((current) => `${current} ${event.results[0][0].transcript}`.trim());
+      setGuidanceError("");
+    };
     recognition.onerror = () => setMessage("Voice input could not start. Check microphone permission.");
     recognition.onend = () => setListening(false);
     setListening(true);
@@ -215,10 +221,14 @@ export function CustomerPortal() {
               </div>
 
               {requestType !== "KNOWN_PUJA" && (
-                <label>Describe the situation
-                  <textarea rows={5} value={situation} onChange={(event) => setSituation(event.target.value)} placeholder={requestType === "PANDIT_SOS" ? "Example: Our Griha Pravesh is today at 11 AM and our Pandit cancelled." : "Example: We are opening a new shop and do not know which Puja is suitable."} />
-                  <button type="button" className={`voice-button ${listening ? "active" : ""}`} onClick={startVoiceInput}><Mic size={16} /> {listening ? "Listening…" : "Speak instead of typing"}</button>
-                </label>
+                <>
+                  <label>Describe the situation
+                    <textarea rows={5} value={situation} aria-invalid={Boolean(guidanceError)} onChange={(event) => { setSituation(event.target.value); setGuidanceError(""); }} placeholder={requestType === "PANDIT_SOS" ? "Example: Our Griha Pravesh is today at 11 AM and our Pandit cancelled." : "Example: We are opening a new shop and do not know which Puja is suitable."} />
+                    <button type="button" className={`voice-button ${listening ? "active" : ""}`} onClick={startVoiceInput}><Mic size={16} /> {listening ? "Listening…" : "Speak instead of typing"}</button>
+                  </label>
+                  {guidanceError && <div className="field-error" role="alert">{guidanceError}</div>}
+                  {!guidanceError && <p className="field-hint">For example: “We are opening a new shop” or “Our Pandit cancelled today.”</p>}
+                </>
               )}
 
               {(requestType !== "NEED_GUIDANCE" || recommendation) && (

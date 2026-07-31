@@ -130,6 +130,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--saffron); box-sh
 .guided-workspace { display: grid; grid-template-columns: minmax(0,1fr) 360px; gap: 22px; align-items: start; }
 .guided-main { background: white; border: 1px solid var(--line); border-radius: 17px; padding: 28px; display: grid; gap: 22px; }
 .flow-heading h2 { margin: 8px 0 0; font-size: 29px; letter-spacing: -.03em; }
+.field-error { margin-top: -7px; padding: 10px 12px; border-radius: 9px; color: #a5270c; background: #fff0eb; font-size: 12px; font-weight: 700; }
+.field-hint { margin: -7px 0 0; color: var(--muted); font-size: 12px; }
 .voice-button { justify-self: start; display: inline-flex; align-items: center; gap: 7px; border: 0; background: #f2eee9; color: var(--muted); padding: 9px 12px; border-radius: 9px; font-weight: 700; }
 .voice-button.active { color: white; background: var(--saffron); }
 .guidance-card { padding: 21px; border: 1px solid #c8ead9; border-radius: 15px; background: var(--green-soft); }
