@@ -248,11 +248,18 @@ export function CustomerPortal() {
         <div className="section-title"><div><h2>Live requests</h2><p>Acceptance, journey and arrival verification in one place.</p></div><button className="icon-button" onClick={refreshBookings} aria-label="Refresh requests"><RefreshCw size={17} /></button></div>
         {bookings.length ? <div className="tracking-list">{bookings.map((booking) => {
           const activeIndex = statusOrder.indexOf(booking.status);
+          const isDeclined = booking.status === "DECLINED";
+          const isCancelled = booking.status === "CANCELLED";
           const hasLiveLocation = booking.pandit_latitude != null && booking.pandit_longitude != null && !["REQUESTED", "DECLINED", "CANCELLED"].includes(booking.status);
           const distance = hasLiveLocation ? distanceKm(booking.latitude, booking.longitude, booking.pandit_latitude!, booking.pandit_longitude!) : null;
           return <article className="tracking-card" key={booking.id}>
             <div className="tracking-head"><div><span className="status">{booking.request_type.replaceAll("_", " ")}</span><h3>{booking.service_name}</h3><p>{booking.pandit_name ?? "Finding a Pandit"}</p></div><strong>₹{booking.amount.toLocaleString("en-IN")}</strong></div>
-            <div className="status-track">{statusOrder.slice(0, 5).map((status, index) => <span className={index <= activeIndex ? "done" : ""} key={status}><i />{status.replaceAll("_", " ")}</span>)}</div>
+            {isDeclined ? <div className="request-unavailable">
+              <AlertTriangle size={22} />
+              <div><strong>This Pandit is unavailable</strong><p>{booking.pandit_name ?? "The selected Pandit"} could not accept your request. No booking has been confirmed or charged. Send a new request and we will find another available nearby Pandit.</p></div>
+              <button className="btn btn-primary" onClick={() => { choosePath(booking.request_type); window.scrollTo({ top: 0, behavior: "smooth" }); }}>Find another Pandit</button>
+            </div> : isCancelled ? <div className="request-cancelled"><strong>Request cancelled</strong><p>This request is closed and no booking is active.</p></div> :
+            <div className="status-track">{statusOrder.slice(0, 5).map((status, index) => <span className={index <= activeIndex ? "done" : ""} key={status}><i />{status.replaceAll("_", " ")}</span>)}</div>}
             <div className="tracking-meta">
               <span><PackageCheck size={15} /> {materialsLabels[booking.materials_option] ?? "Materials guidance requested"}</span>
               {distance != null && <span><MapPin size={15} /> Pandit is approximately {distance.toFixed(1)} km away</span>}
