@@ -1,3 +1,11 @@
+-- Safety gate: demo marketplace records must never be loaded accidentally.
+DO $$
+BEGIN
+  IF current_setting('pim.allow_demo_seed', true) <> 'I_UNDERSTAND_THIS_IS_NOT_PRODUCTION' THEN
+    RAISE EXCEPTION 'Demo seed blocked. Use only in an isolated development database.';
+  END IF;
+END $$;
+
 INSERT INTO pim_v2.users(id,phone,role,name,city) VALUES
  ('11111111-1111-4111-8111-111111111111','+919000000101','PANDIT','Acharya Ramesh Joshi','Mumbai'),
  ('22222222-2222-4222-8222-222222222222','+919000000102','PANDIT','Pandit Amit Shastri','Mumbai'),

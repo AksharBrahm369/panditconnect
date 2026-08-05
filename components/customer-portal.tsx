@@ -287,11 +287,12 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
               )}
 
               {(requestType !== "NEED_GUIDANCE" || recommendation) && (
-                <div className="service-grid">
+                <><div className="service-grid">
                   {services.map((service) => <button key={service.id} className={`select-card ${serviceId === service.id ? "selected" : ""}`} onClick={() => { setServiceId(service.id); setRecommendation(ritualForService(service.id)); }}>
                     <span className="service-icon">ॐ</span><div><strong>{service.name}</strong><small>{service.description}</small></div><b>from ₹{service.base_price.toLocaleString("en-IN")}</b>
                   </button>)}
                 </div>
+                {!services.length && <div className="empty"><strong>Puja services are being prepared</strong><span>Please try again shortly or contact support for urgent assistance.</span></div>}</>
               )}
 
               {requestType === "NEED_GUIDANCE" && !recommendation && <button className="btn btn-primary" onClick={getGuidance}><Compass size={17} /> Recommend the right ritual</button>}

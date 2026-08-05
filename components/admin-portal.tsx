@@ -40,12 +40,15 @@ export function AdminPortal() {
 
   async function load() {
     const response = await fetch(`/api/admin/overview?fresh=${Date.now()}`, { cache: "no-store" });
-    const result = await readJson<Overview>(response);
+    const result = await readJson<Overview & { error?: string }>(response);
+    if (response.status === 401 || response.status === 403) { window.location.assign("/admin/login?reason=session"); return; }
+    if (!response.ok) { setNotice(result.error ?? "Unable to load the admin workspace"); return; }
     setData(result);
     setApproved(result.approved ?? []);
   }
   useEffect(() => {
-    void load();
+    const timer = window.setTimeout(() => void load(), 0);
+    return () => window.clearTimeout(timer);
   }, []);
 
   async function openQueue() {

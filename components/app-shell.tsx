@@ -39,7 +39,7 @@ export function AppShell({ role, title, subtitle, children }: { role: "Customer"
         <nav className="portal-tabs" aria-label={`${role} navigation`}>
           {navigation.map(({ label, href, icon: Icon }, index) => <a className={index === 0 ? "active" : ""} href={href} key={href}><Icon size={17} /><span>{label}</span></a>)}
         </nav>
-        <div className="portal-account"><span>{role === "Admin" ? <ShieldCheck /> : role === "Pandit" ? <BadgeCheck /> : <Sparkles />}</span><div><small>Signed in as</small><strong>{role}</strong></div>{role !== "Admin" && <button className="icon-button" onClick={logout} aria-label="Log out"><LogOut size={17} /></button>}</div>
+        <div className="portal-account"><span>{role === "Admin" ? <ShieldCheck /> : role === "Pandit" ? <BadgeCheck /> : <Sparkles />}</span><div><small>Signed in as</small><strong>{role}</strong></div><button className="icon-button" onClick={logout} aria-label="Log out"><LogOut size={17} /></button></div>
       </header>
 
       <main className="portal-main">

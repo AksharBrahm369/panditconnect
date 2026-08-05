@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { digest, forgetSession, normalizePhone, randomToken, rememberSession, SESSION_COOKIE, type AppUser, type Role } from "@/lib/auth";
 import { sql } from "@/lib/db";
+import { serverSecret } from "@/lib/env";
 
 export async function POST(request: Request) {
   try {
@@ -16,7 +17,7 @@ export async function POST(request: Request) {
     const latest = challenge.rows[0];
     if (!latest) return NextResponse.json({ error: "OTP expired. Request a new code." }, { status: 400 });
     if (latest.attempts >= 5) return NextResponse.json({ error: "Too many attempts. Request a new code." }, { status: 429 });
-    const pepper = process.env.OTP_HASH_PEPPER ?? "local-development-pepper";
+    const pepper = serverSecret("OTP_HASH_PEPPER");
     const expected = await digest(`${phone}:${body.otp ?? ""}:${pepper}`);
     if (expected !== latest.otp_hash) {
       await sql(`UPDATE pim_v2.otp_challenges SET attempts=attempts+1 WHERE id=$1`, [latest.id]);

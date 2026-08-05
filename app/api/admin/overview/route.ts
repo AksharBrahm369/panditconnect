@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
+import { requireAdmin } from "@/lib/auth";
+import { authorizationResponse } from "@/lib/api-auth";
 
 export const dynamic = "force-dynamic";
 
 export async function GET() {
+  try { await requireAdmin(); } catch (error) {
+    const response = authorizationResponse(error);
+    if (response) return response;
+    throw error;
+  }
   const result = await sql<{
     users: number;
     pending_pandits: number;
@@ -20,7 +27,7 @@ export async function GET() {
       COALESCE((
         SELECT json_agg(row_to_json(recent_rows)) FROM (
           SELECT b.id,b.status,b.amount,b.created_at,s.name AS service_name,
-            cu.phone AS customer_phone,pu.name AS pandit_name
+            right(cu.phone,4) AS customer_phone,pu.name AS pandit_name
           FROM pim_v2.bookings b
           JOIN pim_v2.services s ON s.id=b.service_id
           JOIN pim_v2.users cu ON cu.id=b.customer_id

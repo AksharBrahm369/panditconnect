@@ -5,6 +5,10 @@ export type Role = "CUSTOMER" | "PANDIT" | "ADMIN";
 export type AppUser = { id: string; phone: string; role: Role; name: string | null; city: string | null };
 export const SESSION_COOKIE = "pim_v2_session";
 
+export class AuthorizationError extends Error {
+  constructor(public status: 401 | 403, message: string) { super(message); }
+}
+
 type CachedSession = { user: AppUser; expiresAt: number };
 
 declare global {
@@ -73,3 +77,19 @@ export async function currentUser(): Promise<AppUser | null> {
   }
   return user;
 }
+
+export async function requireUser() {
+  const user = await currentUser();
+  if (!user) throw new AuthorizationError(401, "Please log in to continue.");
+  return user;
+}
+
+async function requireRole(role: Role) {
+  const user = await requireUser();
+  if (user.role !== role) throw new AuthorizationError(403, "You do not have permission to access this page.");
+  return user;
+}
+
+export const requireCustomer = () => requireRole("CUSTOMER");
+export const requirePandit = () => requireRole("PANDIT");
+export const requireAdmin = () => requireRole("ADMIN");

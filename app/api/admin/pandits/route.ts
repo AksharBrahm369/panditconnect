@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
+import { requireAdmin } from "@/lib/auth";
+import { authorizationResponse } from "@/lib/api-auth";
+import { recordAdminAction } from "@/lib/admin-audit";
 
 type ReviewAction = "APPROVE" | "REQUEST_CHANGES";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request) {
   try {
+    await requireAdmin();
     const approvedOnly = new URL(request.url).searchParams.get("scope") === "approved";
     if (approvedOnly) {
       const approved = await sql(
@@ -46,6 +50,8 @@ export async function GET(request: Request) {
       { headers: { "Cache-Control": "no-store, max-age=0" } },
     );
   } catch (error) {
+    const authResponse = authorizationResponse(error);
+    if (authResponse) return authResponse;
     console.error("Unable to load Pandit review queue", error);
     return NextResponse.json({ error: "Unable to load the review queue" }, { status: 500 });
   }
@@ -53,6 +59,7 @@ export async function GET(request: Request) {
 
 export async function PATCH(request: Request) {
   try {
+    const admin = await requireAdmin();
     const body = await request.json() as { panditId?: string; action?: ReviewAction; note?: string };
     if (!body.panditId || !["APPROVE", "REQUEST_CHANGES"].includes(body.action ?? "")) {
       return NextResponse.json({ error: "Choose a valid review action" }, { status: 400 });
@@ -75,6 +82,7 @@ export async function PATCH(request: Request) {
          ON CONFLICT(pandit_id,service_id) DO UPDATE SET charge=EXCLUDED.charge`,
         [body.panditId],
       );
+      await recordAdminAction(request, admin.id, "PANDIT_APPROVED", "PANDIT_PROFILE", body.panditId);
     } else {
       await sql(
         `UPDATE pim_v2.pandit_profiles
@@ -82,9 +90,12 @@ export async function PATCH(request: Request) {
          WHERE user_id=$1`,
         [body.panditId, body.note?.trim()],
       );
+      await recordAdminAction(request, admin.id, "PANDIT_CHANGES_REQUESTED", "PANDIT_PROFILE", body.panditId, { noteProvided: true });
     }
     return NextResponse.json({ success: true });
   } catch (error) {
+    const authResponse = authorizationResponse(error);
+    if (authResponse) return authResponse;
     console.error("Pandit review action failed", error);
     return NextResponse.json({ error: "Unable to save this review action" }, { status: 500 });
   }
