@@ -140,6 +140,8 @@ export function PanditPortal() {
       setActionErrors((current) => ({ ...current, [id]: data.error ?? "Action unavailable" }));
     } else if (status === "IN_PROGRESS") {
       setArrivalOtps((current) => ({ ...current, [id]: "" }));
+    } else if (status === "COMPLETED") {
+      setNotice("Puja completed. The payment options are now visible on the customer's phone. You will see their choice below.");
     }
     await loadBookings();
     setBusy(false);
@@ -218,8 +220,8 @@ export function PanditPortal() {
             {b.status === "IN_PROGRESS" && <button className="btn btn-primary btn-block" disabled={busy} onClick={() => transition(b.id, "COMPLETED")}>Complete Puja</button>}
           </div>{actionErrors[b.id] && <div className="inline-action-error">{actionErrors[b.id]}</div>}</article>)}</div> : <div className="empty"><BellRing size={26} /><strong>No active requests</strong><span>Stay online. New urgent bookings will appear here automatically.</span></div>}
         </section>
-        <section className="history" id="completed-pujas"><div className="section-title"><div><h2>Recent completed Puja</h2><p>Payment choices confirmed by customers appear here.</p></div></div>
-          {completed.length ? <div className="completed-payment-list">{completed.map((booking) => <article key={booking.id}><div><strong>{booking.service_name}</strong><span>{booking.customer_name ?? "Customer"} · ₹{booking.amount.toLocaleString("en-IN")}</span></div><span className={`status ${booking.payment_status === "CONFIRMED" ? "paid" : ""}`}>{booking.payment_status === "CONFIRMED" ? booking.payment_method === "CASH" ? "Cash confirmed" : "Payment arranged" : "Awaiting payment choice"}</span></article>)}</div> : <div className="empty compact">No completed Puja yet.</div>}
+        <section className="history" id="completed-pujas"><div className="section-title"><div><h2>Customer payment status</h2><p>The customer chooses the payment method from their phone after you complete the Puja.</p></div></div>
+          {completed.length ? <div className="completed-payment-list">{completed.map((booking) => <article key={booking.id}><div><strong>{booking.service_name}</strong><span>{booking.customer_name ?? "Customer"} · ₹{booking.amount.toLocaleString("en-IN")}</span>{booking.payment_status !== "CONFIRMED" && <small>Waiting for the customer. Cash, UPI and Card options are shown only on the customer&apos;s completed booking.</small>}</div><span className={`status ${booking.payment_status === "CONFIRMED" ? "paid" : ""}`}>{booking.payment_status === "CONFIRMED" ? booking.payment_method === "CASH" ? "Customer chose Cash" : "Customer arranged payment" : "Customer choosing payment"}</span></article>)}</div> : <div className="empty compact">No completed Puja yet.</div>}
         </section>
       </>}
     </AppShell>

@@ -1491,6 +1491,7 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .completed-payment-list article { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: white; }
 .completed-payment-list article > div { min-width: 0; display: grid; gap: 3px; }
 .completed-payment-list article > div span { color: var(--muted); font-size: 12px; }
+.completed-payment-list article > div small { max-width: 650px; color: var(--muted); font-size: 11px; line-height: 1.45; }
 .completed-payment-list .status.paid { color: #08774c; background: #e8f7ef; }
 
 @media (max-width: 700px) {
