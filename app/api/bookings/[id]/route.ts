@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
+import { notifyUser } from "@/lib/push-notifications";
 
 const transitions: Record<string, string[]> = {
   REQUESTED: ["ACCEPTED", "DECLINED", "CANCELLED"],
@@ -67,5 +68,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (!updated.rows[0]) {
     return NextResponse.json({ error: "This request changed on another screen. Please refresh and try again." }, { status: 409 });
   }
+  const recipientId = user.id === booking.pandit_id ? booking.customer_id : booking.pandit_id;
+  const statusCopy: Record<string, string> = { ACCEPTED: "Your Pandit accepted the request.", DECLINED: "The Pandit is unavailable. Find another nearby Pandit.", CANCELLED: "The booking request was cancelled.", ON_THE_WAY: "Your Pandit is on the way.", ARRIVED: "Your Pandit has arrived. Share the arrival OTP in person.", IN_PROGRESS: "Your Puja service has started.", COMPLETED: "Your Puja is complete. Please leave a rating." };
+  await notifyUser(recipientId, { title: "Booking update", body: statusCopy[body.status] ?? `Booking status: ${body.status.replaceAll("_", " ")}`, url: user.role === "PANDIT" ? "/customer#live-requests" : "/pandit#pandit-requests", eventType: `BOOKING_${body.status}` });
   return NextResponse.json({ success: true, status: updated.rows[0].status });
 }

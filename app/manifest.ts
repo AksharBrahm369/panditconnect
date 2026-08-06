@@ -1,0 +1,2 @@
+import type { MetadataRoute } from "next";
+export default function manifest(): MetadataRoute.Manifest { return { name: "Pandit in Minutes", short_name: "PanditConnect", description: "Urgent Puja help from verified nearby Pandits.", start_url: "/", display: "standalone", background_color: "#fffaf5", theme_color: "#c54824", icons: [{ src: "/favicon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" }] }; }

@@ -1,12 +1,13 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
+import { notifyUser } from "@/lib/push-notifications";
 
 export const dynamic = "force-dynamic";
 
 async function authorized(consultationId: string, userId: string) {
-  const result = await sql<{ status: string; ends_at: string }>(
-    `SELECT status,ends_at FROM pim_v2.consultations
+  const result = await sql<{ status: string; ends_at: string; customer_id: string; pandit_id: string }>(
+    `SELECT status,ends_at,customer_id,pandit_id FROM pim_v2.consultations
      WHERE id=$1 AND (customer_id=$2 OR pandit_id=$2)`,
     [consultationId, userId],
   );
@@ -49,5 +50,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
      VALUES($1,$2,$3,$4) RETURNING id,body,created_at,sender_id`,
     [crypto.randomUUID(), id, user.id, message],
   );
+  const recipientId = user.id === consultation.customer_id ? consultation.pandit_id : consultation.customer_id;
+  await notifyUser(recipientId, { title: "New guidance message", body: `${user.name ?? (user.role === "PANDIT" ? "Pandit" : "Customer")}: ${message.slice(0, 100)}`, url: user.role === "PANDIT" ? "/customer#online-guidance" : "/pandit#online-guidance", eventType: "CHAT_MESSAGE" });
   return NextResponse.json({ message: result.rows[0] });
 }

@@ -15,6 +15,8 @@ export const metadata: Metadata = {
     images: [{ url: "/og.png", width: 1776, height: 887, alt: "Pandit in Minutes" }],
   },
   twitter: { card: "summary_large_image", images: ["/og.png"] },
+  manifest: "/manifest.webmanifest",
+  appleWebApp: { capable: true, statusBarStyle: "default", title: "PanditConnect" },
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {

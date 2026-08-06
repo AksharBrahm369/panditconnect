@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
+import { notifyUser } from "@/lib/push-notifications";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -130,6 +131,7 @@ export async function POST(request: Request) {
       body.situation?.trim().slice(0, 1200) || null, preferredLanguage || null, materialsOption,
     ],
   );
+  await notifyUser(pandit.id, { title: "New urgent Puja request", body: `${body.serviceId.replaceAll("-", " ")} request is waiting for your response.`, url: "/pandit#pandit-requests", eventType: "BOOKING_REQUESTED" });
   return NextResponse.json({
     success: true,
     bookingId: id,

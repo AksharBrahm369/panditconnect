@@ -3,6 +3,7 @@ import { sql } from "@/lib/db";
 import { requireAdmin } from "@/lib/auth";
 import { authorizationResponse } from "@/lib/api-auth";
 import { recordAdminAction } from "@/lib/admin-audit";
+import { notifyUser } from "@/lib/push-notifications";
 
 type ReviewAction = "APPROVE" | "REJECT" | "REQUEST_CHANGES" | "START_REVIEW" | "UPDATE_CHECKLIST";
 const checks = ["identityStatus","documentStatus","referenceStatus","videoInterviewStatus","knowledgeCheckStatus","bankStatus"] as const;
@@ -82,6 +83,8 @@ export async function PATCH(request: Request) {
           : "CHANGES_REQUESTED";
     await sql(`INSERT INTO pim_v2.pandit_verification_events(id,pandit_id,admin_user_id,action,note) VALUES($1,$2,$3,$4,$5)`, [crypto.randomUUID(), panditId, admin.id, eventAction, body.note?.trim() || null]);
     await recordAdminAction(request, admin.id, `PANDIT_${body.action}`, "PANDIT_PROFILE", panditId, { noteProvided: Boolean(body.note?.trim()) });
+    const reviewCopy = body.action === "APPROVE" ? "Your Pandit profile has been approved." : body.action === "REJECT" ? "Your Pandit application was not approved. Open your profile for details." : body.action === "REQUEST_CHANGES" ? "The verification team requested changes to your Pandit profile." : "The verification team started reviewing your profile.";
+    await notifyUser(panditId, { title: "Pandit verification update", body: reviewCopy, url: "/pandit", eventType: `PANDIT_${eventAction}` });
     return NextResponse.json({ success: true });
   } catch (error) {
     const authResponse = authorizationResponse(error); if (authResponse) return authResponse;
