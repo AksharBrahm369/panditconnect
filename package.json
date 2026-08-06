@@ -15,7 +15,8 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:audit": "node --env-file=.env scripts/audit-db.mjs",
     "db:legacy-audit": "node --env-file=.env scripts/audit-legacy-schema.mjs",
-    "db:generate": "drizzle-kit generate"
+    "db:generate": "drizzle-kit generate",
+    "e2e:production-flow": "node --env-file=.env scripts/e2e-production-flow.mjs"
   },
   "dependencies": {
     "cross-env": "^10.0.0",
