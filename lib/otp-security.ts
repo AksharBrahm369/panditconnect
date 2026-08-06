@@ -27,7 +27,8 @@ function testPhoneAllowlist() {
 }
 
 export function developmentOtpAllowed(request: Request, phone: string) {
-  return (appEnvironment() === "development" && localRequest(request)) || testPhoneAllowlist().has(phone);
+  const allTestPhonesEnabled = process.env.OTP_ALLOW_ALL_TEST_PHONES?.trim().toLowerCase() === "true";
+  return allTestPhonesEnabled || (appEnvironment() === "development" && localRequest(request)) || testPhoneAllowlist().has(phone);
 }
 
 export async function assertOtpVerificationAllowed(phone: string) {

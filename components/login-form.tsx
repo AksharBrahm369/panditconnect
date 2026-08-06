@@ -71,7 +71,7 @@ export function LoginForm({ initialRole }: { initialRole: "CUSTOMER" | "PANDIT" 
             <button className="btn btn-primary btn-block btn-lg" disabled={busy || phone.length !== 10} onClick={requestOtp}>{busy ? "Sending…" : "Continue with OTP"}</button>
             <p className="form-reassurance"><LockKeyhole size={14} /> Used only for secure account access. Never displayed publicly.</p>
           </> : <>
-            {devOtp && <div className="alert success"><strong>Testing OTP:</strong> {devOtp}<br /><small>Shown only for an approved test number. Do not use this account for real customer data.</small></div>}
+            {devOtp && <div className="alert success"><strong>Testing OTP:</strong> {devOtp}<br /><small>Testing mode only—this code was not sent by SMS. Do not use test accounts for real customer data.</small></div>}
             <label>6-digit OTP</label>
             <input className="otp-field" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" />
             <button className="btn btn-primary btn-block btn-lg" disabled={busy || otp.length !== 6} onClick={verify}>{busy ? "Verifying…" : "Verify and continue"}</button>

@@ -67,10 +67,12 @@ test("only successfully delivered OTP challenges can be verified", async () => {
   }
 });
 
-test("visible testing OTP is restricted to localhost or an explicit phone allowlist", async () => {
+test("visible testing OTP requires an explicit testing-mode switch, localhost or an allowlist", async () => {
   const security = await readFile(new URL("../lib/otp-security.ts", import.meta.url), "utf8");
   const requestRoute = await readFile(new URL("../app/api/auth/request/route.ts", import.meta.url), "utf8");
   assert.match(security, /OTP_TEST_PHONE_ALLOWLIST/);
+  assert.match(security, /OTP_ALLOW_ALL_TEST_PHONES/);
+  assert.match(security, /allTestPhonesEnabled/);
   assert.match(security, /testPhoneAllowlist\(\)\.has\(phone\)/);
   assert.match(security, /hostname === "localhost"/);
   assert.doesNotMatch(requestRoute, /devOtp:\s*otp/);
