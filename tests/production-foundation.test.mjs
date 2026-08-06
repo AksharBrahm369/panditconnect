@@ -89,4 +89,7 @@ test("trusted Pandit onboarding uses private Supabase storage and auditable revi
   assert.match(storage, /createPrivateSignedUrl/);
   assert.doesNotMatch(storage, /getPublicUrl|\/object\/public\//);
   assert.match(adminRoute, /Complete and verify every review check before approval/);
+  assert.match(adminRoute, /body\.action === "APPROVE"[\s\S]*\? "APPROVED"/);
+  assert.match(adminRoute, /body\.action === "REJECT"[\s\S]*\? "REJECTED"/);
+  assert.match(adminRoute, /: "CHANGES_REQUESTED"/);
 });

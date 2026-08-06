@@ -73,7 +73,13 @@ export async function PATCH(request: Request) {
       const status = body.action === "START_REVIEW" ? "UNDER_REVIEW" : body.action === "REJECT" ? "REJECTED" : "CHANGES_REQUESTED";
       await sql(`UPDATE pim_v2.pandit_profiles SET verification_status=$2,review_note=$3,is_online=false,reviewed_at=CASE WHEN $2 IN ('REJECTED','CHANGES_REQUESTED') THEN now() ELSE reviewed_at END,updated_at=now() WHERE user_id=$1`, [panditId, status, body.note?.trim() || null]);
     }
-    const eventAction = body.action === "START_REVIEW" ? "UNDER_REVIEW" : body.action!;
+    const eventAction = body.action === "START_REVIEW"
+      ? "UNDER_REVIEW"
+      : body.action === "APPROVE"
+        ? "APPROVED"
+        : body.action === "REJECT"
+          ? "REJECTED"
+          : "CHANGES_REQUESTED";
     await sql(`INSERT INTO pim_v2.pandit_verification_events(id,pandit_id,admin_user_id,action,note) VALUES($1,$2,$3,$4,$5)`, [crypto.randomUUID(), panditId, admin.id, eventAction, body.note?.trim() || null]);
     await recordAdminAction(request, admin.id, `PANDIT_${body.action}`, "PANDIT_PROFILE", panditId, { noteProvided: Boolean(body.note?.trim()) });
     return NextResponse.json({ success: true });
