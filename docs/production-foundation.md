@@ -61,6 +61,19 @@ Before migrations or cleanup, verify a recent Supabase backup. Free-tier project
 - `npm run db:audit` performs a read-only schema and integrity audit.
 - `npm run db:legacy-audit` classifies legacy `public` tables without modifying them.
 
+## Free OTP development mode
+
+Until DLT and real SMS delivery are funded, use `APP_ENV=development` and
+`OTP_PROVIDER=development` only on `localhost`. Development codes are refused
+on public hosts even if an environment is accidentally mislabelled. OTP requests
+have a 60-second resend cooldown, hourly and daily phone limits, a daily network
+limit, cumulative failed-attempt blocking, one active code per phone and role,
+and opportunistic cleanup after two days. Delivery status is recorded without
+storing the plaintext OTP.
+
+The public production login remains unavailable until a real provider is
+configured. Never weaken this restriction to make a public demo easier.
+
 ## Known remaining production blockers
 
 This foundation does not complete payments, payout reconciliation, document storage/KYC, legal review, support operations, load testing, or the controlled marketplace pilot. Real production OTP delivery must be configured externally before customer launch.

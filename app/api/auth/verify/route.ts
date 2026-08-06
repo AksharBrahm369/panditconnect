@@ -2,15 +2,19 @@ import { NextResponse } from "next/server";
 import { digest, forgetSession, normalizePhone, randomToken, rememberSession, SESSION_COOKIE, type AppUser, type Role } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { serverSecret } from "@/lib/env";
+import { assertOtpVerificationAllowed, otpErrorResponse } from "@/lib/otp-security";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json() as { phone?: string; otp?: string; role?: Role };
     const phone = normalizePhone(body.phone ?? "");
     const role = body.role === "PANDIT" ? "PANDIT" : "CUSTOMER";
+    await assertOtpVerificationAllowed(phone);
     const challenge = await sql<{ id: string; otp_hash: string; attempts: number }>(
       `SELECT id,otp_hash,attempts FROM pim_v2.otp_challenges
        WHERE phone=$1 AND role=$2 AND verified_at IS NULL AND expires_at>now()
+         AND delivery_status IN ('DEVELOPMENT','SENT')
+         AND delivery_status IN ('DEVELOPMENT','SENT')
        ORDER BY created_at DESC LIMIT 1`,
       [phone, role],
     );
@@ -61,6 +65,8 @@ export async function POST(request: Request) {
     });
     return response;
   } catch (error) {
+    const otpResponse = otpErrorResponse(error);
+    if (otpResponse) return otpResponse;
     console.error("OTP verification failed", error);
     return NextResponse.json({ error: "Unable to verify OTP. Please try again." }, { status: 500 });
   }

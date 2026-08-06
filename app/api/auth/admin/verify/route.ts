@@ -3,15 +3,19 @@ import { adminPhoneAllowlist, serverSecret } from "@/lib/env";
 import { digest, forgetSession, normalizePhone, randomToken, rememberSession, SESSION_COOKIE, type AppUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { recordAdminAction } from "@/lib/admin-audit";
+import { assertOtpVerificationAllowed, otpErrorResponse } from "@/lib/otp-security";
 
 export async function POST(request: Request) {
   try {
     const body = await request.json() as { phone?: string; otp?: string };
     const phone = normalizePhone(body.phone ?? "");
     if (!adminPhoneAllowlist().has(phone)) return NextResponse.json({ error: "Administrator access could not be verified." }, { status: 403 });
+    await assertOtpVerificationAllowed(phone);
     const challenge = await sql<{ id: string; otp_hash: string; attempts: number }>(
       `SELECT id,otp_hash,attempts FROM pim_v2.otp_challenges
        WHERE phone=$1 AND role='ADMIN' AND verified_at IS NULL AND expires_at>now()
+         AND delivery_status IN ('DEVELOPMENT','SENT')
+         AND delivery_status IN ('DEVELOPMENT','SENT')
        ORDER BY created_at DESC LIMIT 1`,
       [phone],
     );
@@ -47,6 +51,8 @@ export async function POST(request: Request) {
     response.cookies.set(SESSION_COOKIE, token, { httpOnly: true, sameSite: "strict", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 * 8 });
     return response;
   } catch (error) {
+    const otpResponse = otpErrorResponse(error);
+    if (otpResponse) return otpResponse;
     console.error("Admin OTP verification failed", error);
     return NextResponse.json({ error: "Administrator access could not be verified." }, { status: 500 });
   }

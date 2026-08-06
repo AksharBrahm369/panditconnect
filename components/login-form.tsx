@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, BadgeCheck, Clock3, LockKeyhole, MapPin } from "lucide-react";
 
@@ -12,14 +12,21 @@ export function LoginForm({ initialRole }: { initialRole: "CUSTOMER" | "PANDIT" 
   const [step, setStep] = useState<"phone" | "otp">("phone");
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+  const [resendIn, setResendIn] = useState(0);
+
+  useEffect(() => {
+    if (resendIn <= 0) return;
+    const timer = window.setTimeout(() => setResendIn((seconds) => Math.max(0, seconds - 1)), 1000);
+    return () => window.clearTimeout(timer);
+  }, [resendIn]);
 
   async function requestOtp() {
     setBusy(true); setError("");
     try {
       const response = await fetch("/api/auth/request", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ phone, role }) });
-      const data = await response.json() as { error?: string; devOtp?: string };
-      if (!response.ok) throw new Error(data.error ?? "Unable to send OTP");
-      setDevOtp(data.devOtp ?? ""); setOtp(data.devOtp ?? ""); setStep("otp");
+      const data = await response.json() as { error?: string; devOtp?: string; retryAfter?: number };
+      if (!response.ok) { if (data.retryAfter) setResendIn(Math.min(data.retryAfter, 86400)); throw new Error(data.error ?? "Unable to send OTP"); }
+      setDevOtp(data.devOtp ?? ""); setOtp(data.devOtp ?? ""); setResendIn(data.retryAfter ?? 60); setStep("otp");
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Unable to send OTP"); }
     finally { setBusy(false); }
   }
@@ -68,7 +75,8 @@ export function LoginForm({ initialRole }: { initialRole: "CUSTOMER" | "PANDIT" 
             <label>6-digit OTP</label>
             <input className="otp-field" value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, "").slice(0, 6))} inputMode="numeric" />
             <button className="btn btn-primary btn-block btn-lg" disabled={busy || otp.length !== 6} onClick={verify}>{busy ? "Verifying…" : "Verify and continue"}</button>
-            <button className="text-button" onClick={() => setStep("phone")}>Change mobile number</button>
+            <button className="text-button" disabled={busy || resendIn > 0} onClick={requestOtp}>{resendIn > 0 ? `Resend OTP in ${resendIn}s` : "Resend OTP"}</button>
+            <button className="text-button" onClick={() => { setStep("phone"); setOtp(""); setDevOtp(""); setResendIn(0); }}>Change mobile number</button>
           </>}
         </div>
       </section>

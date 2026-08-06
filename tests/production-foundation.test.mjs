@@ -47,3 +47,35 @@ test("secret files are ignored while the placeholder file is committed", async (
   assert.match(ignore, /^!\.env\.example$/m);
   assert.doesNotMatch(example, /postgres(?:ql)?:\/\/[^"\s]+:[^"\s]+@/i);
 });
+
+test("only successfully delivered OTP challenges can be verified", async () => {
+  for (const relative of ["../app/api/auth/verify/route.ts", "../app/api/auth/admin/verify/route.ts"]) {
+    const source = await readFile(new URL(relative, import.meta.url), "utf8");
+    assert.match(source, /delivery_status IN \('DEVELOPMENT','SENT'\)/);
+  }
+});
+
+test("development OTP is restricted to localhost and production never returns it", async () => {
+  const security = await readFile(new URL("../lib/otp-security.ts", import.meta.url), "utf8");
+  const requestRoute = await readFile(new URL("../app/api/auth/request/route.ts", import.meta.url), "utf8");
+  assert.match(security, /appEnvironment\(\) === "development" && localRequest\(request\)/);
+  assert.match(security, /hostname === "localhost"/);
+  assert.doesNotMatch(requestRoute, /devOtp:\s*otp/);
+});
+
+test("OTP security enforces cooldown, daily limits, retirement and cleanup", async () => {
+  const security = await readFile(new URL("../lib/otp-security.ts", import.meta.url), "utf8");
+  assert.match(security, /RESEND_COOLDOWN_SECONDS = 60/);
+  assert.match(security, /PHONE_DAILY_LIMIT = 20/);
+  assert.match(security, /IP_HOURLY_LIMIT = 20/);
+  assert.match(security, /IP_DAILY_LIMIT = 50/);
+  assert.match(security, /created_at<now\(\)-interval '2 days'/);
+  assert.match(security, /SET expires_at=LEAST\(expires_at,now\(\)\)/);
+});
+
+test("OTP migration tracks delivery without storing plaintext codes", async () => {
+  const migration = await readFile(new URL("../db/migrations/0010_otp_security_foundation.sql", import.meta.url), "utf8");
+  assert.match(migration, /delivery_status/);
+  assert.doesNotMatch(migration, /plaintext|otp_value|otp_code/i);
+  assert.doesNotMatch(migration, /DROP\s+(TABLE|SCHEMA)/i);
+});
