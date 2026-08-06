@@ -1,12 +1,13 @@
 import webpush from "web-push";
 import { sql } from "./db";
+import { VAPID_PUBLIC_KEY } from "./push-config";
 
 type PushRow = { id: string; endpoint: string; p256dh: string; auth: string };
 
 export async function notifyUser(userId: string, message: { title: string; body: string; url: string; eventType: string }) {
   await sql(`INSERT INTO pim_v2.notifications(id,user_id,title,body,url,event_type) VALUES($1,$2,$3,$4,$5,$6)`,
     [crypto.randomUUID(), userId, message.title, message.body, message.url, message.eventType]);
-  const publicKey = process.env.VAPID_PUBLIC_KEY?.trim();
+  const publicKey = VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY?.trim();
   if (!publicKey || !privateKey) return;
   webpush.setVapidDetails(process.env.VAPID_SUBJECT?.trim() || "mailto:support@panditconnect.in", publicKey, privateKey);
