@@ -144,3 +144,16 @@ test("security hardening protects arrival codes, uploads and state-changing requ
   assert.match(config, /Content-Security-Policy/);
   assert.match(config, /Strict-Transport-Security/);
 });
+
+test("mobile navigation and core workspaces use responsive phone layouts", async () => {
+  const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
+  const shell = await readFile(new URL("../components/app-shell.tsx", import.meta.url), "utf8");
+  const admin = await readFile(new URL("../components/admin-portal.tsx", import.meta.url), "utf8");
+  assert.match(shell, /mobile-nav-\$\{navigation\.length\}/);
+  assert.match(styles, /\.portal-mobile-nav\.mobile-nav-4[\s\S]*repeat\(4,minmax\(0,1fr\)\)/);
+  assert.match(styles, /env\(safe-area-inset-bottom\)/);
+  assert.match(styles, /input, textarea, select \{ min-height: 46px; font-size: 16px; \}/);
+  assert.match(styles, /@media \(max-width: 390px\)/);
+  assert.match(admin, /admin-bookings-table/);
+  assert.match(admin, /data-label="Status"/);
+});

@@ -1338,3 +1338,138 @@ input:focus, textarea:focus, select:focus { border-color: #f07b58; box-shadow: 0
 /* Grid children must be allowed to shrink so tables scroll inside their card
    instead of widening the entire Admin page on phones. */
 .workspace > *, .admin-workspace > *, .workspace-main, .table-wrap { min-width: 0; max-width: 100%; }
+
+/* Mobile-first production pass. Keep this layer last so phone layouts win over
+   the earlier desktop theme layers. */
+html, body { max-width: 100%; overflow-x: clip; }
+button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
+
+@media (max-width: 820px) {
+  .portal-mobile-nav.mobile-nav-3 { grid-template-columns: repeat(3,minmax(0,1fr)); }
+  .portal-mobile-nav.mobile-nav-4 { grid-template-columns: repeat(4,minmax(0,1fr)); }
+}
+
+@media (max-width: 700px) {
+  body { min-width: 0; }
+  button, .btn, .icon-button, .text-button, .portal-mobile-nav a { min-height: 44px; }
+  input, textarea, select { min-height: 46px; font-size: 16px; }
+  textarea { min-height: 112px; }
+
+  .topbar { gap: 10px; padding-inline: 12px; }
+  .topbar .brand { min-width: 0; gap: 8px; }
+  .topbar .brand-mark { width: 34px; height: 34px; flex: 0 0 34px; }
+  .topbar .nav-actions { gap: 6px; }
+  .topbar .nav-actions .btn-primary { white-space: nowrap; }
+
+  .hero { padding-inline: 16px; }
+  .hero h1 { overflow-wrap: anywhere; font-size: clamp(36px, 11.5vw, 50px); }
+  .hero-choices > a { grid-template-columns: auto minmax(0,1fr) auto; padding: 14px; }
+  .hero-photo { height: min(105vw, 390px); }
+  .hero-showcase { min-height: 0; }
+  .hero-showcase .hero-panel { position: relative; inset: auto; width: 100%; margin-top: 12px; }
+  .mini-card { grid-template-columns: auto minmax(0,1fr); }
+  .mini-card > strong { grid-column: 2; }
+  .simple-trust, .featured-pandits, .how, .common-pujas { padding-inline: 16px; }
+  .how-cta { padding: 20px; }
+  footer { padding: 26px 18px calc(26px + env(safe-area-inset-bottom)); }
+  .footer-links { gap: 12px 18px; }
+
+  .auth-shell { display: block; min-height: 100dvh; }
+  .auth-side { min-height: 210px; padding: 22px 20px; }
+  .auth-side > div { margin-top: 26px; }
+  .auth-side h1 { margin-block: 12px; font-size: clamp(29px, 9vw, 40px); }
+  .auth-side > p { display: none; }
+  .auth-form-wrap { min-height: auto; padding: 16px 12px 30px; }
+  .auth-card { width: 100%; padding: 22px 18px; border-radius: 20px; }
+  .auth-card h1, .auth-card h2 { overflow-wrap: anywhere; font-size: 29px; }
+  .role-tabs button { min-width: 0; padding-inline: 8px; }
+
+  .portal-header { grid-template-columns: minmax(0,1fr) auto; gap: 8px; padding-inline: 12px; }
+  .portal-brand { min-width: 0; }
+  .portal-account { gap: 6px; }
+  .portal-account > span { display: none; }
+  .portal-main { width: calc(100% - 24px); padding: 24px 0 calc(112px + env(safe-area-inset-bottom)); }
+  .page-heading { margin-bottom: 22px; }
+  .page-heading h1 { overflow-wrap: anywhere; font-size: clamp(28px, 9vw, 36px); line-height: 1.08; }
+  .page-heading p { line-height: 1.55; }
+  .portal-mobile-nav { inset: auto 8px calc(8px + env(safe-area-inset-bottom)); grid-template-columns: none; grid-auto-flow: column; grid-auto-columns: minmax(0,1fr); gap: 2px; overflow: hidden; }
+  .portal-mobile-nav a { min-width: 0; padding: 7px 2px; line-height: 1.1; }
+  .portal-mobile-nav a span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+  .intent-shell, .guided-main, .side-card, .history, .tracking-card, .workspace-main, .onboarding-card, .consultation-center { padding: 16px; border-radius: 16px; }
+  .intent-card { grid-template-columns: 38px minmax(0,1fr) auto; min-height: 0; padding: 16px; }
+  .role-action-banner { grid-template-columns: 42px minmax(0,1fr); }
+  .request-top, .approved-head { grid-template-columns: auto minmax(0,1fr); }
+  .request-top > :last-child, .approved-head > :last-child { grid-column: 2; justify-self: start; }
+  .status-track { margin-inline: -4px; scroll-snap-type: x proximity; overscroll-behavior-inline: contain; }
+  .status-track span { scroll-snap-align: start; }
+  .request-unavailable { grid-template-columns: auto minmax(0,1fr); }
+  .confirm-card { padding: 20px 16px; }
+  .confirm-grid { display: block; }
+  .confirm-grid > div { border-right: 0; border-bottom: 1px solid var(--line); }
+  .confirm-grid > div:last-child { border-bottom: 0; }
+
+  .onboarding-header { gap: 12px; }
+  .onboarding-header h1 { overflow-wrap: anywhere; font-size: 29px; }
+  .progress-ring { width: 68px; height: 68px; flex-basis: 68px; }
+  .pricing-row { grid-template-columns: auto minmax(0,1fr); }
+  .price-input { grid-column: 1 / -1 !important; grid-template-columns: auto minmax(0,1fr) !important; }
+  .price-input input { width: 100%; }
+  .document-upload { grid-template-columns: auto minmax(0,1fr); }
+  .document-state { grid-column: 2; justify-self: start; }
+  .document-upload input[type="file"] { max-width: 100%; }
+  .requirements-ready { align-items: flex-start; }
+
+  .review-drawer { width: 100%; padding: 18px 14px calc(24px + env(safe-area-inset-bottom)); border-radius: 0; }
+  .review-drawer > header { position: sticky; top: 0; z-index: 2; margin: -18px -14px 12px; padding: 15px 14px; background: rgba(255,255,255,.96); backdrop-filter: blur(12px); }
+  .review-list-item { grid-template-columns: auto minmax(0,1fr); }
+  .review-profile-head { grid-template-columns: auto minmax(0,1fr); }
+  .verification-checklist { padding: 14px; }
+  .review-actions, .review-actions.multi { display: grid; grid-template-columns: 1fr; }
+  .review-actions .btn { width: 100%; }
+
+  .admin-bookings-table { overflow: visible; border: 0; background: transparent; }
+  .admin-bookings-table table, .admin-bookings-table tbody, .admin-bookings-table tr, .admin-bookings-table td { display: block; width: 100%; }
+  .admin-bookings-table thead { display: none; }
+  .admin-bookings-table tbody { display: grid; gap: 10px; }
+  .admin-bookings-table tr { padding: 12px 14px; border: 1px solid var(--line); border-radius: 13px; background: white; }
+  .admin-bookings-table td { display: grid; grid-template-columns: minmax(72px,.42fr) minmax(0,1fr); gap: 10px; padding: 7px 0; border: 0; overflow-wrap: anywhere; }
+  .admin-bookings-table td::before { content: attr(data-label); color: var(--muted); font-size: 11px; font-weight: 750; text-transform: uppercase; letter-spacing: .04em; }
+
+  .consultation-chat { border-radius: 14px; }
+  .consultation-chat > header { padding: 12px; }
+  .consultation-avatar { flex: 0 0 auto; }
+  .chat-messages { min-height: 48dvh; max-height: 58dvh; padding: 14px 10px; }
+  .chat-bubble { max-width: 92%; overflow-wrap: anywhere; }
+  .chat-composer { position: sticky; bottom: 0; padding: 10px; background: white; }
+  .chat-composer textarea { min-height: 76px; }
+
+  .notification-panel { inset: 68px 8px auto; width: auto; max-height: calc(100dvh - 84px); border-radius: 16px; }
+  .notification-permission { grid-template-columns: auto minmax(0,1fr); }
+  .notification-permission button { grid-column: 1 / -1; width: 100%; min-height: 44px; }
+  .notification-enabled { align-items: flex-start; gap: 8px; padding: 10px 12px; }
+  .notification-enabled .notification-message { margin: 0; }
+
+  .legal-document { width: calc(100% - 20px); margin: 18px auto 40px; padding: 22px 17px; border-radius: 18px; }
+  .legal-document h1 { font-size: 34px; }
+  .legal-summary { font-size: 16px; }
+}
+
+@media (max-width: 390px) {
+  .topbar .brand span:last-child { display: none; }
+  .portal-mobile-nav a { font-size: 8px; }
+  .portal-mobile-nav a svg { width: 17px; height: 17px; }
+  .page-heading h1 { font-size: 28px; }
+  .stat-grid, .admin-stats { grid-template-columns: 1fr; }
+  .intent-card { grid-template-columns: 36px minmax(0,1fr); }
+  .intent-card > svg:last-child { display: none; }
+  .role-action-banner { grid-template-columns: 1fr; }
+  .role-action-icon { width: 44px; height: 44px; }
+  .review-profile-head .avatar { width: 46px; height: 46px; }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .portal-mobile-nav { position: static; margin: 12px; }
+  .portal-main { padding-bottom: 28px; }
+  .notification-panel { max-height: calc(100dvh - 76px); }
+}

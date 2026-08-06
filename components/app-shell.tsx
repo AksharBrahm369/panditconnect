@@ -48,7 +48,7 @@ export function AppShell({ role, title, subtitle, children }: { role: "Customer"
         {children}
       </main>
 
-      <nav className="portal-mobile-nav" aria-label={`${role} mobile navigation`}>
+      <nav className={`portal-mobile-nav mobile-nav-${navigation.length}`} aria-label={`${role} mobile navigation`}>
         {navigation.map(({ label, href, icon: Icon }) => <a href={href} key={href}><Icon size={19} /><span>{label}</span></a>)}
       </nav>
     </div>
