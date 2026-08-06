@@ -273,7 +273,7 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
     setRatingBusy(null);
   }
 
-  async function confirmPaymentMethod(bookingId: string, method: "CASH" | "OTHER") {
+  async function confirmPaymentMethod(bookingId: string, method: "CASH") {
     setPaymentBusy(bookingId);
     setPaymentMessages((current) => ({ ...current, [bookingId]: "" }));
     const response = await fetch(`/api/bookings/${bookingId}/payment`, {
@@ -399,11 +399,10 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
             {!["REQUESTED", "DECLINED", "CANCELLED"].includes(booking.status) && <div className="arrival-code"><span>Arrival verification code</span><code>{booking.arrival_otp}</code></div>}
             {booking.status === "COMPLETED" && <div className="booking-payment">
               <div><span className="eyebrow">Action required · Payment</span><h4>{booking.payment_status === "CONFIRMED" ? "Payment method confirmed" : "Puja completed — choose a payment method"}</h4><p>Select the method you will use. No online charge is made by the platform during beta.</p></div>
-              {booking.payment_status === "CONFIRMED" ? <div className="payment-confirmed"><CheckCircle2 size={20} /><span><strong>{booking.payment_method === "CASH" ? "Cash" : "Payment arranged directly"}</strong><small>Confirmed for this completed Puja</small></span></div> : <div className="payment-method-grid">
-                <button disabled={paymentBusy === booking.id} onClick={() => confirmPaymentMethod(booking.id, "CASH")}><Banknote /><span><strong>Cash</strong><small>Pay the Pandit directly</small></span></button>
+              {booking.payment_status === "CONFIRMED" ? <div className="payment-confirmed"><CheckCircle2 size={20} /><span><strong>{booking.payment_method === "CASH" ? "Cash" : "Previously recorded payment"}</strong><small>Confirmed for this completed Puja</small></span></div> : <div className="payment-method-grid">
+                <button disabled={paymentBusy === booking.id} onClick={() => confirmPaymentMethod(booking.id, "CASH")}><Banknote /><span><strong>Cash</strong><small>Pay with cash after Puja</small></span></button>
                 <button disabled title="Available after secure payment setup"><Smartphone /><span><strong>UPI</strong><small>Coming soon</small></span></button>
                 <button disabled title="Available after secure payment setup"><CreditCard /><span><strong>Card</strong><small>Coming soon</small></span></button>
-                <button disabled={paymentBusy === booking.id} onClick={() => confirmPaymentMethod(booking.id, "OTHER")}><PackageCheck /><span><strong>Other</strong><small>Arranged directly</small></span></button>
               </div>}
               {paymentMessages[booking.id] && <small className="payment-error">{paymentMessages[booking.id]}</small>}
             </div>}

@@ -3,7 +3,7 @@ import { currentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { notifyUser } from "@/lib/push-notifications";
 
-const offlineMethods = new Set(["CASH", "OTHER"]);
+const availableMethods = new Set(["CASH"]);
 
 export async function POST(request: Request, context: { params: Promise<{ id: string }> }) {
   const user = await currentUser();
@@ -16,7 +16,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   if (["UPI", "CARD"].includes(method)) {
     return NextResponse.json({ error: `${method} payment will be available after the secure payment gateway is configured.` }, { status: 409 });
   }
-  if (!offlineMethods.has(method)) {
+  if (!availableMethods.has(method)) {
     return NextResponse.json({ error: "Choose a valid payment method." }, { status: 400 });
   }
   const result = await sql<{ pandit_id: string; payment_method: string; payment_status: string }>(
@@ -32,7 +32,7 @@ export async function POST(request: Request, context: { params: Promise<{ id: st
   }
   await notifyUser(payment.pandit_id, {
     title: "Payment method confirmed",
-    body: method === "CASH" ? "The customer confirmed cash payment for the completed Puja." : "The customer confirmed an offline payment arrangement.",
+    body: "The customer selected cash payment for the completed Puja.",
     url: "/pandit#completed-pujas",
     eventType: "BOOKING_PAYMENT_CONFIRMED",
   });

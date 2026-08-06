@@ -172,4 +172,5 @@ test("completed Puja payment choice is persisted without pretending to process o
   assert.match(customer, />UPI</);
   assert.match(customer, />Card</);
   assert.match(customer, /Coming soon/);
+  assert.doesNotMatch(customer, /confirmPaymentMethod\(booking\.id, "OTHER"\)/);
 });

@@ -1477,7 +1477,7 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .booking-payment { display: grid; gap: 14px; margin-top: 18px; padding: 18px; border: 1px solid #dce5df; border-radius: 15px; background: #f8fbf9; }
 .booking-payment h4 { margin: 5px 0; font-size: 18px; }
 .booking-payment p { margin: 0; color: var(--muted); font-size: 12px; }
-.payment-method-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 9px; }
+.payment-method-grid { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 9px; }
 .payment-method-grid button { min-width: 0; display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 9px; padding: 12px; border: 1px solid #dce5df; border-radius: 12px; color: var(--ink); background: white; text-align: left; cursor: pointer; }
 .payment-method-grid button:not(:disabled):hover { border-color: var(--primary); box-shadow: 0 0 0 2px #f7ddd2; }
 .payment-method-grid button:disabled { opacity: .52; cursor: not-allowed; }
