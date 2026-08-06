@@ -1,2 +1,22 @@
 import type { MetadataRoute } from "next";
-export default function manifest(): MetadataRoute.Manifest { return { name: "Pandit in Minutes", short_name: "PanditConnect", description: "Urgent Puja help from verified nearby Pandits.", start_url: "/", display: "standalone", background_color: "#fffaf5", theme_color: "#c54824", icons: [{ src: "/favicon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" }] }; }
+
+export default function manifest(): MetadataRoute.Manifest {
+  return {
+    id: "/",
+    name: "Pandit in Minutes",
+    short_name: "PanditConnect",
+    description: "Urgent Puja help from verified nearby Pandits.",
+    start_url: "/",
+    scope: "/",
+    display: "standalone",
+    orientation: "portrait-primary",
+    background_color: "#fffaf5",
+    theme_color: "#c54824",
+    categories: ["lifestyle", "services"],
+    icons: [
+      { src: "/icon-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
+      { src: "/icon-512.png", sizes: "512x512", type: "image/png", purpose: "any" },
+      { src: "/icon-512-maskable.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+    ],
+  };
+}

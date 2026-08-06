@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
+import { paymentsEnabled } from "@/lib/payments";
 
 export const dynamic = "force-dynamic";
 
@@ -22,7 +23,7 @@ export async function GET() {
     [user.id, user.role],
   );
   return NextResponse.json(
-    { userId: user.id, consultations: result.rows },
+    { userId: user.id, consultations: result.rows, paymentsEnabled: paymentsEnabled() },
     { headers: { "Cache-Control": "private, no-store, max-age=0", Vary: "Cookie" } },
   );
 }
@@ -46,13 +47,15 @@ export async function POST(request: Request) {
   const available = pandit.rows[0];
   if (!available) return NextResponse.json({ error: "This Pandit is no longer available for chat." }, { status: 409 });
   const id = crypto.randomUUID();
-  const amount = available.consultation_rate_5min * blocks;
+  const billingEnabled = paymentsEnabled();
+  const amount = billingEnabled ? available.consultation_rate_5min * blocks : 0;
+  const paymentStatus = billingEnabled ? "PENDING" : "FREE_BETA";
   const result = await sql(
     `INSERT INTO pim_v2.consultations(
-       id,customer_id,pandit_id,topic,rate_5min,blocks,amount,ends_at
-     ) VALUES($1,$2,$3,$4,$5,$6::int,$7,now()+($6::int*interval '5 minutes'))
+       id,customer_id,pandit_id,topic,rate_5min,blocks,amount,payment_status,ends_at
+     ) VALUES($1,$2,$3,$4,$5,$6::int,$7,$8,now()+($6::int*interval '5 minutes'))
      RETURNING id,topic,status,rate_5min,blocks,amount,payment_status,started_at,ends_at`,
-    [id, user.id, body.panditId, topic, available.consultation_rate_5min, blocks, amount],
+    [id, user.id, body.panditId, topic, available.consultation_rate_5min, blocks, amount, paymentStatus],
   );
-  return NextResponse.json({ consultation: result.rows[0] });
+  return NextResponse.json({ consultation: result.rows[0], paymentsEnabled: billingEnabled });
 }

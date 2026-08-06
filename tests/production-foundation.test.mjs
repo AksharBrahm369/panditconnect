@@ -117,3 +117,15 @@ test("sessions persist independently from mutable account roles", async () => {
   assert.doesNotMatch(adminVerify, /DO UPDATE SET role='ADMIN'/);
   assert.match(adminVerify, /interval '30 days'/);
 });
+
+test("unconfigured payments create explicitly free beta consultations", async () => {
+  const payments = await readFile(new URL("../lib/payments.ts", import.meta.url), "utf8");
+  const route = await readFile(new URL("../app/api/consultations/route.ts", import.meta.url), "utf8");
+  const panel = await readFile(new URL("../components/consultation-panel.tsx", import.meta.url), "utf8");
+  assert.match(payments, /provider !== "development"/);
+  assert.match(payments, /PAYMENT_PROVIDER_KEY_ID/);
+  assert.match(payments, /PAYMENT_PROVIDER_KEY_SECRET/);
+  assert.match(route, /billingEnabled \? available\.consultation_rate_5min \* blocks : 0/);
+  assert.match(route, /"FREE_BETA"/);
+  assert.match(panel, /Free beta mode: no payment or charge is collected/);
+});

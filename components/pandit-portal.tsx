@@ -157,7 +157,7 @@ export function PanditPortal() {
     });
     const data = await readJson<{ error?: string }>(response);
     setNotice(response.ok
-      ? profile.consultation_online ? "Online guidance is now paused." : "You are now available for paid live guidance."
+      ? profile.consultation_online ? "Online guidance is now paused." : "You are now available for live beta guidance."
       : data.error ?? "Unable to update consultation availability.");
     setBusy(false);
     await loadProfile(false);
@@ -184,8 +184,8 @@ export function PanditPortal() {
         </section>
         <section className={`consultation-availability ${profile.consultation_online ? "online" : ""}`}>
           <span><MessageCircle /></span>
-          <div><span className="eyebrow">Remote guidance</span><h2>{profile.consultation_online ? "You are available for live chat" : "Offer paid online guidance"}</h2><p>Useful when you cannot travel or when a customer only needs quick ritual guidance.</p></div>
-          <label>Charge per 5 minutes<input type="number" min="20" max="5000" value={consultationRate} onChange={(event) => setConsultationRate(Number(event.target.value))} /></label>
+          <div><span className="eyebrow">Remote guidance</span><h2>{profile.consultation_online ? "You are available for live chat" : "Offer online guidance"}</h2><p>Free during beta. Your future five-minute rate is saved for when secure payments launch.</p></div>
+          <label>Future rate per 5 minutes<input type="number" min="20" max="5000" value={consultationRate} onChange={(event) => setConsultationRate(Number(event.target.value))} /></label>
           <button className={`btn ${profile.consultation_online ? "btn-ghost" : "btn-primary"}`} disabled={busy} onClick={toggleConsultation}>{profile.consultation_online ? "Pause live chat" : "Go online for chat"}</button>
         </section>
         <ConsultationPanel role="PANDIT" />

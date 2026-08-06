@@ -75,6 +75,15 @@ button { cursor: pointer; }
 .steps-grid h3 { margin: 25px 0 8px; font-size: 20px; }
 .steps-grid p { margin: 0; color: var(--muted); line-height: 1.6; }
 footer { display: flex; justify-content: space-between; padding: 28px clamp(24px,7vw,110px); border-top: 1px solid var(--line); color: var(--muted); font-size: 13px; }
+.footer-links { display: flex; flex-wrap: wrap; gap: 18px; }
+.legal-page { min-height: 100vh; background: #f6f8fa; }
+.legal-document { width: min(820px, calc(100% - 32px)); margin: 48px auto 80px; padding: clamp(28px, 5vw, 58px); border: 1px solid var(--line); border-radius: 28px; background: #fff; box-shadow: 0 20px 60px rgba(24,33,43,.07); }
+.legal-document h1 { margin: 14px 0; font-size: clamp(34px, 6vw, 54px); letter-spacing: -.05em; }
+.legal-summary { color: var(--muted); font-size: 18px; line-height: 1.65; }
+.legal-date { padding: 12px 14px; border-radius: 12px; color: #805119; background: #fff5dc; font-size: 12px; }
+.legal-document section { padding-top: 24px; border-top: 1px solid var(--line); margin-top: 24px; }
+.legal-document h2 { margin: 0 0 10px; font-size: 20px; }
+.legal-document section p { margin: 0; color: #5d6670; line-height: 1.75; }
 
 .auth-shell { min-height: 100vh; display: grid; grid-template-columns: minmax(340px,.78fr) minmax(480px,1.22fr); }
 .auth-side { background: #2f1d16; color: white; padding: 42px clamp(35px,6vw,90px); display: flex; flex-direction: column; justify-content: space-between; }

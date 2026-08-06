@@ -29,15 +29,17 @@ export function ConsultationPanel({ role, onBack }: { role: "CUSTOMER" | "PANDIT
   const [error, setError] = useState("");
   const [now, setNow] = useState(0);
   const [otherTyping, setOtherTyping] = useState<{ typing: boolean; name?: string | null; role?: string }>({ typing: false });
+  const [paymentsEnabled, setPaymentsEnabled] = useState(false);
   const lastTypingSentAt = useRef(0);
   const selectedId = selected?.id;
 
   const loadConsultations = useCallback(async () => {
     const response = await fetch(`/api/consultations?fresh=${Date.now()}`, { cache: "no-store" });
-    const data = await readJson<{ userId?: string; consultations?: Consultation[] }>(response);
+    const data = await readJson<{ userId?: string; consultations?: Consultation[]; paymentsEnabled?: boolean }>(response);
     if (response.ok) {
       setUserId(data.userId ?? "");
       setConsultations(data.consultations ?? []);
+      setPaymentsEnabled(Boolean(data.paymentsEnabled));
       setSelected((current) => current ? (data.consultations ?? []).find((item) => item.id === current.id) ?? current : current);
     }
   }, []);
@@ -162,7 +164,7 @@ export function ConsultationPanel({ role, onBack }: { role: "CUSTOMER" | "PANDIT
       <div><strong>{selected.participant_name ?? "Live consultation"}</strong><small><Wifi size={12} /> Private live chat</small></div>
       <span className={`chat-timer ${remaining === 0 ? "ended" : ""}`}><Clock3 size={14} /> {remaining ? timer : "Ended"}</span>
     </header>
-    <div className="consultation-topic"><strong>Your question</strong><span>{selected.topic}</span><b>₹{selected.amount} · {selected.blocks * 5} minutes</b></div>
+    <div className="consultation-topic"><strong>Your question</strong><span>{selected.topic}</span><b>{selected.payment_status === "FREE_BETA" ? "Free beta" : `₹${selected.amount}`} · {selected.blocks * 5} minutes</b></div>
     <div className="chat-messages">
       {messages.length ? messages.map((message) => <div className={`chat-bubble ${message.sender_id === userId ? "mine" : ""}`} key={message.id}>
         <small>{message.sender_id === userId ? "You" : message.sender_name ?? message.sender_role}</small>
@@ -185,14 +187,14 @@ export function ConsultationPanel({ role, onBack }: { role: "CUSTOMER" | "PANDIT
       {onBack && <button className="back-review" onClick={onBack}><ArrowLeft size={16} /> Back to options</button>}
       <span className="eyebrow">Online Pandit guidance</span>
       <h2>{role === "CUSTOMER" ? "Chat privately with an available Pandit" : "Your online consultations"}</h2>
-      <p>{role === "CUSTOMER" ? "Ideal for quick ritual questions and guidance when a home visit is not required. Pricing is shown in five-minute blocks." : "Help customers remotely through private, timed chat sessions."}</p>
+      <p>{role === "CUSTOMER" ? "Ideal for quick ritual questions and guidance when a home visit is not required." : "Help customers remotely through private, timed chat sessions."}</p>
     </div>
 
     {role === "CUSTOMER" && <>
       <div className="consultation-setup">
         <label>What guidance do you need? <small>Optional—you can explain after the chat starts</small><textarea rows={3} value={topic} onChange={(event) => setTopic(event.target.value)} placeholder="Example: We are opening a shop tomorrow. Which Puja and materials do we need?" /></label>
         <label>Chat duration<select value={blocks} onChange={(event) => setBlocks(Number(event.target.value))}><option value={1}>5 minutes</option><option value={2}>10 minutes</option><option value={3}>15 minutes</option></select></label>
-        <p><BadgeCheck size={15} /> Test payment mode is active. No real payment is collected yet.</p>
+        <p><BadgeCheck size={15} /> {paymentsEnabled ? "Secure payment is required before a paid session starts." : "Free beta mode: no payment or charge is collected."}</p>
       </div>
       {error && <div className="alert error consultation-error">{error}</div>}
       <div className="consultation-list">
@@ -200,7 +202,7 @@ export function ConsultationPanel({ role, onBack }: { role: "CUSTOMER" | "PANDIT
           <div className="consultation-pandit-head"><span className="consultation-avatar">{pandit.name.split(" ").map((part) => part[0]).slice(0,2).join("")}</span><div><strong>{pandit.name}</strong><span><i /> Available for chat</span></div><b>{pandit.rating_count ? <><Star size={13} fill="currentColor" /> {pandit.rating}</> : "New"}</b></div>
           <p>{pandit.experience_years} years experience · {pandit.languages.slice(0,3).join(", ")}</p>
           <div className="tag-row">{pandit.specialities.slice(0,3).map((item) => <span key={item}>{item}</span>)}</div>
-          <button className="btn btn-primary btn-block" disabled={busy} onClick={() => startChat(pandit)}>Start {blocks * 5}-minute chat · ₹{pandit.consultation_rate_5min * blocks}</button>
+          <button className="btn btn-primary btn-block" disabled={busy} onClick={() => startChat(pandit)}>{paymentsEnabled ? `Start ${blocks * 5}-minute chat · ₹${pandit.consultation_rate_5min * blocks}` : `Start free ${blocks * 5}-minute beta chat`}</button>
         </article>) : <div className="empty"><MessageCircle /><strong>No Pandit is available for chat right now</strong><span>Please check again in a few minutes.</span></div>}
       </div>
     </>}

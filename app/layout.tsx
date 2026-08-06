@@ -16,6 +16,10 @@ export const metadata: Metadata = {
   },
   twitter: { card: "summary_large_image", images: ["/og.png"] },
   manifest: "/manifest.webmanifest",
+  icons: {
+    icon: [{ url: "/icon-192.png", type: "image/png", sizes: "192x192" }],
+    apple: [{ url: "/apple-touch-icon.png", type: "image/png", sizes: "180x180" }],
+  },
   appleWebApp: { capable: true, statusBarStyle: "default", title: "PanditConnect" },
 };
 

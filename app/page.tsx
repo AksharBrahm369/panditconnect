@@ -60,7 +60,7 @@ export default function Home() {
         <div className="how-cta"><div><strong>Need a Pandit right now?</strong><span>Start with your situation—we will guide the rest.</span></div><Link href="/login?role=customer" className="btn btn-primary">Start now <ArrowRight size={17} /></Link></div>
       </section>
 
-      <footer><span>Pandit in Minutes · Trusted religious help, nearby</span><Link href="/login?role=pandit">Join the Pandit network</Link></footer>
+      <footer><span>Pandit in Minutes · Trusted religious help, nearby</span><div className="footer-links"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/cancellation-policy">Cancellation</Link><Link href="/login?role=pandit">Join as Pandit</Link></div></footer>
     </main>
   );
 }
