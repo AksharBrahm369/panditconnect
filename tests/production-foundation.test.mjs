@@ -26,6 +26,11 @@ test("admin API requires authentication", async () => {
   assert.equal(response.status, 401);
 });
 
+test("Pandit onboarding APIs return authorization errors instead of server errors", async () => {
+  const response = await render("/api/pandit/onboarding");
+  assert.equal(response.status, 401);
+});
+
 test("service migration is idempotent and contains all permanent services", async () => {
   const migration = await readFile(new URL("../db/migrations/0009_production_foundation.sql", import.meta.url), "utf8");
   for (const id of ["ganesh-puja", "lakshmi-puja", "satyanarayan", "havan", "griha-pravesh", "religious-guidance"]) assert.match(migration, new RegExp(`'${id}'`));

@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { requirePandit } from "@/lib/auth";
+import { authorizationResponse } from "@/lib/api-auth";
 import { sql } from "@/lib/db";
 import { deletePrivateObject, uploadPrivateObject } from "@/lib/supabase-storage";
 
@@ -32,6 +33,8 @@ export async function POST(request: Request) {
     return NextResponse.json({ success: true, document: { id, document_type: documentType, original_name: file.name, review_status: "PENDING" } });
   } catch (error) {
     if (path) await deletePrivateObject(path).catch(() => undefined);
+    const authResponse = authorizationResponse(error);
+    if (authResponse) return authResponse;
     console.error("Pandit document upload failed", error);
     return NextResponse.json({ error: "Private document upload is not configured or failed" }, { status: 500 });
   }

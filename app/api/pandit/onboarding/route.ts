@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
 import { requirePandit } from "@/lib/auth";
+import { authorizationResponse } from "@/lib/api-auth";
 import { sql } from "@/lib/db";
 import { encryptSensitive } from "@/lib/sensitive-data";
 
@@ -70,6 +71,8 @@ export async function GET() {
     ]);
     return NextResponse.json({ profile: profile.rows[0], references: references.rows, pricing: pricing.rows, services: services.rows, documents: documents.rows, review: review.rows[0] ?? null }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
+    const authResponse = authorizationResponse(error);
+    if (authResponse) return authResponse;
     console.error("Unable to load Pandit onboarding", error);
     return NextResponse.json({ error: "Unable to load onboarding information" }, { status: 500 });
   }
@@ -129,6 +132,8 @@ export async function PUT(request: Request) {
     }
     return NextResponse.json({ success: true, status: value.submit ? "SUBMITTED" : "DRAFT" });
   } catch (error) {
+    const authResponse = authorizationResponse(error);
+    if (authResponse) return authResponse;
     console.error("Unable to save Pandit onboarding", error);
     return NextResponse.json({ error: "Unable to save onboarding information" }, { status: 500 });
   }
