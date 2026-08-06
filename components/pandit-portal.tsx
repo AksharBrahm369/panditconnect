@@ -1,11 +1,12 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BadgeCheck, BellRing, Check, Clock3, KeyRound, MapPin, MessageCircle, Power, Save } from "lucide-react";
+import { BadgeCheck, BellRing, Check, Clock3, KeyRound, MapPin, MessageCircle, Power } from "lucide-react";
 import { AppShell } from "./app-shell";
 import { ConsultationPanel } from "./consultation-panel";
 import { readJson } from "@/lib/http";
 import { getCurrentCoordinates, type BrowserCoordinates } from "@/lib/browser-location";
+import { PanditOnboarding } from "./pandit-onboarding";
 
 type Profile = { name: string | null; city: string | null; experience_years: number; languages: string[]; specialities: string[]; bio: string | null; verification_status: string; review_note?: string | null; is_online: boolean; rating: string; rating_count: number; completed_jobs: number; latitude: number | null; longitude: number | null; consultation_online: boolean; consultation_rate_5min: number };
 type Booking = {
@@ -18,11 +19,9 @@ type Booking = {
 export function PanditPortal() {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [form, setForm] = useState({ name: "", city: "", experienceYears: 0, languages: "Hindi", specialities: "Ganesh Puja", bio: "", baseCharge: 1100 });
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [locationBusy, setLocationBusy] = useState(false);
-  const [coordinates, setCoordinates] = useState<BrowserCoordinates | null>(null);
   const [arrivalOtps, setArrivalOtps] = useState<Record<string, string>>({});
   const [actionErrors, setActionErrors] = useState<Record<string, string>>({});
   const [consultationRate, setConsultationRate] = useState(99);
@@ -33,9 +32,7 @@ export function PanditPortal() {
     if (!data.profile) return;
     setProfile(data.profile);
     setConsultationRate(data.profile.consultation_rate_5min ?? 99);
-    if (syncForm) {
-      setForm({ name: data.profile.name ?? "", city: data.profile.city ?? "", experienceYears: data.profile.experience_years ?? 0, languages: (data.profile.languages ?? []).join(", "), specialities: (data.profile.specialities ?? []).join(", "), bio: data.profile.bio ?? "", baseCharge: data.profile.base_charge ?? 1100 });
-    }
+    void syncForm;
   }
 
   async function loadBookings() {
@@ -94,7 +91,6 @@ export function PanditPortal() {
     setNotice("");
     try {
       const current = await getCurrentCoordinates();
-      setCoordinates(current);
       setNotice(`GPS location detected within about ${Math.round(current.accuracy)} metres.`);
       return current;
     } catch (error) {
@@ -103,20 +99,6 @@ export function PanditPortal() {
     } finally {
       setLocationBusy(false);
     }
-  }
-
-  async function saveProfile() {
-    setBusy(true); setNotice("");
-    const response = await fetch("/api/pandit/profile", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({
-      ...form,
-      languages: form.languages.split(",").map((x) => x.trim()).filter(Boolean),
-      specialities: form.specialities.split(",").map((x) => x.trim()).filter(Boolean),
-      latitude: coordinates?.latitude,
-      longitude: coordinates?.longitude,
-    }) });
-    const data = await readJson<{ error?: string }>(response);
-    setNotice(response.ok ? "Profile saved. It is ready for admin review." : data.error ?? "Unable to save");
-    setBusy(false); load();
   }
 
   async function toggleOnline() {
@@ -182,27 +164,14 @@ export function PanditPortal() {
   }
 
   if (!profile) return <AppShell role="Pandit" title="Loading your portal…" subtitle="Preparing your profile and requests."><div className="loading-card">Loading…</div></AppShell>;
-  const incomplete = ["INCOMPLETE", "CHANGES_REQUESTED"].includes(profile.verification_status);
+  const incomplete = ["INCOMPLETE", "PENDING", "SUBMITTED", "UNDER_REVIEW", "CHANGES_REQUESTED", "REJECTED"].includes(profile.verification_status);
   const active = bookings.filter((b) => !["COMPLETED", "DECLINED", "CANCELLED"].includes(b.status));
 
   return (
-    <AppShell role="Pandit" title={incomplete ? "Complete your Pandit profile" : `Namaste, ${profile.name ?? "Pandit ji"}`} subtitle={incomplete ? "One short form replaces the confusing multi-step registration." : "Manage availability and urgent requests from one screen."}>
+    <AppShell role="Pandit" title={incomplete ? "Complete your verified Pandit profile" : `Namaste, ${profile.name ?? "Pandit ji"}`} subtitle={incomplete ? "A trusted profile helps customers book with confidence." : "Manage availability and urgent requests from one screen."}>
       {notice && <div className="alert success">{notice}</div>}
       {profile.verification_status === "CHANGES_REQUESTED" && <div className="alert error">Admin requested changes: {profile.review_note ?? "Please review and update your profile."}</div>}
-      {incomplete ? <section className="onboarding-card">
-        <div className="onboarding-intro"><span className="eyebrow">Simple registration</span><h2>Tell customers what matters</h2><p>Only essential information is required now. Documents and payouts can be added after the core flow is tested.</p><div className="safe-box"><BadgeCheck size={21} /><div><strong>Private by default</strong><small>Your phone and personal documents are never public.</small></div></div></div>
-        <div className="form-grid">
-          <label>Full name<input value={form.name} onChange={(e) => setForm({ ...form, name: e.target.value })} /></label>
-          <label>City<input value={form.city} onChange={(e) => setForm({ ...form, city: e.target.value })} /></label>
-          <label>Years of experience<input type="number" min="0" value={form.experienceYears} onChange={(e) => setForm({ ...form, experienceYears: Number(e.target.value) })} /></label>
-          <label>Starting charge (₹)<input type="number" min="0" value={form.baseCharge} onChange={(e) => setForm({ ...form, baseCharge: Number(e.target.value) })} /></label>
-          <label className="span-2">Languages <small>Separate with commas</small><input value={form.languages} onChange={(e) => setForm({ ...form, languages: e.target.value })} /></label>
-          <label className="span-2">Puja specialities <small>Separate with commas</small><input value={form.specialities} onChange={(e) => setForm({ ...form, specialities: e.target.value })} /></label>
-          <label className="span-2">Short introduction<textarea rows={4} value={form.bio} onChange={(e) => setForm({ ...form, bio: e.target.value })} placeholder="Describe your tradition, experience and approach." /></label>
-          <div className="span-2 location-capture"><button className="btn btn-ghost btn-block" onClick={captureLocation} disabled={locationBusy}>{locationBusy ? "Detecting location…" : <><MapPin size={17} /> Use my current GPS location</>}</button><p className={`location-state ${coordinates ? "ready" : ""}`}>{coordinates ? `Location detected within about ${Math.round(coordinates.accuracy)} metres` : "Your exact GPS position is used only for nearby matching."}</p></div>
-          <button className="btn btn-primary span-2" onClick={saveProfile} disabled={busy || !form.name || !form.city || !form.bio}>{busy ? "Saving…" : <><Save size={17} /> Save profile for review</>}</button>
-        </div>
-      </section> : <>
+      {incomplete ? <PanditOnboarding status={profile.verification_status} reviewNote={profile.review_note} onSaved={() => void loadProfile(true)} /> : <>
         <section className={`role-action-banner ${profile.is_online ? "online" : ""}`}>
           <span className="role-action-icon"><Power /></span>
           <div><span className="eyebrow">Your availability</span><h2>{profile.is_online ? "You are visible to nearby customers" : "Go online when you are ready for requests"}</h2><p>{profile.is_online ? "Keep this page open. New urgent requests appear automatically with a sound-ready action card." : "Your GPS location is captured only when you choose to go online."}</p></div>

@@ -79,3 +79,14 @@ test("OTP migration tracks delivery without storing plaintext codes", async () =
   assert.doesNotMatch(migration, /plaintext|otp_value|otp_code/i);
   assert.doesNotMatch(migration, /DROP\s+(TABLE|SCHEMA)/i);
 });
+
+test("trusted Pandit onboarding uses private Supabase storage and auditable reviews", async () => {
+  const migration = await readFile(new URL("../db/migrations/0011_trusted_pandit_onboarding.sql", import.meta.url), "utf8");
+  const storage = await readFile(new URL("../lib/supabase-storage.ts", import.meta.url), "utf8");
+  const adminRoute = await readFile(new URL("../app/api/admin/pandits/route.ts", import.meta.url), "utf8");
+  for (const table of ["pandit_documents", "pandit_references", "pandit_service_pricing", "pandit_verification_reviews", "pandit_verification_events"]) assert.match(migration, new RegExp(table));
+  assert.match(migration, /'pandit-private-documents'[\s\S]*false/);
+  assert.match(storage, /createPrivateSignedUrl/);
+  assert.doesNotMatch(storage, /getPublicUrl|\/object\/public\//);
+  assert.match(adminRoute, /Complete and verify every review check before approval/);
+});

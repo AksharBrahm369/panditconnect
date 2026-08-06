@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowLeft, BadgeCheck, CalendarCheck, Check, Languages, MapPin, RefreshCw, ShieldCheck, Star, UserRound, Users, X } from "lucide-react";
+import { ArrowLeft, BadgeCheck, CalendarCheck, Check, ExternalLink, Languages, MapPin, RefreshCw, ShieldCheck, Star, UserRound, Users, X } from "lucide-react";
 import { AppShell } from "./app-shell";
 import { readJson } from "@/lib/http";
 
@@ -11,7 +11,15 @@ type ReviewPandit = {
   languages: string[]; specialities: string[]; bio: string | null; base_charge: number;
   verification_status: string; review_note: string | null; created_at: string; is_online?: boolean;
   rating?: string; rating_count?: number; completed_jobs?: number; services?: string[];
+  email?: string; date_of_birth?: string; current_address?: string; service_radius_km?: number; payout_method?: string; bank_account_name?: string; bank_ifsc?: string; upi_id?: string; submitted_at?: string;
+  references?: Array<{ id: string; name: string; relationship: string; organisation: string | null; phone: string; status: string; note: string | null }>;
+  documents?: Array<{ id: string; type: string; name: string; mimeType: string; size: number; status: string; note: string | null }>;
+  pricing?: Array<{ serviceId: string; serviceName: string; price: number; enabled: boolean }>;
+  review?: ReviewChecklist;
 };
+type CheckStatus = "PENDING" | "VERIFIED" | "FAILED";
+type ReviewChecklist = { identityStatus: CheckStatus; documentStatus: CheckStatus; referenceStatus: CheckStatus; videoInterviewStatus: CheckStatus; knowledgeCheckStatus: CheckStatus; bankStatus: CheckStatus; videoInterviewAt?: string | null; knowledgeScore?: number | null; adminNote?: string | null };
+const emptyChecklist: ReviewChecklist = { identityStatus: "PENDING", documentStatus: "PENDING", referenceStatus: "PENDING", videoInterviewStatus: "PENDING", knowledgeCheckStatus: "PENDING", bankStatus: "PENDING", videoInterviewAt: "", knowledgeScore: null, adminNote: "" };
 
 export function AdminPortal() {
   const [data, setData] = useState<Overview | null>(null);
@@ -23,6 +31,7 @@ export function AdminPortal() {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [queueLoading, setQueueLoading] = useState(false);
+  const [checklist, setChecklist] = useState<ReviewChecklist>(emptyChecklist);
 
   async function loadQueue() {
     setQueueLoading(true);
@@ -57,18 +66,28 @@ export function AdminPortal() {
     await loadQueue();
   }
 
-  async function review(action: "APPROVE" | "REQUEST_CHANGES") {
+  async function review(action: "APPROVE" | "REJECT" | "REQUEST_CHANGES" | "START_REVIEW" | "UPDATE_CHECKLIST") {
     if (!selected) return;
     setBusy(true); setNotice("");
     const response = await fetch("/api/admin/pandits", {
       method: "PATCH", headers: { "content-type": "application/json" },
-      body: JSON.stringify({ panditId: selected.id, action, note }),
+      body: JSON.stringify({ panditId: selected.id, action, note, ...(action === "UPDATE_CHECKLIST" ? checklist : {}) }),
     });
     const result = await readJson<{ error?: string }>(response);
     if (!response.ok) { setNotice(result.error ?? "Unable to save review"); setBusy(false); return; }
-    setNotice(action === "APPROVE" ? `${selected.name ?? "Pandit"} approved successfully.` : "Changes requested successfully.");
-    setSelected(null); setNote(""); setBusy(false); load();
+    setNotice(action === "APPROVE" ? `${selected.name ?? "Pandit"} approved successfully.` : action === "UPDATE_CHECKLIST" ? "Verification checklist saved." : "Review decision saved.");
+    if (action !== "UPDATE_CHECKLIST") { setSelected(null); setNote(""); }
+    setBusy(false); await load(); await loadQueue();
   }
+
+  async function openDocument(documentId: string) {
+    const response = await fetch(`/api/admin/pandits/documents/${documentId}`, { cache: "no-store" });
+    const result = await readJson<{ url?: string; error?: string }>(response);
+    if (!response.ok || !result.url) { setNotice(result.error ?? "Unable to open document"); return; }
+    window.open(result.url, "_blank", "noopener,noreferrer");
+  }
+
+  function selectPandit(pandit: ReviewPandit) { setSelected(pandit); setNote(pandit.review_note ?? pandit.review?.adminNote ?? ""); setChecklist({ ...emptyChecklist, ...(pandit.review ?? {}) }); }
 
   return <AppShell role="Admin" title="Operations overview" subtitle="A compact control room for verification, urgent bookings and platform health.">
     <div className="demo-banner"><ShieldCheck size={17} /><div><strong>Protected operations workspace</strong><span>Customer phone numbers remain masked while you review bookings and Pandit quality.</span></div></div>
@@ -100,7 +119,7 @@ export function AdminPortal() {
         <header><div><span className="eyebrow">Admin review</span><h2>{selected ? "Review Pandit profile" : "Pandit verification queue"}</h2></div><div className="drawer-actions">{!selected && <button className="icon-button" onClick={loadQueue} disabled={queueLoading} aria-label="Refresh queue"><RefreshCw size={18} className={queueLoading ? "spin" : ""} /></button>}<button className="icon-button" onClick={() => { setQueueOpen(false); setSelected(null); }} aria-label="Close queue"><X size={19} /></button></div></header>
         {!selected ? <>
           <p className="drawer-intro">{queueLoading ? "Refreshing the latest registrations…" : queue.length ? `${queue.length} profile${queue.length === 1 ? "" : "s"} waiting for a decision.` : "No Pandit profiles are waiting for review."}</p>
-          <div className="review-list">{queue.map((pandit) => <button key={pandit.id} className="review-list-item" onClick={() => { setSelected(pandit); setNote(pandit.review_note ?? ""); }}>
+          <div className="review-list">{queue.map((pandit) => <button key={pandit.id} className="review-list-item" onClick={() => selectPandit(pandit)}>
             <span className="avatar">{(pandit.name ?? "P").split(" ").map((part) => part[0]).slice(0,2).join("")}</span>
             <div><strong>{pandit.name ?? "Profile not completed"}</strong><span><MapPin size={13} /> {pandit.city ?? "City missing"} · {pandit.experience_years} years</span><small>{pandit.specialities.length ? pandit.specialities.join(", ") : "Specialities not added"}</small></div>
             <span className="status">{pandit.verification_status.replaceAll("_", " ")}</span>
@@ -116,9 +135,17 @@ export function AdminPortal() {
           </div>
           <div className="review-section"><span>Specialities</span><div className="tag-row">{selected.specialities.length ? selected.specialities.map((item) => <b key={item}>{item}</b>) : <em>Not provided</em>}</div></div>
           <div className="review-section"><span>Professional introduction</span><p>{selected.bio || "No introduction provided."}</p></div>
+          <div className="review-section"><span>Identity and contact</span><p>{selected.email || "Email missing"} · DOB {selected.date_of_birth ? new Date(selected.date_of_birth).toLocaleDateString("en-IN") : "missing"}</p><p>{selected.current_address || "Address missing"} · {selected.service_radius_km ?? 0} km service radius</p></div>
+          <div className="review-section"><span>Service pricing</span><div className="review-pricing">{selected.pricing?.filter((item) => item.enabled).map((item) => <b key={item.serviceId}>{item.serviceName}: ₹{item.price.toLocaleString("en-IN")}</b>) || <em>No prices submitted</em>}</div></div>
+          <div className="review-section"><span>Private documents</span><div className="review-documents">{selected.documents?.map((document) => <button className="document-review-button" key={document.id} onClick={() => void openDocument(document.id)}><span><strong>{document.type.replaceAll("_", " ")}</strong><small>{document.name} · {document.status}</small></span><ExternalLink size={15} /></button>) || <em>No documents uploaded</em>}</div><small>Review links expire after five minutes.</small></div>
+          <div className="review-section"><span>References</span>{selected.references?.map((reference) => <div className="admin-reference" key={reference.id}><strong>{reference.name}</strong><span>{reference.relationship} · {reference.organisation || "Independent reference"}</span><small>{reference.phone} · {reference.status}</small></div>) || <em>No references submitted</em>}</div>
+          <div className="review-section"><span>Payout verification</span><p>{selected.payout_method === "BANK" ? `${selected.bank_account_name || "Account holder missing"} · IFSC ${selected.bank_ifsc || "missing"}` : `UPI ${selected.upi_id || "missing"}`}</p></div>
+          <div className="verification-checklist"><h3>Admin verification checklist</h3>{([
+            ["identityStatus","Identity review"], ["documentStatus","Document review"], ["referenceStatus","Reference verification"], ["videoInterviewStatus","Short video interview"], ["knowledgeCheckStatus","Puja knowledge check"], ["bankStatus","Bank / UPI verification"],
+          ] as Array<[keyof ReviewChecklist,string]>).map(([key,label]) => <label key={key}><span>{label}</span><select value={String(checklist[key] ?? "PENDING")} onChange={(event) => setChecklist({ ...checklist, [key]: event.target.value as CheckStatus })}><option>PENDING</option><option>VERIFIED</option><option>FAILED</option></select></label>)}<label><span>Video interview time</span><input type="datetime-local" value={checklist.videoInterviewAt ? String(checklist.videoInterviewAt).slice(0,16) : ""} onChange={(e) => setChecklist({ ...checklist, videoInterviewAt: e.target.value })} /></label><label><span>Knowledge score / 100</span><input type="number" min="0" max="100" value={checklist.knowledgeScore ?? ""} onChange={(e) => setChecklist({ ...checklist, knowledgeScore: e.target.value ? Number(e.target.value) : null })} /></label><button className="btn btn-ghost btn-block" disabled={busy} onClick={() => review("UPDATE_CHECKLIST")}>Save verification checklist</button></div>
           <label>Correction note <small>Required only when requesting changes</small><textarea rows={3} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Clearly explain what information needs to be updated." /></label>
           {notice && <div className="alert error">{notice}</div>}
-          <div className="review-actions"><button className="btn btn-ghost danger" disabled={busy} onClick={() => review("REQUEST_CHANGES")}>Request changes</button><button className="btn btn-primary" disabled={busy || selected.verification_status === "INCOMPLETE"} onClick={() => review("APPROVE")}><Check size={17} /> Approve Pandit</button></div>
+          <div className="review-actions multi"><button className="btn btn-ghost" disabled={busy} onClick={() => review("START_REVIEW")}>Start review</button><button className="btn btn-ghost danger" disabled={busy} onClick={() => review("REJECT")}>Reject</button><button className="btn btn-ghost danger" disabled={busy} onClick={() => review("REQUEST_CHANGES")}>Request changes</button><button className="btn btn-primary" disabled={busy || selected.verification_status === "INCOMPLETE"} onClick={() => review("APPROVE")}><Check size={17} /> Approve Pandit</button></div>
           {selected.verification_status === "INCOMPLETE" && <p className="privacy-note">This profile cannot be approved until the Pandit completes the required information.</p>}
         </>}
       </section>

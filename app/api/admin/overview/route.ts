@@ -21,7 +21,7 @@ export async function GET() {
   }>(
     `SELECT
       (SELECT count(*)::int FROM pim_v2.users) AS users,
-      (SELECT count(*)::int FROM pim_v2.pandit_profiles WHERE verification_status IN ('PENDING','INCOMPLETE','CHANGES_REQUESTED')) AS pending_pandits,
+      (SELECT count(*)::int FROM pim_v2.pandit_profiles WHERE verification_status IN ('PENDING','INCOMPLETE','SUBMITTED','UNDER_REVIEW','CHANGES_REQUESTED','REJECTED')) AS pending_pandits,
       (SELECT count(*)::int FROM pim_v2.pandit_profiles WHERE verification_status='APPROVED') AS approved_pandits,
       (SELECT count(*)::int FROM pim_v2.bookings) AS bookings,
       COALESCE((
