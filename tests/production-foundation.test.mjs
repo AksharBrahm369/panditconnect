@@ -31,6 +31,13 @@ test("Pandit onboarding APIs return authorization errors instead of server error
   assert.equal(response.status, 401);
 });
 
+test("manual location fallback is authenticated and sends only a PIN code", async () => {
+  const route = await readFile(new URL("../app/api/location/geocode/route.ts", import.meta.url), "utf8");
+  assert.match(route, /requireCustomer\(\)/);
+  assert.match(route, /postalCode/);
+  assert.doesNotMatch(route, /currentAddress|serviceAddress/);
+});
+
 test("service migration is idempotent and contains all permanent services", async () => {
   const migration = await readFile(new URL("../db/migrations/0009_production_foundation.sql", import.meta.url), "utf8");
   for (const id of ["ganesh-puja", "lakshmi-puja", "satyanarayan", "havan", "griha-pravesh", "religious-guidance"]) assert.match(migration, new RegExp(`'${id}'`));

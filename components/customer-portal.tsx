@@ -54,6 +54,7 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [coordinates, setCoordinates] = useState<BrowserCoordinates | null>(null);
+  const [locationSource, setLocationSource] = useState<"GPS" | "POSTAL_CODE" | null>(null);
   const [recommendation, setRecommendation] = useState<RitualRecommendation | null>(null);
   const [guidanceError, setGuidanceError] = useState("");
   const [message, setMessage] = useState("");
@@ -123,10 +124,39 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
     try {
       const current = await getCurrentCoordinates();
       setCoordinates(current);
+      setLocationSource("GPS");
       return current;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to detect your location.");
       return null;
+    } finally {
+      setLocationBusy(false);
+    }
+  }
+
+  async function locateFromAddress() {
+    const postalCode = address.match(/\b[1-9]\d{5}\b/)?.[0];
+    if (!postalCode) {
+      setMessage("Add the 6-digit PIN code to your address so we can match by area without GPS.");
+      return null;
+    }
+    setLocationBusy(true);
+    setMessage("");
+    try {
+      const response = await fetch("/api/location/geocode", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ postalCode }),
+      });
+      const data = await readJson<{ error?: string; latitude?: number; longitude?: number }>(response);
+      if (!response.ok || !Number.isFinite(data.latitude) || !Number.isFinite(data.longitude)) {
+        setMessage(data.error ?? "Unable to confirm the address area.");
+        return null;
+      }
+      const current = { latitude: data.latitude!, longitude: data.longitude!, accuracy: 5_000 };
+      setCoordinates(current);
+      setLocationSource("POSTAL_CODE");
+      return current;
     } finally {
       setLocationBusy(false);
     }
@@ -180,7 +210,7 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
     }
     setBusy(true);
     setMessage("");
-    const current = coordinates ?? await detectLocation();
+    const current = coordinates ?? await locateFromAddress();
     if (!current) { setBusy(false); return; }
     const response = await fetch("/api/bookings", {
       method: "POST",
@@ -311,9 +341,10 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
               <h3>Request details</h3>
               <label>Preferred language<select value={language} onChange={(event) => setLanguage(event.target.value)}><option>Hindi</option><option>Marathi</option><option>Gujarati</option><option>English</option><option>Sanskrit</option></select></label>
               <label>Puja materials<select value={materialsOption} onChange={(event) => setMaterialsOption(event.target.value)}>{Object.entries(materialsLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
-              <label>Full service address<textarea rows={3} value={address} onChange={(event) => setAddress(event.target.value)} placeholder="Building, street, area and PIN code" /></label>
+              <label>Full service address<textarea rows={3} value={address} onChange={(event) => { setAddress(event.target.value); if (locationSource === "POSTAL_CODE") { setCoordinates(null); setLocationSource(null); } }} placeholder="Building, street, area and PIN code" /></label>
               <button className="btn btn-ghost btn-block" onClick={detectLocation} disabled={locationBusy}>{locationBusy ? "Detecting GPS…" : <><MapPin size={16} /> Use my current GPS location</>}</button>
-              <p className={`location-state ${coordinates ? "ready" : ""}`}>{coordinates ? `GPS detected within about ${Math.round(coordinates.accuracy)} metres` : "Required for accurate matching and ETA."}</p>
+              <button className="btn btn-ghost btn-block" onClick={locateFromAddress} disabled={locationBusy || !address.trim()}><Compass size={16} /> Confirm using PIN code area</button>
+              <p className={`location-state ${coordinates ? "ready" : ""}`}>{coordinates ? locationSource === "GPS" ? `GPS detected within about ${Math.round(coordinates.accuracy)} metres` : "PIN code area confirmed. Matching and ETA will be approximate." : "GPS gives the best ETA. If unavailable, add a PIN code and confirm the area."}</p>
               <label>Additional note <em>Optional</em><textarea rows={2} value={notes} onChange={(event) => setNotes(event.target.value)} /></label>
               <button className="btn btn-primary btn-block" disabled={busy || !serviceId} onClick={sendRequest}>{busy ? "Finding the best Pandit…" : requestType === "PANDIT_SOS" ? "Find replacement now" : "Find best available Pandit"} <ChevronRight size={17} /></button>
               <p className="privacy-note"><ShieldCheck size={15} /> Exact address is released to the matched Pandit only after acceptance.</p>
