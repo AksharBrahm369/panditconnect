@@ -20,10 +20,10 @@
   "dependencies": {
     "cross-env": "^10.0.0",
     "lucide-react": "^0.468.0",
-    "next": "16.2.6",
+    "next": "16.3.0",
     "pg": "^8.16.3",
-    "react": "19.2.6",
-    "react-dom": "19.2.6",
+    "react": "19.2.8",
+    "react-dom": "19.2.8",
     "web-push": "^3.6.7",
     "zod": "^4.1.12"
   },
@@ -40,7 +40,7 @@
     "@vitejs/plugin-rsc": "0.5.26",
     "eslint": "9.39.4",
     "eslint-config-next": "16.2.6",
-    "react-server-dom-webpack": "19.2.6",
+    "react-server-dom-webpack": "19.2.8",
     "tailwindcss": "4.2.1",
     "typescript": "5.9.3",
     "vinext": "0.0.50",

@@ -1,4 +1,8 @@
-import { Client, type QueryResultRow } from "pg";
+import { Client, Pool, type QueryResultRow } from "pg";
+
+declare global {
+  var __pimV2DatabasePool: Pool | undefined;
+}
 
 function cleanConnectionString(value: string | undefined) {
   if (!value) return undefined;
@@ -21,6 +25,19 @@ export async function sql<T extends QueryResultRow = QueryResultRow>(
   text: string,
   values: unknown[] = [],
 ) {
+  // Vercel reuses a warm Node process across requests. Reusing a small pool
+  // avoids a new PostgreSQL TLS handshake for every query while keeping the
+  // transaction-pooler connection count safely bounded.
+  if (process.env.VERCEL) {
+    globalThis.__pimV2DatabasePool ??= new Pool({
+      ...databaseConfig(),
+      max: 3,
+      idleTimeoutMillis: 30_000,
+      allowExitOnIdle: true,
+    });
+    return globalThis.__pimV2DatabasePool.query<T>(text, values);
+  }
+
   // Vinext development runs route handlers in Cloudflare request contexts.
   // A PostgreSQL socket cannot safely be reused by a later context, so each
   // database operation uses its own short-lived connection.

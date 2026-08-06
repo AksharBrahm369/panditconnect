@@ -6,11 +6,17 @@ export const dynamic = "force-dynamic";
 
 export async function GET() {
   try {
-    if (productionConfigurationIssues().length) throw new Error("Configuration check failed");
     await sql("SELECT 1 AS healthy");
+    const issues = productionConfigurationIssues();
     return NextResponse.json(
-      { status: "ok", database: "connected", environment: appEnvironment(), timestamp: new Date().toISOString() },
-      { headers: { "Cache-Control": "no-store, max-age=0" } },
+      {
+        status: issues.length ? "degraded" : "ok",
+        database: "connected",
+        configuration: issues.length ? "incomplete" : "ready",
+        environment: appEnvironment(),
+        timestamp: new Date().toISOString(),
+      },
+      { status: issues.length ? 503 : 200, headers: { "Cache-Control": "no-store, max-age=0" } },
     );
   } catch (error) {
     console.error("Health check failed", error);
