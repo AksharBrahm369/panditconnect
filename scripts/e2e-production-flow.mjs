@@ -11,6 +11,8 @@ if (!connectionString) throw new Error("DATABASE_URL or DIRECT_URL is required")
 const client = new pg.Client({ connectionString, ssl: { rejectUnauthorized: false } });
 const ids = { customer: crypto.randomUUID(), pandit: crypto.randomUUID(), outsider: crypto.randomUUID(), booking: crypto.randomUUID() };
 const tokens = { customer: crypto.randomBytes(32).toString("hex"), pandit: crypto.randomBytes(32).toString("hex"), outsider: crypto.randomBytes(32).toString("hex") };
+const phoneSeed = crypto.randomInt(0, 99_999_997);
+const phones = [0, 1, 2].map((offset) => `+9188${String(phoneSeed + offset).padStart(8, "0")}`);
 const arrivalOtp = "731946";
 const cookie = (token) => `pim_v2_session=${token}`;
 const digest = (value) => crypto.createHash("sha256").update(value).digest("hex");
@@ -34,10 +36,10 @@ await client.connect();
 try {
   await client.query(
     `INSERT INTO pim_v2.users(id,phone,role,name,city) VALUES
-      ($1,'+919000000001','CUSTOMER','Automated Customer','Mumbai'),
-      ($2,'+919000000002','PANDIT','Automated Pandit','Mumbai'),
-      ($3,'+919000000003','CUSTOMER','Outside Customer','Mumbai')`,
-    [ids.customer, ids.pandit, ids.outsider],
+      ($1,$4,'CUSTOMER','Automated Customer','Mumbai'),
+      ($2,$5,'PANDIT','Automated Pandit','Mumbai'),
+      ($3,$6,'CUSTOMER','Outside Customer','Mumbai')`,
+    [ids.customer, ids.pandit, ids.outsider, ...phones],
   );
   await client.query(
     `INSERT INTO pim_v2.pandit_profiles(user_id,verification_status,is_online,latitude,longitude,experience_years,languages,specialities,base_charge)
@@ -86,6 +88,7 @@ try {
 
   console.log(JSON.stringify({ success: true, checks: 13, baseUrl }));
 } finally {
+  await client.query(`DELETE FROM pim_v2.bookings WHERE customer_id=ANY($1::uuid[]) OR pandit_id=ANY($1::uuid[])`, [[ids.customer, ids.pandit, ids.outsider]]).catch(() => undefined);
   await client.query(`DELETE FROM pim_v2.users WHERE id=ANY($1::uuid[])`, [[ids.customer, ids.pandit, ids.outsider]]).catch(() => undefined);
   await client.end();
 }
