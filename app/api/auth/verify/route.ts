@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { digest, forgetSession, normalizePhone, randomToken, rememberSession, SESSION_COOKIE, type AppUser, type Role } from "@/lib/auth";
+import { digest, normalizePhone, randomToken, rememberSession, SESSION_COOKIE, type AppUser, type Role } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { serverSecret } from "@/lib/env";
 import { assertOtpVerificationAllowed, otpErrorResponse } from "@/lib/otp-security";
@@ -29,7 +29,7 @@ export async function POST(request: Request) {
     const id = crypto.randomUUID();
     const userResult = await sql<AppUser>(
       `INSERT INTO pim_v2.users(id,phone,role,last_login_at) VALUES($1,$2,$3,now())
-       ON CONFLICT(phone) DO UPDATE SET last_login_at=now()
+       ON CONFLICT(phone) DO UPDATE SET role=CASE WHEN pim_v2.users.role='ADMIN' THEN EXCLUDED.role ELSE pim_v2.users.role END,last_login_at=now()
        RETURNING id,phone,role,name,city`,
       [id, phone, role],
     );
@@ -39,19 +39,11 @@ export async function POST(request: Request) {
       await sql(`INSERT INTO pim_v2.pandit_profiles(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`, [user.id]);
     }
 
-    // A browser may verify a second number without explicitly signing out first.
-    // Retire that browser's previous session before assigning the new account.
-    const previousToken = request.headers.get("cookie")?.match(/(?:^|;\s*)pim_v2_session=([^;]+)/)?.[1];
-    if (previousToken) {
-      await sql(`DELETE FROM pim_v2.sessions WHERE token_hash=$1`, [await digest(previousToken)]);
-      await forgetSession(previousToken);
-    }
-
     const token = randomToken();
     await sql(
-      `INSERT INTO pim_v2.sessions(id,user_id,token_hash,expires_at)
-       VALUES($1,$2,$3,now()+interval '30 days')`,
-      [crypto.randomUUID(), user.id, await digest(token)],
+      `INSERT INTO pim_v2.sessions(id,user_id,token_hash,session_role,expires_at)
+       VALUES($1,$2,$3,$4,now()+interval '30 days')`,
+      [crypto.randomUUID(), user.id, await digest(token), role],
     );
     await rememberSession(token, user);
     await sql(`UPDATE pim_v2.otp_challenges SET verified_at=now() WHERE id=$1`, [latest.id]);
@@ -60,7 +52,7 @@ export async function POST(request: Request) {
       { headers: { "Cache-Control": "private, no-store, max-age=0", Vary: "Cookie" } },
     );
     response.cookies.set(SESSION_COOKIE, token, {
-      httpOnly: true, sameSite: "lax", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 * 24 * 30,
+      httpOnly: true, sameSite: "lax", secure: new URL(request.url).protocol === "https:", path: "/", maxAge: 60 * 60 * 24 * 30,
     });
     return response;
   } catch (error) {

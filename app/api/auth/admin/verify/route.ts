@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { adminPhoneAllowlist, serverSecret } from "@/lib/env";
-import { digest, forgetSession, normalizePhone, randomToken, rememberSession, SESSION_COOKIE, type AppUser } from "@/lib/auth";
+import { digest, normalizePhone, randomToken, rememberSession, SESSION_COOKIE, type AppUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { recordAdminAction } from "@/lib/admin-audit";
 import { assertOtpVerificationAllowed, otpErrorResponse } from "@/lib/otp-security";
@@ -27,27 +27,23 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Incorrect OTP. Check the latest code." }, { status: 400 });
     }
     const userResult = await sql<AppUser>(
-      `INSERT INTO pim_v2.users(id,phone,role,last_login_at) VALUES($1,$2,'ADMIN',now())
-       ON CONFLICT(phone) DO UPDATE SET role='ADMIN',last_login_at=now()
+      `INSERT INTO pim_v2.users(id,phone,role,last_login_at) VALUES($1,$2,'CUSTOMER',now())
+       ON CONFLICT(phone) DO UPDATE SET last_login_at=now()
        RETURNING id,phone,role,name,city`,
       [crypto.randomUUID(), phone],
     );
     const user = userResult.rows[0];
-    const previousToken = request.headers.get("cookie")?.match(/(?:^|;\s*)pim_v2_session=([^;]+)/)?.[1];
-    if (previousToken) {
-      await sql(`DELETE FROM pim_v2.sessions WHERE token_hash=$1`, [await digest(previousToken)]);
-      await forgetSession(previousToken);
-    }
+    const adminUser: AppUser = { ...user, role: "ADMIN" };
     const token = randomToken();
     await sql(
-      `INSERT INTO pim_v2.sessions(id,user_id,token_hash,expires_at) VALUES($1,$2,$3,now()+interval '8 hours')`,
+      `INSERT INTO pim_v2.sessions(id,user_id,token_hash,session_role,expires_at) VALUES($1,$2,$3,'ADMIN',now()+interval '30 days')`,
       [crypto.randomUUID(), user.id, await digest(token)],
     );
     await sql(`UPDATE pim_v2.otp_challenges SET verified_at=now() WHERE id=$1`, [latest.id]);
-    await rememberSession(token, user);
+    await rememberSession(token, adminUser);
     await recordAdminAction(request, user.id, "ADMIN_LOGIN", "SESSION");
     const response = NextResponse.json({ success: true, redirectTo: "/admin" });
-    response.cookies.set(SESSION_COOKIE, token, { httpOnly: true, sameSite: "strict", secure: process.env.NODE_ENV === "production", path: "/", maxAge: 60 * 60 * 8 });
+    response.cookies.set(SESSION_COOKIE, token, { httpOnly: true, sameSite: "lax", secure: new URL(request.url).protocol === "https:", path: "/", maxAge: 60 * 60 * 24 * 30 });
     return response;
   } catch (error) {
     const otpResponse = otpErrorResponse(error);

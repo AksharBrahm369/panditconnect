@@ -93,3 +93,14 @@ test("trusted Pandit onboarding uses private Supabase storage and auditable revi
   assert.match(adminRoute, /body\.action === "REJECT"[\s\S]*\? "REJECTED"/);
   assert.match(adminRoute, /: "CHANGES_REQUESTED"/);
 });
+
+test("sessions persist independently from mutable account roles", async () => {
+  const migration = await readFile(new URL("../db/migrations/0015_persistent_role_sessions.sql", import.meta.url), "utf8");
+  const auth = await readFile(new URL("../lib/auth.ts", import.meta.url), "utf8");
+  const adminVerify = await readFile(new URL("../app/api/auth/admin/verify/route.ts", import.meta.url), "utf8");
+  assert.match(migration, /session_role/);
+  assert.match(auth, /s\.session_role AS role/);
+  assert.match(adminVerify, /session_role,expires_at/);
+  assert.doesNotMatch(adminVerify, /DO UPDATE SET role='ADMIN'/);
+  assert.match(adminVerify, /interval '30 days'/);
+});
