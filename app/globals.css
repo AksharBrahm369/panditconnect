@@ -277,6 +277,7 @@ code { font-family: inherit; font-weight: 800; letter-spacing: .12em; color: var
 /* Trusted Pandit onboarding */
 .trusted-onboarding { display: grid; gap: 18px; }
 .onboarding-header, .onboarding-section, .rules-consent, .onboarding-status-card { background: #fff; border: 1px solid var(--line); border-radius: 18px; }
+.onboarding-loading { min-height: 220px; display: flex; align-items: center; justify-content: center; gap: 14px; padding: 32px; border: 1px solid var(--line); border-radius: 18px; background: white; }.onboarding-loading > div { display: grid; gap: 4px; }.onboarding-loading small { color: var(--muted); }.onboarding-loader { width: 28px; height: 28px; border: 3px solid #f1d8c8; border-top-color: var(--primary); border-radius: 50%; animation: spin .8s linear infinite; }
 .onboarding-header { display: flex; justify-content: space-between; gap: 24px; align-items: center; padding: 28px; background: linear-gradient(135deg,#fff 0%,#fff8f1 100%); }
 .onboarding-header h2, .onboarding-status-card h2 { margin: 6px 0; font-size: clamp(24px,3vw,34px); }
 .onboarding-header p, .onboarding-status-card p, .section-help { color: var(--muted); line-height: 1.55; }

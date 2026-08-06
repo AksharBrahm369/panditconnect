@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { BadgeCheck, FileCheck2, Save, Send, ShieldCheck, Upload } from "lucide-react";
 import { readJson } from "@/lib/http";
 
@@ -25,6 +25,8 @@ export function PanditOnboarding({ status, reviewNote, onSaved }: { status: stri
   const [pricing, setPricing] = useState<Price[]>([]);
   const [form, setForm] = useState({ legalName: "", phone: "", email: "", dateOfBirth: "", city: "", currentAddress: "", experienceYears: 0, languages: "Hindi", specialities: "", bio: "", serviceRadiusKm: 10, availabilityPreference: "OFFLINE" as "AVAILABLE_AFTER_APPROVAL" | "OFFLINE", payoutMethod: "UPI" as "BANK" | "UPI", bankAccountName: "", bankAccountNumber: "", bankIfsc: "", upiId: "", acceptPlatformRules: false });
   const [notice, setNotice] = useState(""); const [busy, setBusy] = useState(false); const [uploading, setUploading] = useState("");
+  const [hydrated, setHydrated] = useState(false);
+  const dirtyRef = useRef(false);
 
   async function load() {
     const response = await fetch(`/api/pandit/onboarding?fresh=${Date.now()}`, { cache: "no-store" });
@@ -32,9 +34,12 @@ export function PanditOnboarding({ status, reviewNote, onSaved }: { status: stri
     if (!response.ok || !data.profile) { setNotice(data.error ?? "Unable to load onboarding"); return; }
     const p = data.profile; const serviceRows: Service[] = data.services ?? [];
     setServices(serviceRows); setDocuments(data.documents ?? []);
-    setReferences(data.references?.length ? data.references.map((r) => ({ name: r.reference_name, relationship: r.relationship, organisation: r.temple_or_organisation ?? "", phone: r.phone })) : [newReference()]);
-    setPricing(serviceRows.map((service) => { const saved = data.pricing?.find((item) => item.service_id === service.id); return { serviceId: service.id, price: saved?.price ?? service.base_price, enabled: saved?.enabled ?? true }; }));
-    setForm((old) => ({ ...old, legalName: p.name ?? "", phone: p.phone ?? "", email: p.email ?? "", dateOfBirth: p.date_of_birth?.slice(0, 10) ?? "", city: p.city ?? "", currentAddress: p.current_address ?? "", experienceYears: p.experience_years ?? 0, languages: p.languages?.join(", ") || "Hindi", specialities: p.specialities?.join(", ") || "", bio: p.bio ?? "", serviceRadiusKm: p.service_radius_km ?? 10, availabilityPreference: p.availability_preference ?? "OFFLINE", payoutMethod: p.payout_method ?? "UPI", bankAccountName: p.bank_account_name ?? "", bankIfsc: p.bank_ifsc ?? "", upiId: p.upi_id ?? "", acceptPlatformRules: Boolean(p.platform_rules_accepted_at) }));
+    if (!dirtyRef.current) {
+      setReferences(data.references?.length ? data.references.map((r) => ({ name: r.reference_name, relationship: r.relationship, organisation: r.temple_or_organisation ?? "", phone: r.phone })) : [newReference()]);
+      setPricing(serviceRows.map((service) => { const saved = data.pricing?.find((item) => item.service_id === service.id); return { serviceId: service.id, price: saved?.price ?? service.base_price, enabled: saved?.enabled ?? true }; }));
+      setForm((old) => ({ ...old, legalName: p.name ?? "", phone: p.phone ?? "", email: p.email ?? "", dateOfBirth: p.date_of_birth?.slice(0, 10) ?? "", city: p.city ?? "", currentAddress: p.current_address ?? "", experienceYears: p.experience_years ?? 0, languages: p.languages?.join(", ") || "Hindi", specialities: p.specialities?.join(", ") || "", bio: p.bio ?? "", serviceRadiusKm: p.service_radius_km ?? 10, availabilityPreference: p.availability_preference ?? "OFFLINE", payoutMethod: p.payout_method ?? "UPI", bankAccountName: p.bank_account_name ?? "", bankIfsc: p.bank_ifsc ?? "", upiId: p.upi_id ?? "", acceptPlatformRules: Boolean(p.platform_rules_accepted_at) }));
+    }
+    setHydrated(true);
   }
   useEffect(() => { const timer = window.setTimeout(() => void load(), 0); return () => window.clearTimeout(timer); }, []);
 
@@ -72,7 +77,7 @@ export function PanditOnboarding({ status, reviewNote, onSaved }: { status: stri
     const response = await fetch("/api/pandit/onboarding", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...form, languages: form.languages.split(",").map((x) => x.trim()).filter(Boolean), specialities: form.specialities.split(",").map((x) => x.trim()).filter(Boolean), references, pricing, submit }) });
     const data = await readJson<{ error?: string }>(response);
     setNotice(response.ok ? submit ? "Application submitted for verification." : "Draft saved securely." : data.error ?? "Unable to save");
-    setBusy(false); if (response.ok) { await load(); onSaved(); }
+    setBusy(false); if (response.ok && submit) onSaved();
   }
   async function upload(type: string, file?: File) {
     if (!file) return; setUploading(type); setNotice("");
@@ -85,7 +90,9 @@ export function PanditOnboarding({ status, reviewNote, onSaved }: { status: stri
 
   if (["SUBMITTED", "UNDER_REVIEW"].includes(status)) return <section className="onboarding-status-card"><BadgeCheck size={36} /><div><span className="eyebrow">Application {status.replaceAll("_", " ").toLowerCase()}</span><h2>Your verification is moving forward</h2><p>The admin will check identity, documents, references, a short video interview, Puja knowledge and payout ownership. Any required changes will appear here.</p></div><strong>{status.replaceAll("_", " ")}</strong></section>;
 
-  return <section className="trusted-onboarding">
+  if (!hydrated) return <section className="onboarding-loading" aria-live="polite"><span className="onboarding-loader" /><div><strong>Loading your saved application…</strong><small>Please wait before entering information.</small></div></section>;
+
+  return <section className="trusted-onboarding" onChangeCapture={() => { dirtyRef.current = true; }}>
     <header className="onboarding-header"><div><span className="eyebrow">Trusted Pandit onboarding</span><h2>Complete your verified professional profile</h2><p>Save a draft at any time. Required documents are private and never receive public URLs.</p></div><div className="progress-ring"><strong>{progress}%</strong><span>complete</span></div></header>
     {reviewNote && <div className="alert error"><strong>Admin note:</strong> {reviewNote}</div>}{notice && <div className={notice.includes("Unable") || notice.includes("failed") ? "alert error" : "alert success"}>{notice}</div>}
     {missingRequirements.length > 0 && <div className="requirements-card" id="onboarding-missing"><div><strong>Still needed before submission</strong><span>{missingRequirements.length} item{missingRequirements.length === 1 ? "" : "s"} remaining</span></div><ul>{missingRequirements.map((item) => <li key={item}>{item}</li>)}</ul></div>}
