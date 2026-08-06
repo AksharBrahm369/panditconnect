@@ -118,16 +118,22 @@ test("sessions persist independently from mutable account roles", async () => {
   assert.match(adminVerify, /interval '30 days'/);
 });
 
-test("unconfigured payments create explicitly free beta consultations", async () => {
+test("online consultations require a payment choice before chat creation", async () => {
   const payments = await readFile(new URL("../lib/payments.ts", import.meta.url), "utf8");
   const route = await readFile(new URL("../app/api/consultations/route.ts", import.meta.url), "utf8");
   const panel = await readFile(new URL("../components/consultation-panel.tsx", import.meta.url), "utf8");
+  const migration = await readFile(new URL("../db/migrations/0018_consultation_payment_method.sql", import.meta.url), "utf8");
   assert.match(payments, /provider !== "development"/);
   assert.match(payments, /PAYMENT_PROVIDER_KEY_ID/);
   assert.match(payments, /PAYMENT_PROVIDER_KEY_SECRET/);
-  assert.match(route, /billingEnabled \? available\.consultation_rate_5min \* blocks : 0/);
-  assert.match(route, /"FREE_BETA"/);
-  assert.match(panel, /Free beta mode: no payment or charge is collected/);
+  assert.match(route, /paymentMethod !== "CASH"/);
+  assert.match(route, /const paymentStatus = "CASH_SELECTED"/);
+  assert.match(route, /available\.consultation_rate_5min \* blocks/);
+  assert.match(panel, /Payment before chat/);
+  assert.match(panel, />Cash</);
+  assert.match(panel, />UPI</);
+  assert.match(panel, />Card</);
+  assert.match(migration, /payment_method/);
 });
 
 test("security hardening protects arrival codes, uploads and state-changing requests", async () => {
