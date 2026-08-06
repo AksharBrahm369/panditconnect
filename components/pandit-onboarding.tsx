@@ -38,13 +38,36 @@ export function PanditOnboarding({ status, reviewNote, onSaved }: { status: stri
   }
   useEffect(() => { const timer = window.setTimeout(() => void load(), 0); return () => window.clearTimeout(timer); }, []);
 
-  const progress = useMemo(() => {
+  const missingRequirements = useMemo(() => {
     const uploaded = new Set(documents.map((doc) => doc.document_type));
-    const complete = [form.legalName, form.email, form.dateOfBirth, form.currentAddress, form.bio.length >= 30, form.specialities, references[0]?.name, form.acceptPlatformRules, uploaded.has("PROFILE_PHOTO"), uploaded.has("GOVERNMENT_ID"), uploaded.has("BANK_PROOF")];
-    return Math.round(complete.filter(Boolean).length / complete.length * 100);
-  }, [documents, form, references]);
+    const firstReference = references[0];
+    const requirements: Array<[boolean, string]> = [
+      [form.legalName.trim().length >= 3, "Enter your full legal name"],
+      [/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim()), "Enter a valid email address"],
+      [Boolean(form.dateOfBirth), "Select your date of birth"],
+      [form.city.trim().length >= 2, "Enter your city"],
+      [form.currentAddress.trim().length >= 10, "Enter your complete current address"],
+      [form.languages.split(",").some((item) => item.trim()), "Add at least one language"],
+      [form.specialities.split(",").some((item) => item.trim()), "Add at least one Puja speciality"],
+      [form.bio.trim().length >= 30, `Write a professional introduction (${Math.max(0, 30 - form.bio.trim().length)} more characters)`],
+      [pricing.length > 0 && pricing.some((item) => item.enabled && item.price >= 0), "Enable and price at least one service"],
+      [Boolean(firstReference?.name.trim() && firstReference.relationship.trim() && /^\+?[0-9]{10,13}$/.test(firstReference.phone.trim())), "Complete one reference with name, relationship and mobile number"],
+      [form.payoutMethod === "UPI" ? /^[\w.-]+@[\w.-]+$/.test(form.upiId.trim()) : Boolean(form.bankAccountName.trim() && form.bankAccountNumber.trim() && form.bankIfsc.trim()), form.payoutMethod === "UPI" ? "Enter a valid UPI ID" : "Complete account holder, account number and IFSC"],
+      [uploaded.has("PROFILE_PHOTO"), "Upload a profile photograph"],
+      [uploaded.has("GOVERNMENT_ID"), "Upload government identification"],
+      [uploaded.has("BANK_PROOF"), "Upload bank or UPI proof"],
+      [form.acceptPlatformRules, "Accept the platform rules and verification consent"],
+    ];
+    return requirements.filter(([complete]) => !complete).map(([, label]) => label);
+  }, [documents, form, pricing, references]);
+  const progress = Math.round(((15 - missingRequirements.length) / 15) * 100);
 
   async function save(submit: boolean) {
+    if (submit && missingRequirements.length) {
+      setNotice(`Complete the ${missingRequirements.length} item${missingRequirements.length === 1 ? "" : "s"} shown in “Still needed” before submitting.`);
+      document.getElementById("onboarding-missing")?.scrollIntoView({ behavior: "smooth", block: "center" });
+      return;
+    }
     setBusy(true); setNotice("");
     const response = await fetch("/api/pandit/onboarding", { method: "PUT", headers: { "content-type": "application/json" }, body: JSON.stringify({ ...form, languages: form.languages.split(",").map((x) => x.trim()).filter(Boolean), specialities: form.specialities.split(",").map((x) => x.trim()).filter(Boolean), references, pricing, submit }) });
     const data = await readJson<{ error?: string }>(response);
@@ -65,6 +88,8 @@ export function PanditOnboarding({ status, reviewNote, onSaved }: { status: stri
   return <section className="trusted-onboarding">
     <header className="onboarding-header"><div><span className="eyebrow">Trusted Pandit onboarding</span><h2>Complete your verified professional profile</h2><p>Save a draft at any time. Required documents are private and never receive public URLs.</p></div><div className="progress-ring"><strong>{progress}%</strong><span>complete</span></div></header>
     {reviewNote && <div className="alert error"><strong>Admin note:</strong> {reviewNote}</div>}{notice && <div className={notice.includes("Unable") || notice.includes("failed") ? "alert error" : "alert success"}>{notice}</div>}
+    {missingRequirements.length > 0 && <div className="requirements-card" id="onboarding-missing"><div><strong>Still needed before submission</strong><span>{missingRequirements.length} item{missingRequirements.length === 1 ? "" : "s"} remaining</span></div><ul>{missingRequirements.map((item) => <li key={item}>{item}</li>)}</ul></div>}
+    {missingRequirements.length === 0 && <div className="requirements-ready"><BadgeCheck size={20} /><span><strong>Your application is complete.</strong> You can now submit it for admin verification.</span></div>}
     <div className="onboarding-section"><h3>1. Legal identity and contact</h3><div className="form-grid">
       <label>Full legal name *<input value={form.legalName} onChange={(e) => setForm({ ...form, legalName: e.target.value })} /></label><label>Verified mobile<input value={form.phone} disabled /></label>
       <label>Email *<input type="email" value={form.email} onChange={(e) => setForm({ ...form, email: e.target.value })} /></label><label>Date of birth *<input type="date" value={form.dateOfBirth} onChange={(e) => setForm({ ...form, dateOfBirth: e.target.value })} /></label>
@@ -80,7 +105,7 @@ export function PanditOnboarding({ status, reviewNote, onSaved }: { status: stri
       <div className="payout-box"><label>Payout method<select value={form.payoutMethod} onChange={(e) => setForm({ ...form, payoutMethod: e.target.value as "BANK" | "UPI" })}><option value="UPI">UPI</option><option value="BANK">Bank account</option></select></label>{form.payoutMethod === "UPI" ? <label>UPI ID *<input value={form.upiId} onChange={(e) => setForm({ ...form, upiId: e.target.value })} /></label> : <><label>Account holder *<input value={form.bankAccountName} onChange={(e) => setForm({ ...form, bankAccountName: e.target.value })} /></label><label>Account number *<input value={form.bankAccountNumber} onChange={(e) => setForm({ ...form, bankAccountNumber: e.target.value })} /></label><label>IFSC *<input value={form.bankIfsc} onChange={(e) => setForm({ ...form, bankIfsc: e.target.value.toUpperCase() })} /></label></>}</div>
     </div>
     <label className="rules-consent"><input type="checkbox" checked={form.acceptPlatformRules} onChange={(e) => setForm({ ...form, acceptPlatformRules: e.target.checked })} /><span><strong>I agree to the platform rules and verification process.</strong><small>I confirm that all information is accurate and permit identity, reference, knowledge and payout verification.</small></span></label>
-    <div className="onboarding-actions"><button className="btn btn-ghost" disabled={busy} onClick={() => void save(false)}><Save size={17} /> Save draft</button><button className="btn btn-primary" disabled={busy || progress < 100} onClick={() => void save(true)}><Send size={17} /> Submit for verification</button></div>
+    <div className="onboarding-actions"><button className="btn btn-ghost" disabled={busy} onClick={() => void save(false)}><Save size={17} /> Save draft</button><button className="btn btn-primary" disabled={busy} onClick={() => void save(true)}><Send size={17} /> {missingRequirements.length ? `Review ${missingRequirements.length} missing item${missingRequirements.length === 1 ? "" : "s"}` : "Submit for verification"}</button></div>
     <div className="private-storage-note"><FileCheck2 /><span>All application records and file metadata are stored in your Supabase project.</span></div>
   </section>;
 }
