@@ -89,7 +89,7 @@ export async function issueLoginOtp(request: Request, phone: string, role: Role)
   } catch (error) {
     await sql(`UPDATE pim_v2.otp_challenges SET delivery_status='FAILED',expires_at=now() WHERE id=$1`, [challengeId]);
     if (error instanceof OtpRequestError) throw error;
-    console.error("OTP provider delivery failed", { provider: process.env.OTP_PROVIDER ?? "development", reason: error instanceof Error ? error.message : "unknown" });
+    console.error("OTP provider delivery failed", { provider: process.env.OTP_PROVIDER ?? "development", category: error instanceof Error ? error.name : "unknown" });
     throw new OtpRequestError("We could not send an OTP right now. Please try again later.", 503, RESEND_COOLDOWN_SECONDS);
   }
 }

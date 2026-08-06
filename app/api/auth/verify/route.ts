@@ -14,7 +14,6 @@ export async function POST(request: Request) {
       `SELECT id,otp_hash,attempts FROM pim_v2.otp_challenges
        WHERE phone=$1 AND role=$2 AND verified_at IS NULL AND expires_at>now()
          AND delivery_status IN ('DEVELOPMENT','SENT')
-         AND delivery_status IN ('DEVELOPMENT','SENT')
        ORDER BY created_at DESC LIMIT 1`,
       [phone, role],
     );
