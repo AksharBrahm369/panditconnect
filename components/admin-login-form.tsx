@@ -58,7 +58,7 @@ export function AdminLoginForm() {
         <div className="phone-field"><span>+91</span><input id="admin-phone" aria-label="Administrator mobile number" value={phone} onChange={(event) => setPhone(event.target.value.replace(/\D/g, "").slice(0,10))} inputMode="numeric" autoComplete="tel" placeholder="10-digit number" /></div>
         <button className="btn btn-primary btn-block btn-lg" disabled={busy || phone.length !== 10} onClick={requestOtp}>{busy ? "Sending…" : "Continue securely"}</button>
       </> : <>
-        {devOtp && <div className="alert success"><strong>Development OTP:</strong> {devOtp}</div>}
+        {devOtp && <div className="alert success"><strong>Testing OTP:</strong> {devOtp}<br /><small>Shown only for an approved test administrator number.</small></div>}
         <label htmlFor="admin-otp">6-digit OTP</label>
         <input id="admin-otp" aria-label="Administrator OTP" className="otp-field" value={otp} onChange={(event) => setOtp(event.target.value.replace(/\D/g, "").slice(0,6))} inputMode="numeric" autoComplete="one-time-code" />
         <button className="btn btn-primary btn-block btn-lg" disabled={busy || otp.length !== 6} onClick={verifyOtp}>{busy ? "Verifying…" : "Verify administrator"}</button>

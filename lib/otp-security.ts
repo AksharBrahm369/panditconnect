@@ -22,8 +22,12 @@ function localRequest(request: Request) {
   } catch { return false; }
 }
 
-export function developmentOtpAllowed(request: Request) {
-  return appEnvironment() === "development" && localRequest(request);
+function testPhoneAllowlist() {
+  return new Set((process.env.OTP_TEST_PHONE_ALLOWLIST ?? "").split(",").map((value) => value.trim()).filter(Boolean));
+}
+
+export function developmentOtpAllowed(request: Request, phone: string) {
+  return (appEnvironment() === "development" && localRequest(request)) || testPhoneAllowlist().has(phone);
 }
 
 export async function assertOtpVerificationAllowed(phone: string) {
@@ -79,7 +83,7 @@ export async function issueLoginOtp(request: Request, phone: string, role: Role)
 
   try {
     const delivery = await deliverLoginOtp(phone, otp);
-    if (delivery.development && !developmentOtpAllowed(request)) {
+    if (delivery.development && !developmentOtpAllowed(request, phone)) {
       await sql(`UPDATE pim_v2.otp_challenges SET delivery_status='FAILED',expires_at=now() WHERE id=$1`, [challengeId]);
       console.warn("OTP delivery blocked", { provider: "development", environment: appEnvironment() });
       throw new OtpRequestError("SMS verification is unavailable on this website during testing.", 503);

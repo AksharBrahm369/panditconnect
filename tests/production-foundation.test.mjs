@@ -55,10 +55,11 @@ test("only successfully delivered OTP challenges can be verified", async () => {
   }
 });
 
-test("development OTP is restricted to localhost and production never returns it", async () => {
+test("visible testing OTP is restricted to localhost or an explicit phone allowlist", async () => {
   const security = await readFile(new URL("../lib/otp-security.ts", import.meta.url), "utf8");
   const requestRoute = await readFile(new URL("../app/api/auth/request/route.ts", import.meta.url), "utf8");
-  assert.match(security, /appEnvironment\(\) === "development" && localRequest\(request\)/);
+  assert.match(security, /OTP_TEST_PHONE_ALLOWLIST/);
+  assert.match(security, /testPhoneAllowlist\(\)\.has\(phone\)/);
   assert.match(security, /hostname === "localhost"/);
   assert.doesNotMatch(requestRoute, /devOtp:\s*otp/);
 });
