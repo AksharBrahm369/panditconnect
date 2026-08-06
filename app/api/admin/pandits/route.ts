@@ -23,7 +23,8 @@ export async function GET(request: Request) {
     const result = await sql(
       `SELECT u.id,u.name,u.phone,u.city,u.created_at,p.email,p.date_of_birth,p.current_address,
        p.experience_years,p.languages,p.specialities,p.bio,p.base_charge,p.service_radius_km,p.payout_method,
-       p.bank_account_name,p.bank_ifsc,p.upi_id,p.verification_status,p.review_note,p.submitted_at,
+       p.bank_account_name,p.bank_ifsc,p.upi_id,p.interview_mode,p.interview_preferred_at,
+       p.interview_alternate_at,p.interview_language,p.interview_note,p.verification_status,p.review_note,p.submitted_at,
        COALESCE((SELECT json_agg(json_build_object('id',r.id,'name',r.reference_name,'relationship',r.relationship,'organisation',r.temple_or_organisation,'phone',r.phone,'status',r.verification_status,'note',r.verification_note) ORDER BY r.created_at) FROM pim_v2.pandit_references r WHERE r.pandit_id=u.id),'[]') AS references,
        COALESCE((SELECT json_agg(json_build_object('id',d.id,'type',d.document_type,'name',d.original_name,'mimeType',d.mime_type,'size',d.size_bytes,'status',d.review_status,'note',d.review_note) ORDER BY d.uploaded_at DESC) FROM pim_v2.pandit_documents d WHERE d.pandit_id=u.id),'[]') AS documents,
        COALESCE((SELECT json_agg(json_build_object('serviceId',sp.service_id,'serviceName',s.name,'price',sp.price,'enabled',sp.enabled) ORDER BY s.name) FROM pim_v2.pandit_service_pricing sp JOIN pim_v2.services s ON s.id=sp.service_id WHERE sp.pandit_id=u.id),'[]') AS pricing,
