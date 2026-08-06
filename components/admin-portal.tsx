@@ -87,6 +87,25 @@ export function AdminPortal() {
     window.open(result.url, "_blank", "noopener,noreferrer");
   }
 
+  async function reviewDocument(documentId: string, status: "VERIFIED" | "REJECTED") {
+    if (!selected) return;
+    const rejectionNote = status === "REJECTED" ? window.prompt("Explain what the Pandit must correct:")?.trim() : "";
+    if (status === "REJECTED" && !rejectionNote) return;
+    setBusy(true); setNotice("");
+    const response = await fetch(`/api/admin/pandits/documents/${documentId}`, {
+      method: "PATCH", headers: { "content-type": "application/json" },
+      body: JSON.stringify({ status, note: rejectionNote }),
+    });
+    const result = await readJson<{ error?: string; documentStatus?: CheckStatus }>(response);
+    if (!response.ok) setNotice(result.error ?? "Unable to review document");
+    else {
+      setSelected({ ...selected, documents: selected.documents?.map((document) => document.id === documentId ? { ...document, status, note: rejectionNote || null } : document) });
+      setChecklist({ ...checklist, documentStatus: result.documentStatus ?? checklist.documentStatus });
+      setNotice(status === "VERIFIED" ? "Document verified successfully." : "Document rejected and correction requested.");
+    }
+    setBusy(false); await loadQueue();
+  }
+
   function selectPandit(pandit: ReviewPandit) { setSelected(pandit); setNote(pandit.review_note ?? pandit.review?.adminNote ?? ""); setChecklist({ ...emptyChecklist, ...(pandit.review ?? {}) }); }
 
   return <AppShell role="Admin" title="Operations overview" subtitle="A compact control room for verification, urgent bookings and platform health.">
@@ -137,7 +156,7 @@ export function AdminPortal() {
           <div className="review-section"><span>Professional introduction</span><p>{selected.bio || "No introduction provided."}</p></div>
           <div className="review-section"><span>Identity and contact</span><p>{selected.email || "Email missing"} · DOB {selected.date_of_birth ? new Date(selected.date_of_birth).toLocaleDateString("en-IN") : "missing"}</p><p>{selected.current_address || "Address missing"} · {selected.service_radius_km ?? 0} km service radius</p></div>
           <div className="review-section"><span>Service pricing</span><div className="review-pricing">{selected.pricing?.filter((item) => item.enabled).map((item) => <b key={item.serviceId}>{item.serviceName}: ₹{item.price.toLocaleString("en-IN")}</b>) || <em>No prices submitted</em>}</div></div>
-          <div className="review-section"><span>Private documents</span><div className="review-documents">{selected.documents?.map((document) => <button className="document-review-button" key={document.id} onClick={() => void openDocument(document.id)}><span><strong>{document.type.replaceAll("_", " ")}</strong><small>{document.name} · {document.status}</small></span><ExternalLink size={15} /></button>) || <em>No documents uploaded</em>}</div><small>Review links expire after five minutes.</small></div>
+          <div className="review-section"><span>Private documents</span><div className="review-documents">{selected.documents?.map((document) => <div className={`document-review-row ${document.status.toLowerCase()}`} key={document.id}><button className="document-review-button" onClick={() => void openDocument(document.id)}><span><strong>{document.type.replaceAll("_", " ")}</strong><small>{document.name} · {document.status}{document.note ? ` · ${document.note}` : ""}</small></span><ExternalLink size={15} /></button><div><button className="mini-review verify" disabled={busy || document.status === "VERIFIED"} onClick={() => void reviewDocument(document.id, "VERIFIED")}>Verify</button><button className="mini-review reject" disabled={busy || document.status === "REJECTED"} onClick={() => void reviewDocument(document.id, "REJECTED")}>Reject</button></div></div>) || <em>No documents uploaded</em>}</div><small>Open the file first, then verify or reject it. Review links expire after five minutes.</small></div>
           <div className="review-section"><span>References</span>{selected.references?.map((reference) => <div className="admin-reference" key={reference.id}><strong>{reference.name}</strong><span>{reference.relationship} · {reference.organisation || "Independent reference"}</span><small>{reference.phone} · {reference.status}</small></div>) || <em>No references submitted</em>}</div>
           <div className="review-section"><span>Payout verification</span><p>{selected.payout_method === "BANK" ? `${selected.bank_account_name || "Account holder missing"} · IFSC ${selected.bank_ifsc || "missing"}` : `UPI ${selected.upi_id || "missing"}`}</p></div>
           <div className="verification-checklist"><h3>Admin verification checklist</h3>{([
