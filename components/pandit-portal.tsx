@@ -14,6 +14,7 @@ type Booking = {
   address: string; created_at: string; request_type: string; situation: string | null;
   preferred_language: string | null; materials_option: string;
   customer_latitude: number | null; customer_longitude: number | null;
+  payment_method: "CASH" | "UPI" | "CARD" | "OTHER" | null; payment_status: "NOT_SELECTED" | "CONFIRMED"; payment_confirmed_at: string | null;
 };
 
 export function PanditPortal() {
@@ -166,6 +167,7 @@ export function PanditPortal() {
   if (!profile) return <AppShell role="Pandit" title="Loading your portal…" subtitle="Preparing your profile and requests."><div className="loading-card">Loading…</div></AppShell>;
   const incomplete = ["INCOMPLETE", "PENDING", "SUBMITTED", "UNDER_REVIEW", "CHANGES_REQUESTED", "REJECTED"].includes(profile.verification_status);
   const active = bookings.filter((b) => !["COMPLETED", "DECLINED", "CANCELLED"].includes(b.status));
+  const completed = bookings.filter((b) => b.status === "COMPLETED").slice(0, 6);
 
   return (
     <AppShell role="Pandit" title={incomplete ? "Complete your verified Pandit profile" : `Namaste, ${profile.name ?? "Pandit ji"}`} subtitle={incomplete ? "A trusted profile helps customers book with confidence." : "Manage availability and urgent requests from one screen."}>
@@ -215,6 +217,9 @@ export function PanditPortal() {
             </div>}
             {b.status === "IN_PROGRESS" && <button className="btn btn-primary btn-block" disabled={busy} onClick={() => transition(b.id, "COMPLETED")}>Complete Puja</button>}
           </div>{actionErrors[b.id] && <div className="inline-action-error">{actionErrors[b.id]}</div>}</article>)}</div> : <div className="empty"><BellRing size={26} /><strong>No active requests</strong><span>Stay online. New urgent bookings will appear here automatically.</span></div>}
+        </section>
+        <section className="history" id="completed-pujas"><div className="section-title"><div><h2>Recent completed Puja</h2><p>Payment choices confirmed by customers appear here.</p></div></div>
+          {completed.length ? <div className="completed-payment-list">{completed.map((booking) => <article key={booking.id}><div><strong>{booking.service_name}</strong><span>{booking.customer_name ?? "Customer"} · ₹{booking.amount.toLocaleString("en-IN")}</span></div><span className={`status ${booking.payment_status === "CONFIRMED" ? "paid" : ""}`}>{booking.payment_status === "CONFIRMED" ? booking.payment_method === "CASH" ? "Cash confirmed" : "Payment arranged" : "Awaiting payment choice"}</span></article>)}</div> : <div className="empty compact">No completed Puja yet.</div>}
         </section>
       </>}
     </AppShell>

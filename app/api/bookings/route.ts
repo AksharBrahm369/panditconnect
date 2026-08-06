@@ -25,7 +25,7 @@ export async function GET() {
     const result = await sql(
       `SELECT b.id,b.status,b.address,b.amount,b.arrival_otp,b.created_at,b.request_type,
         b.situation,b.preferred_language,b.materials_option,b.latitude,b.longitude,
-        b.customer_rating,b.rating_comment,b.rated_at,
+        b.customer_rating,b.rating_comment,b.rated_at,b.payment_method,b.payment_status,b.payment_confirmed_at,
         s.name AS service_name,pu.name AS pandit_name,p.latitude AS pandit_latitude,
         p.longitude AS pandit_longitude,p.updated_at AS location_updated_at
        FROM pim_v2.bookings b
@@ -47,6 +47,7 @@ export async function GET() {
       `SELECT b.id,b.status,
         CASE WHEN b.status='REQUESTED' THEN 'Exact address shared after acceptance' ELSE b.address END AS address,
         b.amount,b.created_at,b.request_type,b.situation,b.preferred_language,b.materials_option,
+        b.payment_method,b.payment_status,b.payment_confirmed_at,
         b.latitude AS customer_latitude,b.longitude AS customer_longitude,
         s.name AS service_name,cu.name AS customer_name
        FROM pim_v2.bookings b

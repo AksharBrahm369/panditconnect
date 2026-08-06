@@ -3,7 +3,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import {
   AlertTriangle, ArrowLeft, BadgeHelp, CheckCircle2, ChevronRight, Clock3,
-  Compass, MapPin, Mic, PackageCheck, RefreshCw, ShieldCheck, Sparkles, Star,
+  Banknote, Compass, CreditCard, MapPin, Mic, PackageCheck, RefreshCw, ShieldCheck, Smartphone, Sparkles, Star,
 } from "lucide-react";
 import { AppShell } from "./app-shell";
 import { ConsultationPanel } from "./consultation-panel";
@@ -18,6 +18,7 @@ type Booking = {
   situation: string | null; materials_option: string; latitude: number; longitude: number;
   pandit_latitude: number | null; pandit_longitude: number | null; location_updated_at: string | null;
   customer_rating: number | null; rating_comment: string | null; rated_at: string | null;
+  payment_method: "CASH" | "UPI" | "CARD" | "OTHER" | null; payment_status: "NOT_SELECTED" | "CONFIRMED"; payment_confirmed_at: string | null;
 };
 type SpeechRecognitionLike = {
   lang: string; interimResults: boolean; continuous: boolean;
@@ -69,6 +70,8 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
   const [ratingComments, setRatingComments] = useState<Record<string, string>>({});
   const [ratingBusy, setRatingBusy] = useState<string | null>(null);
   const [ratingMessages, setRatingMessages] = useState<Record<string, string>>({});
+  const [paymentBusy, setPaymentBusy] = useState<string | null>(null);
+  const [paymentMessages, setPaymentMessages] = useState<Record<string, string>>({});
 
   const refreshBookings = useCallback(async () => {
     const response = await fetch(`/api/bookings?fresh=${Date.now()}`, {
@@ -270,6 +273,20 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
     setRatingBusy(null);
   }
 
+  async function confirmPaymentMethod(bookingId: string, method: "CASH" | "OTHER") {
+    setPaymentBusy(bookingId);
+    setPaymentMessages((current) => ({ ...current, [bookingId]: "" }));
+    const response = await fetch(`/api/bookings/${bookingId}/payment`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ method }),
+    });
+    const data = await readJson<{ error?: string }>(response);
+    if (!response.ok) setPaymentMessages((current) => ({ ...current, [bookingId]: data.error ?? "Unable to save the payment method." }));
+    else await refreshBookings();
+    setPaymentBusy(null);
+  }
+
   return (
     <AppShell role="Customer" title="What religious help do you need?" subtitle="Describe the situation. We guide you and find the best available nearby Pandit.">
       {message && <div className="alert error">{message}</div>}
@@ -380,6 +397,16 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
             </div>
             {hasLiveLocation && <a className="text-button map-link" target="_blank" rel="noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${booking.pandit_latitude},${booking.pandit_longitude}`}>Open current Pandit location</a>}
             {!["REQUESTED", "DECLINED", "CANCELLED"].includes(booking.status) && <div className="arrival-code"><span>Arrival verification code</span><code>{booking.arrival_otp}</code></div>}
+            {booking.status === "COMPLETED" && <div className="booking-payment">
+              <div><span className="eyebrow">Payment</span><h4>{booking.payment_status === "CONFIRMED" ? "Payment method confirmed" : "Choose how you paid the Pandit"}</h4><p>No online charge is made by the platform during beta.</p></div>
+              {booking.payment_status === "CONFIRMED" ? <div className="payment-confirmed"><CheckCircle2 size={20} /><span><strong>{booking.payment_method === "CASH" ? "Cash" : "Payment arranged directly"}</strong><small>Confirmed for this completed Puja</small></span></div> : <div className="payment-method-grid">
+                <button disabled={paymentBusy === booking.id} onClick={() => confirmPaymentMethod(booking.id, "CASH")}><Banknote /><span><strong>Cash</strong><small>Pay the Pandit directly</small></span></button>
+                <button disabled title="Available after secure payment setup"><Smartphone /><span><strong>UPI</strong><small>Coming soon</small></span></button>
+                <button disabled title="Available after secure payment setup"><CreditCard /><span><strong>Card</strong><small>Coming soon</small></span></button>
+                <button disabled={paymentBusy === booking.id} onClick={() => confirmPaymentMethod(booking.id, "OTHER")}><PackageCheck /><span><strong>Other</strong><small>Arranged directly</small></span></button>
+              </div>}
+              {paymentMessages[booking.id] && <small className="payment-error">{paymentMessages[booking.id]}</small>}
+            </div>}
             {booking.status === "COMPLETED" && (booking.customer_rating ? <div className="rating-submitted"><span><Star size={18} fill="currentColor" /> You rated this Puja <strong>{booking.customer_rating}/5</strong></span>{booking.rating_comment && <p>“{booking.rating_comment}”</p>}</div> : <div className="rate-puja">
               <div><span className="eyebrow">Puja completed</span><h4>How was your experience with {booking.pandit_name ?? "the Pandit"}?</h4><p>Your verified rating helps other families choose confidently.</p></div>
               <div className="star-picker" aria-label="Choose a rating">{[1,2,3,4,5].map((star) => <button className={star <= (ratingDrafts[booking.id] ?? 0) ? "selected" : ""} aria-label={`${star} star${star === 1 ? "" : "s"}`} onClick={() => setRatingDrafts((current) => ({ ...current, [booking.id]: star }))} key={star}><Star fill="currentColor" /></button>)}</div>

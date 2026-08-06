@@ -1473,3 +1473,31 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   .portal-main { padding-bottom: 28px; }
   .notification-panel { max-height: calc(100dvh - 76px); }
 }
+
+.booking-payment { display: grid; gap: 14px; margin-top: 18px; padding: 18px; border: 1px solid #dce5df; border-radius: 15px; background: #f8fbf9; }
+.booking-payment h4 { margin: 5px 0; font-size: 18px; }
+.booking-payment p { margin: 0; color: var(--muted); font-size: 12px; }
+.payment-method-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 9px; }
+.payment-method-grid button { min-width: 0; display: grid; grid-template-columns: auto minmax(0,1fr); align-items: center; gap: 9px; padding: 12px; border: 1px solid #dce5df; border-radius: 12px; color: var(--ink); background: white; text-align: left; cursor: pointer; }
+.payment-method-grid button:not(:disabled):hover { border-color: var(--primary); box-shadow: 0 0 0 2px #f7ddd2; }
+.payment-method-grid button:disabled { opacity: .52; cursor: not-allowed; }
+.payment-method-grid button > svg { width: 21px; color: var(--primary); }
+.payment-method-grid button span { min-width: 0; display: grid; gap: 2px; }
+.payment-method-grid small, .payment-confirmed small { color: var(--muted); font-size: 10px; }
+.payment-confirmed { display: flex; align-items: center; gap: 10px; padding: 13px; border-radius: 12px; color: #08774c; background: #e8f7ef; }
+.payment-confirmed span { display: grid; gap: 2px; }
+.payment-error { color: #ae2d1c; }
+.completed-payment-list { display: grid; gap: 9px; }
+.completed-payment-list article { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: white; }
+.completed-payment-list article > div { min-width: 0; display: grid; gap: 3px; }
+.completed-payment-list article > div span { color: var(--muted); font-size: 12px; }
+.completed-payment-list .status.paid { color: #08774c; background: #e8f7ef; }
+
+@media (max-width: 700px) {
+  .payment-method-grid { grid-template-columns: 1fr 1fr; }
+  .completed-payment-list article { align-items: flex-start; flex-direction: column; }
+}
+
+@media (max-width: 390px) {
+  .payment-method-grid { grid-template-columns: 1fr; }
+}

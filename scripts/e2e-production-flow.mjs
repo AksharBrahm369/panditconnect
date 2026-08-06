@@ -75,6 +75,19 @@ try {
   await transition(tokens.pandit, "IN_PROGRESS", 200, { arrivalOtp });
   await transition(tokens.pandit, "COMPLETED", 200);
 
+  const unavailableGateway = await api(`/api/bookings/${ids.booking}/payment`, tokens.customer, {
+    method: "POST",
+    body: JSON.stringify({ method: "UPI" }),
+  });
+  assert.equal(unavailableGateway.response.status, 409);
+  const payment = await api(`/api/bookings/${ids.booking}/payment`, tokens.customer, {
+    method: "POST",
+    body: JSON.stringify({ method: "CASH" }),
+  });
+  assert.equal(payment.response.status, 200, JSON.stringify(payment.body));
+  assert.equal(payment.body.paymentMethod, "CASH");
+  assert.equal(payment.body.paymentStatus, "CONFIRMED");
+
   const rating = await api(`/api/bookings/${ids.booking}/rating`, tokens.customer, {
     method: "POST",
     body: JSON.stringify({ rating: 5, comment: "Automated E2E verification" }),
@@ -86,7 +99,7 @@ try {
   });
   assert.equal(duplicateRating.response.status, 409);
 
-  console.log(JSON.stringify({ success: true, checks: 13, baseUrl }));
+  console.log(JSON.stringify({ success: true, checks: 17, baseUrl }));
 } finally {
   await client.query(`DELETE FROM pim_v2.bookings WHERE customer_id=ANY($1::uuid[]) OR pandit_id=ANY($1::uuid[])`, [[ids.customer, ids.pandit, ids.outsider]]).catch(() => undefined);
   await client.query(`DELETE FROM pim_v2.users WHERE id=ANY($1::uuid[])`, [[ids.customer, ids.pandit, ids.outsider]]).catch(() => undefined);

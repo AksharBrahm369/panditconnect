@@ -157,3 +157,19 @@ test("mobile navigation and core workspaces use responsive phone layouts", async
   assert.match(admin, /admin-bookings-table/);
   assert.match(admin, /data-label="Status"/);
 });
+
+test("completed Puja payment choice is persisted without pretending to process online payments", async () => {
+  const migration = await readFile(new URL("../db/migrations/0017_booking_payment_method.sql", import.meta.url), "utf8");
+  const route = await readFile(new URL("../app/api/bookings/[id]/payment/route.ts", import.meta.url), "utf8");
+  const customer = await readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8");
+  assert.match(migration, /payment_method/);
+  assert.match(migration, /payment_status/);
+  assert.match(migration, /'CASH','UPI','CARD','OTHER'/);
+  assert.match(route, /user\.role !== "CUSTOMER"/);
+  assert.match(route, /status='COMPLETED'/);
+  assert.match(route, /payment will be available after the secure payment gateway is configured/);
+  assert.match(customer, />Cash</);
+  assert.match(customer, />UPI</);
+  assert.match(customer, />Card</);
+  assert.match(customer, /Coming soon/);
+});
