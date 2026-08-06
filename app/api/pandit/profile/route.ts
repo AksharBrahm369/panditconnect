@@ -1,8 +1,24 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
+import { z } from "zod";
 
 export const dynamic = "force-dynamic";
+
+const profileUpdateSchema = z.object({
+  name: z.string().trim().min(2).max(120).optional(),
+  city: z.string().trim().min(2).max(100).optional(),
+  experienceYears: z.number().int().min(0).max(80).optional(),
+  languages: z.array(z.string().trim().min(1).max(50)).max(12).optional(),
+  specialities: z.array(z.string().trim().min(1).max(100)).max(30).optional(),
+  bio: z.string().trim().max(1500).optional(),
+  baseCharge: z.number().int().min(0).max(1_000_000).optional(),
+  isOnline: z.boolean().optional(),
+  latitude: z.number().min(-90).max(90).optional(),
+  longitude: z.number().min(-180).max(180).optional(),
+  consultationOnline: z.boolean().optional(),
+  consultationRate5Min: z.number().int().min(20).max(5000).optional(),
+}).strict();
 
 export async function GET() {
   const user = await currentUser();
@@ -20,11 +36,9 @@ export async function GET() {
 export async function PUT(request: Request) {
   const user = await currentUser();
   if (!user || user.role !== "PANDIT") return NextResponse.json({ error: "Pandit login required" }, { status: 401 });
-  const body = await request.json() as {
-    name?: string; city?: string; experienceYears?: number; languages?: string[]; specialities?: string[];
-    bio?: string; baseCharge?: number; isOnline?: boolean; latitude?: number; longitude?: number;
-    consultationOnline?: boolean; consultationRate5Min?: number;
-  };
+  const parsed = profileUpdateSchema.safeParse(await request.json());
+  if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Invalid profile update" }, { status: 400 });
+  const body = parsed.data;
   const validCoordinates = Number.isFinite(body.latitude) && Number.isFinite(body.longitude) &&
     body.latitude! >= -90 && body.latitude! <= 90 && body.longitude! >= -180 && body.longitude! <= 180;
   const availabilityKeys = Object.keys(body).every((key) => ["isOnline", "latitude", "longitude"].includes(key));

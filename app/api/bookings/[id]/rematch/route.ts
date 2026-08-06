@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
+import { encryptArrivalOtp } from "@/lib/arrival-otp";
 
 type RematchResult = {
   name: string;
@@ -59,7 +60,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
      SELECT name,round(distance::numeric,1)::text AS distance_km,
        greatest(10,round(distance*3)::int+8) AS eta_minutes
      FROM reassigned`,
-    [id, user.id, otp],
+    [id, user.id, await encryptArrivalOtp(otp)],
   );
 
   const match = result.rows[0];

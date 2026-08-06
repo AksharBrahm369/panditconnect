@@ -3,6 +3,7 @@ import { requirePandit } from "@/lib/auth";
 import { authorizationResponse } from "@/lib/api-auth";
 import { sql } from "@/lib/db";
 import { deletePrivateObject, uploadPrivateObject } from "@/lib/supabase-storage";
+import { validateUploadedFile } from "@/lib/file-validation";
 
 export const dynamic = "force-dynamic";
 const types = new Set(["PROFILE_PHOTO","GOVERNMENT_ID","ADDRESS_PROOF","BANK_PROOF","REFERENCE_LETTER","VIDEO_INTERVIEW"]);
@@ -23,7 +24,13 @@ export async function POST(request: Request) {
     if (!allowedMime || file.size <= 0 || file.size > sizeLimit) {
       return NextResponse.json({ error: isVideo ? "Use an MP4, WebM or MOV video up to 50 MB" : "Use JPG, PNG, WebP or PDF up to 10 MB" }, { status: 400 });
     }
-    const extension = file.name.split(".").pop()?.replace(/[^a-z0-9]/gi, "").toLowerCase() || "bin";
+    const extension = await validateUploadedFile(file);
+    if (!extension) return NextResponse.json({ error: "The file content does not match its declared type." }, { status: 400 });
+    const recentUploads = await sql<{ count: number }>(
+      `SELECT count(*)::int AS count FROM pim_v2.pandit_documents WHERE pandit_id=$1 AND uploaded_at>now()-interval '1 hour'`,
+      [user.id],
+    );
+    if ((recentUploads.rows[0]?.count ?? 0) >= 20) return NextResponse.json({ error: "Hourly upload limit reached. Try again later." }, { status: 429 });
     const id = crypto.randomUUID();
     path = `${user.id}/${documentType.toLowerCase()}/${id}.${extension}`;
     await uploadPrivateObject(path, file);

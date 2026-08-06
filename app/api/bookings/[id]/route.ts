@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { notifyUser } from "@/lib/push-notifications";
+import { verifyArrivalOtp } from "@/lib/arrival-otp";
 
 const transitions: Record<string, string[]> = {
   REQUESTED: ["ACCEPTED", "DECLINED", "CANCELLED"],
@@ -16,8 +17,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (!user) return NextResponse.json({ error: "Please log in" }, { status: 401 });
   const { id } = await context.params;
   const body = await request.json() as { status?: string; arrivalOtp?: string };
-  const current = await sql<{ status: string; customer_id: string; pandit_id: string; arrival_otp: string }>(
-    `SELECT status,customer_id,pandit_id,arrival_otp FROM pim_v2.bookings WHERE id=$1`,
+  const current = await sql<{ status: string; customer_id: string; pandit_id: string; arrival_otp: string; arrival_otp_attempts: number }>(
+    `SELECT status,customer_id,pandit_id,arrival_otp,arrival_otp_attempts FROM pim_v2.bookings WHERE id=$1`,
     [id],
   );
   const booking = current.rows[0];
@@ -35,7 +36,11 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   }
   if (body.status === "IN_PROGRESS") {
     const submittedOtp = body.arrivalOtp?.replace(/\D/g, "") ?? "";
-    if (!/^\d{6}$/.test(submittedOtp) || submittedOtp !== booking.arrival_otp) {
+    if (booking.arrival_otp_attempts >= 5) {
+      return NextResponse.json({ error: "Too many incorrect arrival-code attempts. Contact support." }, { status: 429 });
+    }
+    if (!await verifyArrivalOtp(booking.arrival_otp, submittedOtp)) {
+      await sql(`UPDATE pim_v2.bookings SET arrival_otp_attempts=arrival_otp_attempts+1 WHERE id=$1 AND status='ARRIVED'`, [id]);
       return NextResponse.json(
         { error: "Incorrect arrival OTP. Ask the customer for the current 6-digit code." },
         { status: 400 },
@@ -45,6 +50,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const updated = await sql<{ status: string }>(
     `WITH updated_booking AS (
        UPDATE pim_v2.bookings SET status=$2,
+         arrival_otp_attempts=CASE WHEN $2='IN_PROGRESS' THEN 0 ELSE arrival_otp_attempts END,
          accepted_at=CASE WHEN $2='ACCEPTED' THEN now() ELSE accepted_at END,
          completed_at=CASE WHEN $2='COMPLETED' THEN now() ELSE completed_at END,
          declined_pandit_ids=CASE

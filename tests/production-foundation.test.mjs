@@ -129,3 +129,18 @@ test("unconfigured payments create explicitly free beta consultations", async ()
   assert.match(route, /"FREE_BETA"/);
   assert.match(panel, /Free beta mode: no payment or charge is collected/);
 });
+
+test("security hardening protects arrival codes, uploads and state-changing requests", async () => {
+  const arrival = await readFile(new URL("../lib/arrival-otp.ts", import.meta.url), "utf8");
+  const files = await readFile(new URL("../lib/file-validation.ts", import.meta.url), "utf8");
+  const proxy = await readFile(new URL("../proxy.ts", import.meta.url), "utf8");
+  const config = await readFile(new URL("../next.config.ts", import.meta.url), "utf8");
+  assert.match(arrival, /AES-GCM/);
+  assert.match(arrival, /constantTimeEqual/);
+  assert.match(files, /file\.slice\(0, 32\)/);
+  assert.match(files, /application\/pdf/);
+  assert.match(proxy, /sec-fetch-site/);
+  assert.match(proxy, /Untrusted request origin/);
+  assert.match(config, /Content-Security-Policy/);
+  assert.match(config, /Strict-Transport-Security/);
+});

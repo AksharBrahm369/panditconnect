@@ -12,7 +12,7 @@ const expectedIndexes = [
   "otp_phone_created_idx", "otp_ip_created_idx", "session_expiry_idx", "booking_customer_idx",
   "booking_pandit_idx", "booking_status_created_idx", "pandit_verification_idx", "pandit_available_idx",
   "consultation_customer_idx", "consultation_pandit_idx", "consultation_message_idx",
-  "consultation_typing_expiry_idx", "admin_audit_created_idx", "admin_audit_admin_idx",
+  "consultation_typing_expiry_idx", "admin_audit_created_idx", "admin_audit_admin_idx", "otp_challenge_active_lookup_idx",
 ];
 
 const client = new pg.Client({ connectionString, connectionTimeoutMillis: 15_000 });

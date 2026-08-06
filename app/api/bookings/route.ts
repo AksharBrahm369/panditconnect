@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { notifyUser } from "@/lib/push-notifications";
+import { decryptArrivalOtp, encryptArrivalOtp } from "@/lib/arrival-otp";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -34,7 +35,11 @@ export async function GET() {
        WHERE b.customer_id=$1 ORDER BY b.created_at DESC LIMIT 20`,
       [user.id],
     );
-    return privateResponse({ customerId: user.id, bookings: result.rows });
+    const bookings = await Promise.all(result.rows.map(async (booking) => ({
+      ...booking,
+      arrival_otp: await decryptArrivalOtp(String(booking.arrival_otp)).catch(() => "Unavailable"),
+    })));
+    return privateResponse({ customerId: user.id, bookings });
   }
 
   if (user.role === "PANDIT") {
@@ -126,8 +131,8 @@ export async function POST(request: Request) {
        request_type,situation,preferred_language,materials_option
      ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'REQUESTED',$10,$11,$12,$13,$14)`,
     [
-      id, user.id, pandit.id, body.serviceId, body.address.trim(), latitude, longitude,
-      body.notes?.trim() || null, pandit.charge, otp, requestType,
+      id, user.id, pandit.id, body.serviceId, body.address.trim().slice(0, 500), latitude, longitude,
+      body.notes?.trim().slice(0, 1000) || null, pandit.charge, await encryptArrivalOtp(otp), requestType,
       body.situation?.trim().slice(0, 1200) || null, preferredLanguage || null, materialsOption,
     ],
   );
