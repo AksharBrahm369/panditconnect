@@ -335,11 +335,16 @@ test("customers have a private gear menu for profile and request settings", asyn
   const menu = await readFile(new URL("../components/customer-account-menu.tsx", import.meta.url), "utf8");
   assert.match(shell, /CustomerAccountMenu/);
   assert.match(menu, /Customer account settings/);
-  assert.match(menu, /customer#customer-profile/);
-  assert.match(menu, /customer#live-requests/);
+  assert.match(menu, /customer\/settings\/profile/);
+  assert.match(menu, /customer\/settings\/notifications/);
+  assert.match(menu, /customer\/settings\/security/);
+  assert.match(menu, /customer\/settings\/support/);
   assert.match(menu, /Privacy & security/);
   const editor = await readFile(new URL("../components/profile-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /Complete your profile/);
   assert.match(editor, /Please enter your full name and city before saving/);
   assert.match(editor, /House or building, street, area and PIN code/);
+  const dashboard = await readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8");
+  assert.doesNotMatch(dashboard, /ProfileEditor/);
+  assert.doesNotMatch(dashboard, /SupportCenter/);
 });

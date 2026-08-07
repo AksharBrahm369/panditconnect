@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Activity, ChevronRight, LogOut, Settings, ShieldCheck, UserRound } from "lucide-react";
+import { Bell, ChevronRight, Headphones, LogOut, Settings, ShieldCheck, UserRound } from "lucide-react";
 
 const items = [
-  { href: "/customer#customer-profile", label: "Edit profile", detail: "Name, address and personal details", icon: UserRound },
-  { href: "/customer#live-requests", label: "My requests", detail: "Track current and previous requests", icon: Activity },
-  { href: "/privacy", label: "Privacy & security", detail: "How your account information is protected", icon: ShieldCheck },
+  { href: "/customer/settings/profile", label: "Edit profile", detail: "Name, address and personal details", icon: UserRound },
+  { href: "/customer/settings/notifications", label: "Notifications", detail: "Choose the alerts you receive", icon: Bell },
+  { href: "/customer/settings/security", label: "Privacy & security", detail: "Verified account and session", icon: ShieldCheck },
+  { href: "/customer/settings/support", label: "Help & support", detail: "Booking, account or safety help", icon: Headphones },
 ] as const;
 
 export function CustomerAccountMenu({ onLogout }: { onLogout: () => void | Promise<void> }) {

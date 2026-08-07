@@ -7,8 +7,6 @@ import {
 } from "lucide-react";
 import { AppShell } from "./app-shell";
 import { ConsultationPanel } from "./consultation-panel";
-import { SupportCenter } from "./support-center";
-import { ProfileEditor } from "./profile-editor";
 import { readJson } from "@/lib/http";
 import { getCurrentCoordinates, type BrowserCoordinates } from "@/lib/browser-location";
 import { recommendRitual, ritualForService, type RequestType, type RitualRecommendation } from "@/lib/ritual-guide";
@@ -477,8 +475,6 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
           </article>;
         })}</div> : <div className="empty"><Clock3 size={26} /><strong>No active help requests</strong><span>Choose one of the three paths above when you need religious assistance.</span></div>}
       </section>
-      <ProfileEditor role="CUSTOMER" />
-      <SupportCenter bookings={bookings.map(({id,service_name,status})=>({id,service_name,status}))} />
     </AppShell>
   );
 }
