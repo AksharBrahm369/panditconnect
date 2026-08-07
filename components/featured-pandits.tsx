@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import { ArrowRight, BadgeCheck, Languages, Star } from "lucide-react";
 import { readJson } from "@/lib/http";
+import { PanditAvatar } from "./pandit-avatar";
 
 type FeaturedPandit = {
   id: string;
@@ -41,7 +42,7 @@ export function FeaturedPandits() {
     <div className="featured-grid">
       {pandits.slice(0, 4).map((pandit) => <article className="expert-card" key={pandit.id}>
         <div className="expert-top">
-          <span className="expert-avatar">{pandit.name.split(" ").map((part) => part[0]).slice(0, 2).join("")}</span>
+          <PanditAvatar panditId={pandit.id} name={pandit.name} className="expert-avatar" />
           <div><h3>{pandit.name}</h3><span><BadgeCheck size={14} /> Admin approved</span></div>
           <b className={pandit.is_online ? "online" : ""}>{pandit.is_online ? "Online" : "Offline"}</b>
         </div>

@@ -5,6 +5,7 @@ import { MapPin, Navigation, ShieldCheck } from "lucide-react";
 import { useState } from "react";
 import { readJson } from "@/lib/http";
 import { getCurrentCoordinates } from "@/lib/browser-location";
+import { PanditAvatar } from "./pandit-avatar";
 
 type NearbyPandit = {
   id: string;
@@ -75,9 +76,7 @@ export function LiveAvailabilityCard() {
         <div className="live-pandit-list" aria-label={`${availableCount} nearby Pandits`}>
           {pandits.map((nearbyPandit) => <article className="live-pandit-card" key={nearbyPandit.id}>
             <div className="mini-card">
-              <div className="avatar">
-                {nearbyPandit.name.split(" ").slice(-2).map((part) => part[0]).join("")}
-              </div>
+              <PanditAvatar panditId={nearbyPandit.id} name={nearbyPandit.name} className="avatar" />
               <div>
                 <strong>{nearbyPandit.name}</strong>
                 <small>{nearbyPandit.experience_years} years · {nearbyPandit.languages.join(", ")}</small>

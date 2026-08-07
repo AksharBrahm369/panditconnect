@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect, notFound } from "next/navigation";
 import { ArrowLeft, BadgeCheck, CheckCircle2, Clock3, Languages, MapPin, ShieldCheck, Star } from "lucide-react";
 import { AppShell } from "@/components/app-shell";
+import { PanditAvatar } from "@/components/pandit-avatar";
 import { currentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
 
@@ -40,7 +41,7 @@ export default async function CustomerPanditProfile({ params }: { params: Promis
     <Link href="/customer#customer-home" className="back-review"><ArrowLeft size={16} /> Back to nearby Pandits</Link>
     <section className="public-pandit-profile">
       <div className="public-pandit-hero">
-        <span className="public-pandit-avatar">{pandit.name.split(/\s+/).map((part) => part[0]).slice(0,2).join("")}</span>
+        <PanditAvatar panditId={pandit.id} name={pandit.name} className="public-pandit-avatar" />
         <div><span className="eyebrow"><BadgeCheck size={14} /> Admin verified</span><h1>{pandit.name}</h1><p>{pandit.bio || "An experienced Pandit available for traditional Puja services."}</p><div className="public-pandit-badges"><span className={pandit.is_online ? "online" : ""}>{pandit.is_online ? "Available now" : "Currently offline"}</span>{pandit.city && <span><MapPin size={14} /> Serves families near {pandit.city}</span>}</div></div>
         {pandit.is_online ? <Link href={requestUrl} className="btn btn-primary">Request this Pandit</Link> : <button className="btn btn-primary" disabled>Check again when online</button>}
       </div>

@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ArrowLeft, BadgeCheck, Banknote, Clock3, CreditCard, MessageCircle, Send, Smartphone, Star, Wifi } from "lucide-react";
 import { readJson } from "@/lib/http";
+import { PanditAvatar } from "./pandit-avatar";
 
 type ConsultationPandit = {
   id: string; name: string; city: string | null; experience_years: number; languages: string[];
@@ -210,7 +211,7 @@ export function ConsultationPanel({ role, onBack }: { role: "CUSTOMER" | "PANDIT
       </div>}
       <div className="consultation-list">
         {pandits.length ? pandits.map((pandit) => <article className="consultation-pandit" key={pandit.id}>
-          <div className="consultation-pandit-head"><span className="consultation-avatar">{pandit.name.split(" ").map((part) => part[0]).slice(0,2).join("")}</span><div><strong>{pandit.name}</strong><span><i /> Available for chat</span></div><b>{pandit.rating_count ? <><Star size={13} fill="currentColor" /> {pandit.rating}</> : "New"}</b></div>
+          <div className="consultation-pandit-head"><PanditAvatar panditId={pandit.id} name={pandit.name} className="consultation-avatar" /><div><strong>{pandit.name}</strong><span><i /> Available for chat</span></div><b>{pandit.rating_count ? <><Star size={13} fill="currentColor" /> {pandit.rating}</> : "New"}</b></div>
           <p>{pandit.experience_years} years experience · {pandit.languages.slice(0,3).join(", ")}</p>
           <div className="tag-row">{pandit.specialities.slice(0,3).map((item) => <span key={item}>{item}</span>)}</div>
           <button className="btn btn-primary btn-block" disabled={busy} onClick={() => { setError(""); setCheckoutPandit(pandit); }}>Continue · ₹{pandit.consultation_rate_5min * blocks}</button>

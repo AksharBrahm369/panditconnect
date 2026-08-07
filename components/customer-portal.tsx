@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "./app-shell";
 import { ConsultationPanel } from "./consultation-panel";
+import { PanditAvatar } from "./pandit-avatar";
 import { readJson } from "@/lib/http";
 import { getCurrentCoordinates, type BrowserCoordinates } from "@/lib/browser-location";
 import { recommendRitual, ritualForService, type RequestType, type RitualRecommendation } from "@/lib/ritual-guide";
@@ -423,7 +424,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
                 const labels = pandit.services.length ? pandit.services : pandit.specialities;
                 const extraCount = Math.max(0, labels.length - 3);
                 return <article className="customer-pandit-card" key={pandit.id}>
-                  <div className="customer-pandit-top"><span className="pandit-avatar">{pandit.name.split(/\s+/).map((part) => part[0]).slice(0,2).join("")}</span><div><h3>{pandit.name}</h3><span className="online-label">Available nearby</span></div><b>{pandit.distance_km} km</b></div>
+                  <div className="customer-pandit-top"><PanditAvatar panditId={pandit.id} name={pandit.name} className="pandit-avatar" /><div><h3>{pandit.name}</h3><span className="online-label">Available nearby</span></div><b>{pandit.distance_km} km</b></div>
                   <div className="customer-pandit-tags">{labels.slice(0,3).map((item) => <span key={item}>{item}</span>)}{extraCount > 0 && <span>+{extraCount} more</span>}</div>
                   <div className="customer-pandit-facts"><span><Star size={15} fill="currentColor" /><strong>{pandit.rating_count ? Number(pandit.rating).toFixed(1) : "New"}</strong><small>{pandit.rating_count ? `${pandit.rating_count} ratings` : "No ratings yet"}</small></span><span><Clock3 size={15} /><strong>{pandit.experience_years} years</strong><small>Experience</small></span><span><BadgeCheck size={15} /><strong>{pandit.completed_jobs}</strong><small>Pujas completed</small></span></div>
                   <p className="customer-pandit-language">Speaks {pandit.languages.slice(0,3).join(", ")}</p>
@@ -516,7 +517,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
           </div>
           {nearbyPandits.length ? <><p className="nearby-scope-note"><MapPin size={15} /> Only approved, online Pandits within 25 km and inside their own service radius are shown.</p><div className="nearby-pandit-grid">{sortedNearbyPandits.map((pandit) => (
             <article className="nearby-pandit-card" key={pandit.id}>
-              <div className="nearby-pandit-head"><span className="pandit-avatar">{pandit.name.split(/\s+/).map((part) => part[0]).slice(0,2).join("")}</span><div><h3>{pandit.name}</h3><span className="online-label">Online now</span></div><strong>₹{pandit.charge.toLocaleString("en-IN")}</strong></div>
+              <div className="nearby-pandit-head"><PanditAvatar panditId={pandit.id} name={pandit.name} className="pandit-avatar" /><div><h3>{pandit.name}</h3><span className="online-label">Online now</span></div><strong>₹{pandit.charge.toLocaleString("en-IN")}</strong></div>
               <div className="nearby-pandit-stats"><span><MapPin size={16} /><b>{pandit.distance_km} km</b><small>away</small></span><span><Clock3 size={16} /><b>{pandit.eta_minutes} min</b><small>estimated</small></span><span><Star size={16} fill="currentColor" /><b>{pandit.rating_count ? Number(pandit.rating).toFixed(1) : "New"}</b><small>{pandit.rating_count ? `${pandit.rating_count} ratings` : "not rated"}</small></span></div>
               <p><b>{pandit.experience_years} years</b> experience · {pandit.completed_jobs} completed Puja{pandit.completed_jobs === 1 ? "" : "s"}</p>
               <div className="pandit-language-list">{pandit.languages.map((item) => <span key={item}>{item}</span>)}</div>
