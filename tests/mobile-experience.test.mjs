@@ -17,5 +17,7 @@ test("the complete app has a final mobile-first layout authority", async () => {
   assert.match(css, /\.review-drawer/);
   assert.match(css, /\.notification-panel/);
   assert.match(css, /\.chat-composer/);
+  assert.match(css, /\.customer-welcome-copy \{ order:1/);
+  assert.match(css, /\.customer-welcome-image \{ order:2/);
   assert.match(css, /prefers-reduced-motion/);
 });

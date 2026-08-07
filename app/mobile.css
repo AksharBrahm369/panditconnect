@@ -78,9 +78,13 @@
   .form-grid .wide, .profile-form-grid .span-2, .support-form .wide, .support-message { grid-column: auto; }
 
   .customer-welcome { min-height: 0; border-radius: 19px; }
-  .customer-welcome-copy { padding: 18px 16px 20px; }
-  .customer-welcome-image { height: 140px; min-height: 140px; }
-  .customer-welcome h1 { font-size: clamp(28px, 9vw, 37px); }
+  .customer-welcome-copy { order:1; padding:20px 16px 18px; }
+  .customer-welcome-image { order:2; height:180px; min-height:180px; border-top:1px solid #ead8bb; }
+  .customer-welcome-image::after { background:linear-gradient(0deg,rgba(50,15,13,.4),transparent 62%); }
+  .customer-welcome-image img { object-position:61% 38%; }
+  .customer-welcome-image > span { right:12px; bottom:12px; max-width:calc(100% - 24px); padding:8px 10px; font-size:9px; }
+  .customer-welcome h1 { margin-top:0; font-size:clamp(28px,8.6vw,36px); line-height:1.08; }
+  .customer-welcome-copy > p { margin:10px 0 15px; font-size:14px; line-height:1.5; }
   .customer-primary-action { min-height: 76px; }
   .customer-choice-grid, .customer-trust-row { grid-template-columns: minmax(0,1fr); }
   .customer-pandit-rail { grid-auto-columns: min(86vw,330px); margin-inline: calc(var(--mobile-gutter) * -1); padding-inline: var(--mobile-gutter); scroll-padding-inline: var(--mobile-gutter); }
