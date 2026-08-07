@@ -1,0 +1,46 @@
+/* Kept as a small component stylesheet so navigation releases are not trapped
+   behind a stale global CSS asset in edge caches. */
+.portal-customer .portal-header {
+  height:82px;
+  grid-template-columns:minmax(210px,auto) minmax(430px,1fr) auto;
+  gap:clamp(18px,3vw,42px);
+  color:#37191a;
+  border:0;
+  border-top:4px solid var(--customer-maroon);
+  border-bottom:1px solid #e8d8c0;
+  background:rgba(255,252,245,.97);
+  box-shadow:0 6px 24px rgba(72,34,22,.08);
+  backdrop-filter:blur(14px);
+}
+.portal-customer .portal-brand { gap:10px; color:#3b1c1d; }
+.portal-customer .portal-brand > span:last-child { font-size:17px; font-weight:560; letter-spacing:-.02em; white-space:nowrap; }
+.portal-customer .portal-brand > span:last-child strong { color:#641f29; font-weight:850; }
+.portal-customer .brand-mark { width:42px; height:42px; color:#fff9eb; border:1px solid #e88a3c; border-radius:13px; background:linear-gradient(145deg,#ed8424,#c74b1c); box-shadow:0 5px 12px rgba(176,66,23,.2); }
+.portal-customer .portal-tabs { justify-self:center; padding:4px; border:1px solid #eadcc7; border-radius:14px; background:#f8f0e4; }
+.portal-customer .portal-tabs a { position:relative; min-height:42px; padding:0 15px; color:#715f57; border-radius:10px; font-size:12px; }
+.portal-customer .portal-tabs a:hover { color:#641f29; background:#fff8ed; }
+.portal-customer .portal-tabs a.active { color:#641f29; background:#fff; box-shadow:0 3px 12px rgba(78,37,22,.1); }
+.portal-customer .portal-tabs a.active::after { position:absolute; right:14px; bottom:4px; left:14px; height:2px; border-radius:2px; background:#dc6720; content:""; }
+.portal-customer .portal-account { padding-left:18px; border-left:1px solid #eadcc8; }
+.portal-customer .portal-account > .portal-role-mark { width:38px; height:38px; color:#fff; border-radius:50%; background:#681f29; font-size:14px; font-weight:850; }
+.portal-customer .account-identity { min-width:82px; }
+.portal-customer .account-identity small { color:#8b7569; font-size:9px; }
+.portal-customer .account-identity strong { max-width:130px; overflow:hidden; color:#3e2422; font-size:12px; text-overflow:ellipsis; white-space:nowrap; }
+.portal-customer .portal-account > .icon-button,.portal-customer .portal-account .account-menu-trigger { color:#5c2a27; border-color:#e6d7c4; background:#fff; box-shadow:0 2px 8px rgba(72,36,23,.05); }
+.portal-customer .portal-account > .icon-button:hover,.portal-customer .portal-account .account-menu-trigger:hover { color:#fff; border-color:#681f29; background:#681f29; }
+.portal-customer .portal-mobile-nav a.active { color:var(--customer-maroon); background:#fff2df; }
+
+@media(max-width:1050px) {
+  .portal-customer .portal-header { gap:14px; padding-inline:20px; }
+  .portal-customer .portal-tabs a { padding-inline:10px; }
+  .portal-customer .portal-account { padding-left:12px; }
+  .portal-customer .account-identity { display:none; }
+}
+
+@media(max-width:760px) {
+  .portal-customer .portal-header { height:68px; grid-template-columns:1fr auto; gap:10px; padding-inline:12px; border-top-width:3px; background:rgba(255,252,245,.98); }
+  .portal-customer .portal-brand > span:last-child { display:inline; font-size:15px; }
+  .portal-customer .brand-mark { width:38px; height:38px; border-radius:12px; }
+  .portal-customer .portal-account { gap:7px; padding-left:0; border-left:0; }
+  .portal-customer .portal-account > .portal-role-mark { display:none; }
+}

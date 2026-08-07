@@ -9,6 +9,7 @@ import {
 import { NotificationCenter } from "./notification-center";
 import { PanditAccountMenu } from "./pandit-account-menu";
 import { CustomerAccountMenu } from "./customer-account-menu";
+import "./customer-navbar.css";
 
 const roleNavigation = {
   Customer: [
