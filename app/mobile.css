@@ -30,10 +30,8 @@
   .hero-showcase, .hero-photo { min-height: 0; }
 
   .auth-shell { display: block; min-height: 100dvh; }
-  .auth-side { min-height: 170px; padding: 20px var(--mobile-gutter); }
-  .auth-side > div { margin-top: 20px; }
-  .auth-side h1 { font-size: clamp(27px, 8vw, 36px); }
-  .auth-form-wrap { min-height: 0; padding: 12px var(--mobile-gutter) 28px; }
+  .auth-side { display:none; }
+  .auth-form-wrap { min-height:100dvh; align-content:start; padding:18px var(--mobile-gutter) 28px; }
   .auth-card { width: 100%; padding: 20px 16px; border-radius: 20px; }
   .auth-card h1, .auth-card h2 { font-size: clamp(26px, 8vw, 31px); }
   .role-tabs { margin: 18px 0; }
@@ -87,8 +85,13 @@
   .customer-welcome-copy > p { margin:10px 0 15px; font-size:14px; line-height:1.5; }
   .customer-primary-action { min-height: 76px; }
   .customer-choice-grid, .customer-trust-row { grid-template-columns: minmax(0,1fr); }
-  .customer-pandit-rail { grid-auto-columns: min(86vw,330px); margin-inline: calc(var(--mobile-gutter) * -1); padding-inline: var(--mobile-gutter); scroll-padding-inline: var(--mobile-gutter); }
-  .customer-pandit-card { scroll-snap-align: center; }
+  .customer-pandit-rail { grid-auto-columns:min(calc(100vw - 42px),330px); margin-inline:calc(var(--mobile-gutter) * -1); padding:2px var(--mobile-gutter) 8px; scroll-padding-inline:var(--mobile-gutter); scrollbar-width:none; overscroll-behavior-inline:contain; }
+  .customer-pandit-rail::-webkit-scrollbar { width:0; height:0; display:none; }
+  .customer-pandit-card { min-height:0; gap:12px; padding:15px; scroll-snap-align:start; scroll-snap-stop:always; }
+  .customer-pandit-facts { grid-template-columns:repeat(3,minmax(0,1fr)); }
+  .customer-pandit-facts > span { min-width:0; padding:11px 3px; }
+  .customer-pandit-facts strong { font-size:12px; }
+  .customer-pandit-facts small { font-size:8px; line-height:1.25; }
   .customer-pandit-top, .nearby-pandit-head { grid-template-columns: auto minmax(0,1fr); }
   .customer-pandit-top > :last-child, .nearby-pandit-head > :last-child { grid-column: 2; justify-self: start; }
   .preferred-pandit-note { grid-template-columns:auto minmax(0,1fr); }
@@ -150,8 +153,7 @@
   :root { --mobile-gutter: 10px; }
   .portal-header .portal-brand > span:last-child, .topbar .brand span:last-child { display:none; }
   .portal-mobile-nav a { font-size:8px; }
-  .stat-grid, .admin-stats, .customer-pandit-facts { grid-template-columns:minmax(0,1fr); }
-  .customer-pandit-facts > span + span { border-left:0; border-top:1px solid #eee3d5; }
+  .stat-grid, .admin-stats { grid-template-columns:minmax(0,1fr); }
 }
 
 @media (max-height: 520px) and (orientation: landscape) {
