@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { ArrowLeft, BadgeCheck, CalendarCheck, Check, ExternalLink, Languages, MapPin, RefreshCw, ShieldCheck, Star, UserRound, Users, X } from "lucide-react";
+import { ArrowLeft, BadgeCheck, CalendarCheck, Check, ExternalLink, Headphones, Languages, MapPin, RefreshCw, ShieldAlert, ShieldCheck, Star, UserRound, Users, X } from "lucide-react";
 import { AppShell } from "./app-shell";
 import { readJson } from "@/lib/http";
 
@@ -10,7 +10,7 @@ type ReviewPandit = {
   id: string; name: string | null; phone: string; city: string | null; experience_years: number;
   languages: string[]; specialities: string[]; bio: string | null; base_charge: number;
   verification_status: string; review_note: string | null; created_at: string; is_online?: boolean;
-  rating?: string; rating_count?: number; completed_jobs?: number; services?: string[];
+  rating?: string; rating_count?: number; completed_jobs?: number; services?: string[]; account_status?: "ACTIVE" | "SUSPENDED";
   email?: string; date_of_birth?: string; current_address?: string; service_radius_km?: number; payout_method?: string; bank_account_name?: string; bank_ifsc?: string; upi_id?: string; submitted_at?: string;
   interview_mode?: string; interview_preferred_at?: string | null; interview_alternate_at?: string | null; interview_language?: string | null; interview_note?: string | null;
   references?: Array<{ id: string; name: string; relationship: string; organisation: string | null; phone: string; status: string; note: string | null }>;
@@ -18,6 +18,7 @@ type ReviewPandit = {
   pricing?: Array<{ serviceId: string; serviceName: string; price: number; enabled: boolean }>;
   review?: ReviewChecklist;
 };
+type SupportCase = { id:string; category:string; subject:string; description:string; priority:string; status:string; resolution:string|null; booking_id:string|null; created_at:string; reporter_name:string|null; reporter_role:string; reporter_phone:string };
 type CheckStatus = "PENDING" | "VERIFIED" | "FAILED";
 type ReviewChecklist = { identityStatus: CheckStatus; documentStatus: CheckStatus; referenceStatus: CheckStatus; videoInterviewStatus: CheckStatus; knowledgeCheckStatus: CheckStatus; bankStatus: CheckStatus; videoInterviewAt?: string | null; knowledgeScore?: number | null; adminNote?: string | null };
 const emptyChecklist: ReviewChecklist = { identityStatus: "PENDING", documentStatus: "PENDING", referenceStatus: "PENDING", videoInterviewStatus: "PENDING", knowledgeCheckStatus: "PENDING", bankStatus: "PENDING", videoInterviewAt: "", knowledgeScore: null, adminNote: "" };
@@ -33,6 +34,7 @@ export function AdminPortal() {
   const [busy, setBusy] = useState(false);
   const [queueLoading, setQueueLoading] = useState(false);
   const [checklist, setChecklist] = useState<ReviewChecklist>(emptyChecklist);
+  const [supportCases,setSupportCases]=useState<SupportCase[]>([]);
 
   async function loadQueue() {
     setQueueLoading(true);
@@ -49,12 +51,13 @@ export function AdminPortal() {
   }
 
   async function load() {
-    const response = await fetch(`/api/admin/overview?fresh=${Date.now()}`, { cache: "no-store" });
-    const result = await readJson<Overview & { error?: string }>(response);
+    const [response,supportResponse] = await Promise.all([fetch(`/api/admin/overview?fresh=${Date.now()}`, { cache: "no-store" }),fetch(`/api/admin/support-cases?fresh=${Date.now()}`,{cache:"no-store"})]);
+    const result = await readJson<Overview & { error?: string }>(response); const support=await readJson<{cases?:SupportCase[]}>(supportResponse);
     if (response.status === 401 || response.status === 403) { window.location.assign("/admin/login?reason=session"); return; }
     if (!response.ok) { setNotice(result.error ?? "Unable to load the admin workspace"); return; }
     setData(result);
     setApproved(result.approved ?? []);
+    if(supportResponse.ok)setSupportCases(support.cases??[]);
   }
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0);
@@ -108,6 +111,8 @@ export function AdminPortal() {
   }
 
   function selectPandit(pandit: ReviewPandit) { setSelected(pandit); setNote(pandit.review_note ?? pandit.review?.adminNote ?? ""); setChecklist({ ...emptyChecklist, ...(pandit.review ?? {}) }); }
+  async function updateCase(caseId:string,status:"IN_REVIEW"|"RESOLVED") { const resolution=status==="IN_REVIEW"?"":window.prompt("Resolution or outcome:")?.trim(); if(status==="RESOLVED"&&!resolution)return; setBusy(true);const response=await fetch("/api/admin/support-cases",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({caseId,status,resolution})});const result=await readJson<{error?:string}>(response);setNotice(response.ok?"Support case updated.":result.error??"Unable to update case");setBusy(false);await load(); }
+  async function changePanditAccess(panditId:string,action:"SUSPEND"|"RESTORE") { if(action==="SUSPEND"&&!window.confirm("Suspend this Pandit and end active sessions?"))return;setBusy(true);const response=await fetch("/api/admin/support-cases",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({panditId,accountAction:action})});const result=await readJson<{error?:string}>(response);setNotice(response.ok?`Pandit ${action==="SUSPEND"?"suspended":"restored"}.`:result.error??"Unable to update access");setBusy(false);await load();}
 
   return <AppShell role="Admin" title="Operations overview" subtitle="A compact control room for verification, urgent bookings and platform health.">
     <div className="demo-banner"><ShieldCheck size={17} /><div><strong>Protected operations workspace</strong><span>Customer phone numbers remain masked while you review bookings and Pandit quality.</span></div></div>
@@ -124,13 +129,15 @@ export function AdminPortal() {
       <aside className="side-card"><h3>Review queue</h3><div className="queue-item"><span className="avatar">P</span><div><strong>{data?.stats.pendingPandits ?? 0} Pandit {(data?.stats.pendingPandits ?? 0) === 1 ? "profile" : "profiles"}</strong><small>Identity and experience review</small></div></div><button className="btn btn-primary btn-block" onClick={openQueue} disabled={queueLoading}>{queueLoading ? "Refreshing queue…" : "Open verification queue"}</button><p className="privacy-note">Review experience, languages and specialities before approval.</p></aside>
     </section>
     {notice && <div className="alert success admin-notice">{notice}</div>}
+    <section className="history admin-support" id="admin-support"><div className="section-title"><div><h2>Support and safety cases</h2><p>Urgent reports appear first and every decision is audited.</p></div><span className="live-pill"><i /> {supportCases.filter(item=>["OPEN","IN_REVIEW"].includes(item.status)).length} open</span></div>{supportCases.length?<div className="admin-support-list">{supportCases.map(item=><article key={item.id} className={item.priority==="URGENT"?"urgent":""}><span>{item.priority==="URGENT"?<ShieldAlert/>:<Headphones/>}</span><div><strong>{item.subject}</strong><small>{item.reporter_role} · ••••{item.reporter_phone} · {item.category.replaceAll("_"," ")}</small><p>{item.description}</p>{item.resolution&&<em>Resolution: {item.resolution}</em>}</div><span className="status">{item.status.replaceAll("_"," ")}</span><div className="button-row">{item.status==="OPEN"&&<button className="btn btn-ghost" disabled={busy} onClick={()=>void updateCase(item.id,"IN_REVIEW")}>Start review</button>}{!["RESOLVED","CLOSED"].includes(item.status)&&<button className="btn btn-primary" disabled={busy} onClick={()=>void updateCase(item.id,"RESOLVED")}>Resolve</button>}</div></article>)}</div>:<div className="empty">No support cases yet.</div>}</section>
     <section className="history approved-directory" id="admin-pandits">
       <div className="section-title"><div><h2>Approved Pandits</h2><p>All active approved profiles remain visible here after leaving the review queue.</p></div><button className="btn btn-ghost" onClick={load}><RefreshCw size={16} /> Refresh</button></div>
       {approved.length ? <div className="approved-grid">{approved.map((pandit) => <article className="approved-card" key={pandit.id}>
         <div className="approved-head"><span className="avatar">{(pandit.name ?? "P").split(" ").map((part) => part[0]).slice(0,2).join("")}</span><div><strong>{pandit.name ?? "Pandit"}</strong><span><MapPin size={13} /> {pandit.city ?? "City not provided"}</span></div><span className={`availability-dot ${pandit.is_online ? "online" : ""}`}>{pandit.is_online ? "Online" : "Offline"}</span></div>
         <div className="approved-metrics"><span><b>{pandit.experience_years}</b> years</span><span><b>{pandit.rating_count ? <>{pandit.rating} <Star size={12} fill="currentColor" /></> : "New"}</b>{pandit.rating_count ? `${pandit.rating_count} ratings` : "not rated"}</span><span><b>{pandit.completed_jobs ?? 0}</b> visits</span></div>
         <div className="tag-row">{(pandit.services?.length ? pandit.services : pandit.specialities).slice(0,4).map((item) => <b key={item}>{item}</b>)}</div>
-        <div className="approved-foot"><span>+91 ••••••{pandit.phone.slice(-4)}</span><strong>APPROVED</strong></div>
+        <div className="approved-foot"><span>+91 ••••••{pandit.phone.slice(-4)}</span><strong>{pandit.account_status??"ACTIVE"}</strong></div>
+        <button className={`btn btn-block ${pandit.account_status==="SUSPENDED"?"btn-ghost":"btn-ghost danger"}`} disabled={busy} onClick={()=>void changePanditAccess(pandit.id,pandit.account_status==="SUSPENDED"?"RESTORE":"SUSPEND")}>{pandit.account_status==="SUSPENDED"?"Restore access":"Suspend Pandit"}</button>
       </article>)}</div> : <div className="empty">No approved Pandits yet.</div>}
     </section>
 

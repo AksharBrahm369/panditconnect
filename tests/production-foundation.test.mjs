@@ -182,3 +182,17 @@ test("completed Puja payment choice is persisted without pretending to process o
   assert.match(customer, /Coming soon/);
   assert.doesNotMatch(customer, /confirmPaymentMethod\(booking\.id, "OTHER"\)/);
 });
+
+test("operations foundation provides support, moderation, cancellations and notification preferences", async () => {
+  const migration = await readFile(new URL("../db/migrations/0019_operations_support.sql", import.meta.url), "utf8");
+  const support = await readFile(new URL("../app/api/support-cases/route.ts", import.meta.url), "utf8");
+  const admin = await readFile(new URL("../app/api/admin/support-cases/route.ts", import.meta.url), "utf8");
+  const booking = await readFile(new URL("../app/api/bookings/[id]/route.ts", import.meta.url), "utf8");
+  const auth = await readFile(new URL("../lib/auth.ts", import.meta.url), "utf8");
+  for (const name of ["support_cases","notification_preferences","account_status","cancellation_reason"]) assert.match(migration,new RegExp(name));
+  assert.match(support,/reporter_id=\$1/);
+  assert.match(admin,/recordAdminAction/);
+  assert.match(admin,/PANDIT_\$\{body\.accountAction\}/);
+  assert.match(booking,/cancellationReason/);
+  assert.match(auth,/u\.account_status='ACTIVE'/);
+});

@@ -76,7 +76,7 @@ export async function currentUser(): Promise<AppUser | null> {
   const result = await sql<AppUser>(
     `SELECT u.id,u.phone,s.session_role AS role,u.name,u.city
      FROM pim_v2.sessions s JOIN pim_v2.users u ON u.id=s.user_id
-     WHERE s.token_hash=$1 AND s.expires_at > now() LIMIT 1`,
+     WHERE s.token_hash=$1 AND s.expires_at > now() AND u.account_status='ACTIVE' LIMIT 1`,
     [tokenHash],
   );
   const user = result.rows[0] ?? null;

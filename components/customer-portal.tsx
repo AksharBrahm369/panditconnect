@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { AppShell } from "./app-shell";
 import { ConsultationPanel } from "./consultation-panel";
+import { SupportCenter } from "./support-center";
 import { readJson } from "@/lib/http";
 import { getCurrentCoordinates, type BrowserCoordinates } from "@/lib/browser-location";
 import { recommendRitual, ritualForService, type RequestType, type RitualRecommendation } from "@/lib/ritual-guide";
@@ -287,6 +288,16 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
     setPaymentBusy(null);
   }
 
+  async function cancelBooking(bookingId: string) {
+    const cancellationReason = window.prompt("Why are you cancelling this request?", "Plans changed")?.trim();
+    if (!cancellationReason) return;
+    setMessage("");
+    const response = await fetch(`/api/bookings/${bookingId}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status: "CANCELLED", cancellationReason }) });
+    const data = await readJson<{ error?:string }>(response);
+    if (!response.ok) setMessage(data.error ?? "Unable to cancel this request.");
+    await refreshBookings();
+  }
+
   return (
     <AppShell role="Customer" title="What religious help do you need?" subtitle="Describe the situation. We guide you and find the best available nearby Pandit.">
       {message && <div className="alert error">{message}</div>}
@@ -394,6 +405,7 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
               <span><PackageCheck size={15} /> {materialsLabels[booking.materials_option] ?? "Materials guidance requested"}</span>
               {distance != null && <span><MapPin size={15} /> Pandit is approximately {distance.toFixed(1)} km away</span>}
               {booking.status === "REQUESTED" && <span><Clock3 size={15} /> Waiting for Pandit response</span>}
+              {["REQUESTED","ACCEPTED"].includes(booking.status) && <button className="text-button danger" onClick={() => void cancelBooking(booking.id)}>Cancel request</button>}
             </div>
             {hasLiveLocation && <a className="text-button map-link" target="_blank" rel="noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${booking.pandit_latitude},${booking.pandit_longitude}`}>Open current Pandit location</a>}
             {!["REQUESTED", "DECLINED", "CANCELLED"].includes(booking.status) && <div className="arrival-code"><span>Arrival verification code</span><code>{booking.arrival_otp}</code></div>}
@@ -416,6 +428,7 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
           </article>;
         })}</div> : <div className="empty"><Clock3 size={26} /><strong>No active help requests</strong><span>Choose one of the three paths above when you need religious assistance.</span></div>}
       </section>
+      <SupportCenter bookings={bookings.map(({id,service_name,status})=>({id,service_name,status}))} />
     </AppShell>
   );
 }

@@ -16,7 +16,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "Please log in" }, { status: 401 });
   const { id } = await context.params;
-  const body = await request.json() as { status?: string; arrivalOtp?: string };
+  const body = await request.json() as { status?: string; arrivalOtp?: string; cancellationReason?: string };
   const current = await sql<{ status: string; customer_id: string; pandit_id: string; arrival_otp: string; arrival_otp_attempts: number }>(
     `SELECT status,customer_id,pandit_id,arrival_otp,arrival_otp_attempts FROM pim_v2.bookings WHERE id=$1`,
     [id],
@@ -30,6 +30,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   }
   if (body.status === "CANCELLED" && (user.role !== "CUSTOMER" || user.id !== booking.customer_id)) {
     return NextResponse.json({ error: "Only the customer can cancel this request" }, { status: 403 });
+  }
+  if (body.status === "CANCELLED" && (body.cancellationReason?.trim().length ?? 0) < 5) {
+    return NextResponse.json({ error: "Please select or enter a cancellation reason." }, { status: 400 });
   }
   if (!body.status || !transitions[booking.status]?.includes(body.status)) {
     return NextResponse.json({ error: "This booking action is not available" }, { status: 409 });
@@ -53,6 +56,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
          arrival_otp_attempts=CASE WHEN $2='IN_PROGRESS' THEN 0 ELSE arrival_otp_attempts END,
          accepted_at=CASE WHEN $2='ACCEPTED' THEN now() ELSE accepted_at END,
          completed_at=CASE WHEN $2='COMPLETED' THEN now() ELSE completed_at END,
+         cancellation_reason=CASE WHEN $2='CANCELLED' THEN $4 ELSE cancellation_reason END,
+         cancelled_by=CASE WHEN $2='CANCELLED' THEN $5::uuid ELSE cancelled_by END,
+         cancelled_at=CASE WHEN $2='CANCELLED' THEN now() ELSE cancelled_at END,
          declined_pandit_ids=CASE
            WHEN $2='DECLINED' AND NOT (pandit_id = ANY(declined_pandit_ids))
              THEN array_append(declined_pandit_ids,pandit_id)
@@ -69,7 +75,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
        RETURNING p.user_id
      )
      SELECT status FROM updated_booking`,
-    [id, body.status, booking.status],
+    [id, body.status, booking.status, body.cancellationReason?.trim().slice(0,500) ?? null, user.id],
   );
   if (!updated.rows[0]) {
     return NextResponse.json({ error: "This request changed on another screen. Please refresh and try again." }, { status: 409 });

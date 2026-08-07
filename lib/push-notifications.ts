@@ -7,6 +7,10 @@ type PushRow = { id: string; endpoint: string; p256dh: string; auth: string };
 export async function notifyUser(userId: string, message: { title: string; body: string; url: string; eventType: string }) {
   await sql(`INSERT INTO pim_v2.notifications(id,user_id,title,body,url,event_type) VALUES($1,$2,$3,$4,$5,$6)`,
     [crypto.randomUUID(), userId, message.title, message.body, message.url, message.eventType]);
+  const preference = await sql<{ booking_updates:boolean; chat_updates:boolean; service_updates:boolean }>(`SELECT booking_updates,chat_updates,service_updates FROM pim_v2.notification_preferences WHERE user_id=$1`,[userId]);
+  const selected = preference.rows[0];
+  const pushAllowed = message.eventType.startsWith("BOOKING_") ? selected?.booking_updates !== false : message.eventType.startsWith("CONSULTATION_") || message.eventType.startsWith("CHAT_") ? selected?.chat_updates !== false : selected?.service_updates !== false;
+  if (!pushAllowed) return;
   const publicKey = VAPID_PUBLIC_KEY;
   const privateKey = process.env.VAPID_PRIVATE_KEY?.trim();
   if (!publicKey || !privateKey) return;

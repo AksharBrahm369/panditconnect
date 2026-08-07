@@ -88,6 +88,15 @@ try {
   assert.equal(payment.body.paymentMethod, "CASH");
   assert.equal(payment.body.paymentStatus, "CONFIRMED");
 
+  const supportCase = await api("/api/support-cases", tokens.customer, {
+    method: "POST",
+    body: JSON.stringify({ category: "SERVICE_QUALITY", subject: "Automated support check", description: "End-to-end support case verification.", bookingId: ids.booking }),
+  });
+  assert.equal(supportCase.response.status, 201, JSON.stringify(supportCase.body));
+  const supportList = await api("/api/support-cases", tokens.customer);
+  assert.equal(supportList.response.status, 200);
+  assert.ok(supportList.body.cases.some((item) => item.id === supportCase.body.case.id));
+
   const rating = await api(`/api/bookings/${ids.booking}/rating`, tokens.customer, {
     method: "POST",
     body: JSON.stringify({ rating: 5, comment: "Automated E2E verification" }),
@@ -99,7 +108,7 @@ try {
   });
   assert.equal(duplicateRating.response.status, 409);
 
-  console.log(JSON.stringify({ success: true, checks: 17, baseUrl }));
+  console.log(JSON.stringify({ success: true, checks: 20, baseUrl }));
 } finally {
   await client.query(`DELETE FROM pim_v2.bookings WHERE customer_id=ANY($1::uuid[]) OR pandit_id=ANY($1::uuid[])`, [[ids.customer, ids.pandit, ids.outsider]]).catch(() => undefined);
   await client.query(`DELETE FROM pim_v2.users WHERE id=ANY($1::uuid[])`, [[ids.customer, ids.pandit, ids.outsider]]).catch(() => undefined);

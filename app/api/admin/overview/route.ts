@@ -37,7 +37,7 @@ export async function GET() {
       ),'[]'::json) AS recent,
       COALESCE((
         SELECT json_agg(row_to_json(approved_rows)) FROM (
-          SELECT u.id,u.name,u.phone,u.city,u.created_at,p.experience_years,p.languages,
+          SELECT u.id,u.name,u.phone,u.city,u.created_at,u.account_status,p.experience_years,p.languages,
             p.specialities,p.bio,p.base_charge,p.verification_status,p.is_online,p.rating,p.rating_count,
             p.completed_jobs,COALESCE(array_agg(DISTINCT s.name) FILTER (WHERE s.name IS NOT NULL),'{}') AS services
           FROM pim_v2.pandit_profiles p
@@ -45,7 +45,7 @@ export async function GET() {
           LEFT JOIN pim_v2.pandit_services ps ON ps.pandit_id=p.user_id
           LEFT JOIN pim_v2.services s ON s.id=ps.service_id
           WHERE p.verification_status='APPROVED'
-          GROUP BY u.id,u.name,u.phone,u.city,u.created_at,p.experience_years,p.languages,
+          GROUP BY u.id,u.name,u.phone,u.city,u.created_at,u.account_status,p.experience_years,p.languages,
             p.specialities,p.bio,p.base_charge,p.verification_status,p.is_online,p.rating,p.rating_count,p.completed_jobs
           ORDER BY p.is_online DESC,p.rating DESC,u.name
         ) approved_rows

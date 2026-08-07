@@ -3,7 +3,7 @@
 import Link from "next/link";
 import {
   Activity, BadgeCheck, BookOpenCheck, LayoutDashboard,
-  LogOut, MapPinned, MessageCircle, Radio, ShieldCheck, Sparkles, UsersRound,
+  Headphones, LogOut, MapPinned, MessageCircle, Radio, ShieldCheck, Sparkles, UsersRound,
 } from "lucide-react";
 import { NotificationCenter } from "./notification-center";
 
@@ -24,6 +24,7 @@ const roleNavigation = {
     { label: "Overview", href: "#portal-overview", icon: LayoutDashboard },
     { label: "Bookings", href: "#admin-bookings", icon: BookOpenCheck },
     { label: "Pandit network", href: "#admin-pandits", icon: UsersRound },
+    { label: "Support", href: "#admin-support", icon: Headphones },
   ],
 } as const;
 
