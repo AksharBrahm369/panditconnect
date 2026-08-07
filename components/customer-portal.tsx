@@ -55,7 +55,7 @@ function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number) {
   return 6371 * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
 }
 
-export function CustomerPortal({ customerId }: { customerId: string }) {
+export function CustomerPortal({ customerId, customerName }: { customerId: string; customerName?: string | null }) {
   const [services, setServices] = useState<Service[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [requestType, setRequestType] = useState<RequestType | null>(null);
@@ -394,7 +394,7 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
   }
 
   return (
-    <AppShell role="Customer" title="Puja help for your family" subtitle="Book a verified nearby Pandit in a few simple steps.">
+    <AppShell role="Customer" userName={customerName} title="Puja help for your family" subtitle="Book a verified nearby Pandit in a few simple steps.">
       {message && <div className="alert error">{message}</div>}
 
       {!requestType && !match && !consultationMode && (

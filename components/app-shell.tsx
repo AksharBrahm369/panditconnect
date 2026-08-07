@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useState } from "react";
 import {
   Activity, BadgeCheck, BookOpenCheck, LayoutDashboard,
   Headphones, LogOut, MapPinned, MessageCircle, Radio, ShieldCheck, Sparkles, UsersRound,
@@ -32,6 +33,20 @@ const roleNavigation = {
 
 export function AppShell({ role, userName, title, subtitle, children }: { role: "Customer" | "Pandit" | "Admin"; userName?: string | null; title: string; subtitle: string; children: React.ReactNode }) {
   const navigation = roleNavigation[role];
+  const [activeHref, setActiveHref] = useState(navigation[0].href as string);
+
+  useEffect(() => {
+    const syncActiveNavigation = () => {
+      const currentLocation = `${window.location.pathname}${window.location.hash}`;
+      const matchingItem = roleNavigation[role].find((item) => item.href === currentLocation);
+      setActiveHref(matchingItem?.href ?? roleNavigation[role][0].href);
+    };
+
+    syncActiveNavigation();
+    window.addEventListener("hashchange", syncActiveNavigation);
+    return () => window.removeEventListener("hashchange", syncActiveNavigation);
+  }, [role]);
+
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
     window.location.assign("/");
@@ -39,11 +54,11 @@ export function AppShell({ role, userName, title, subtitle, children }: { role: 
   return (
     <div className={`portal portal-${role.toLowerCase()}`}>
       <header className="portal-header">
-        <Link href="/" className="brand portal-brand"><span className="brand-mark">ॐ</span><span>Pandit in Minutes</span></Link>
+        <Link href={`/${role.toLowerCase()}`} className="brand portal-brand" aria-label={`Pandit in Minutes ${role} home`}><span className="brand-mark">ॐ</span><span><strong>Pandit</strong> in Minutes</span></Link>
         <nav className="portal-tabs" aria-label={`${role} navigation`}>
-          {navigation.map(({ label, href, icon: Icon }, index) => <a className={index === 0 ? "active" : ""} href={href} key={href}><Icon size={17} /><span>{label}</span></a>)}
+          {navigation.map(({ label, href, icon: Icon }) => <a className={activeHref === href ? "active" : ""} href={href} key={href} aria-current={activeHref === href ? "page" : undefined}><Icon size={17} /><span>{label}</span></a>)}
         </nav>
-        <div className="portal-account"><span>{role === "Admin" ? <ShieldCheck /> : role === "Pandit" ? <BadgeCheck /> : <Sparkles />}</span><div className="account-identity"><small>Signed in as</small><strong>{role === "Pandit" ? userName || "Pandit" : role}</strong></div><NotificationCenter />{role === "Pandit" ? <PanditAccountMenu onLogout={logout} /> : role === "Customer" ? <CustomerAccountMenu onLogout={logout} /> : <button className="icon-button" onClick={logout} aria-label="Log out"><LogOut size={17} /></button>}</div>
+        <div className="portal-account"><span className="portal-role-mark">{role === "Admin" ? <ShieldCheck /> : role === "Pandit" ? <BadgeCheck /> : (userName?.trim().charAt(0) || "C").toUpperCase()}</span><div className="account-identity"><small>{role === "Customer" ? "Namaste" : "Signed in as"}</small><strong>{role === "Pandit" ? userName || "Pandit" : userName || role}</strong></div><NotificationCenter />{role === "Pandit" ? <PanditAccountMenu onLogout={logout} /> : role === "Customer" ? <CustomerAccountMenu onLogout={logout} /> : <button className="icon-button" onClick={logout} aria-label="Log out"><LogOut size={17} /></button>}</div>
       </header>
 
       <main className="portal-main">
@@ -52,7 +67,7 @@ export function AppShell({ role, userName, title, subtitle, children }: { role: 
       </main>
 
       <nav className={`portal-mobile-nav mobile-nav-${navigation.length}`} aria-label={`${role} mobile navigation`}>
-        {navigation.map(({ label, href, icon: Icon }) => <a href={href} key={href}><Icon size={19} /><span>{label}</span></a>)}
+        {navigation.map(({ label, href, icon: Icon }) => <a className={activeHref === href ? "active" : ""} href={href} key={href} aria-current={activeHref === href ? "page" : undefined}><Icon size={19} /><span>{label}</span></a>)}
       </nav>
     </div>
   );
