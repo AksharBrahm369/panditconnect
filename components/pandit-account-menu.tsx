@@ -24,8 +24,8 @@ export function PanditAccountMenu({ onLogout }: { onLogout: () => void | Promise
   return <div className="account-menu" ref={root}>
     <button className={`icon-button account-menu-trigger ${open ? "active" : ""}`} onClick={() => setOpen((value) => !value)} aria-label="Pandit account settings" aria-expanded={open}><Settings size={18} /></button>
     {open && <section className="account-menu-panel">
-      <header><span><Settings size={18} /></span><div><strong>Private account settings</strong><small>Only you can view these pages</small></div></header>
-      <nav>{items.map(({ href, label, detail, icon: Icon }) => <Link href={href} key={href} onClick={() => setOpen(false)}><Icon size={18} /><span><strong>{label}</strong><small>{detail}</small></span><ChevronRight size={16} /></Link>)}</nav>
+      <div className="account-menu-heading"><div><strong>Account settings</strong><small>Private to your account</small></div></div>
+      <div className="account-menu-list">{items.map(({ href, label, detail, icon: Icon }) => <Link href={href} key={href} onClick={() => setOpen(false)}><span className="account-menu-item-icon"><Icon size={18} /></span><span className="account-menu-item-copy"><strong>{label}</strong><small>{detail}</small></span><ChevronRight className="account-menu-chevron" size={16} /></Link>)}</div>
       <button className="account-menu-logout" onClick={() => void onLogout()}><LogOut size={17} /> Sign out</button>
     </section>}
   </div>;
