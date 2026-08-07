@@ -24,3 +24,11 @@ test("the complete app has a final mobile-first layout authority", async () => {
   assert.match(css, /\.customer-pandit-facts \{ grid-template-columns:repeat\(3/);
   assert.match(css, /prefers-reduced-motion/);
 });
+
+test("homepage nearby matching sends every required filter and reports real location errors", async () => {
+  const source = await readFile(new URL("../components/live-availability-card.tsx", import.meta.url), "utf8");
+  assert.match(source, /language: "Hindi"/);
+  assert.match(source, /data\.error \|\| "Nearby availability could not be checked/);
+  assert.match(source, /Your location worked/);
+  assert.match(source, /site-settings icon/);
+});

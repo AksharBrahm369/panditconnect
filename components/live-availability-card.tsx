@@ -19,29 +19,31 @@ type NearbyPandit = {
 
 export function LiveAvailabilityCard() {
   const [pandits, setPandits] = useState<NearbyPandit[] | null>(null);
-  const [error, setError] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [started, setStarted] = useState(false);
 
   function checkAvailability() {
     setStarted(true);
-    setError(false);
+    setError(null);
     setPandits(null);
     getCurrentCoordinates()
       .then((coordinates) => {
         const params = new URLSearchParams({
           serviceId: "ganesh-puja",
+          language: "Hindi",
           lat: String(coordinates.latitude),
           lng: String(coordinates.longitude),
         });
         return fetch(`/api/pandits/nearby?${params}`, { cache: "no-store" });
       })
-      .then((response) => {
-        if (!response.ok) throw new Error("Availability request failed");
-        return readJson<{ pandits?: NearbyPandit[] }>(response);
+      .then(async (response) => {
+        const data = await readJson<{ pandits?: NearbyPandit[]; error?: string }>(response);
+        if (!response.ok) throw new Error(data.error || "Nearby availability could not be checked.");
+        return data;
       })
       .then((data) => setPandits(data.pandits ?? []))
-      .catch(() => {
-        setError(true);
+      .catch((reason: unknown) => {
+        setError(reason instanceof Error ? reason.message : "We could not use your location. Please try again.");
         setPandits([]);
       });
   }
@@ -66,7 +68,7 @@ export function LiveAvailabilityCard() {
           : available
             ? `${availableCount} ${availableCount === 1 ? "Pandit" : "Pandits"} available near you`
             : error
-              ? "Allow location to see nearby Pandits"
+              ? "Location needs your attention"
               : "No Pandits online near you"}
       </div>
 
@@ -88,9 +90,14 @@ export function LiveAvailabilityCard() {
         </>
       ) : (
         <div className="availability-empty">
-          <strong>{loading ? "Finding nearby Pandits…" : "No live profiles available"}</strong>
-          <p>{loading ? "This will take just a moment." : "Approved Pandits will appear here when they switch their availability online."}</p>
-          {!loading && <button className="btn btn-ghost btn-block" onClick={checkAvailability}>Try location again</button>}
+          <strong>{loading ? "Finding nearby Pandits…" : error ? "We could not use your location" : "No Pandits are online nearby"}</strong>
+          <p>{loading
+            ? "This will take just a moment."
+            : error
+              ? error
+              : "Your location worked. Approved Pandits will appear here when someone nearby switches availability online."}</p>
+          {error?.toLowerCase().includes("permission") && <p className="location-help">On your phone, tap the lock or site-settings icon beside the website address, choose Location, select Allow, then retry.</p>}
+          {!loading && <button className="btn btn-primary btn-block" onClick={checkAvailability}>{error ? "Retry location" : "Check again"}</button>}
         </div>
       )}
 

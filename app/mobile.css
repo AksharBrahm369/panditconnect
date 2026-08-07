@@ -92,6 +92,7 @@
   .customer-pandit-facts > span { min-width:0; padding:11px 3px; }
   .customer-pandit-facts strong { font-size:12px; }
   .customer-pandit-facts small { font-size:8px; line-height:1.25; }
+  .availability-empty .location-help { padding:10px; border-radius:10px; color:#6b3b25; background:#fff3e6; font-size:12px; line-height:1.45; }
   .customer-pandit-top, .nearby-pandit-head { grid-template-columns: auto minmax(0,1fr); }
   .customer-pandit-top > :last-child, .nearby-pandit-head > :last-child { grid-column: 2; justify-self: start; }
   .preferred-pandit-note { grid-template-columns:auto minmax(0,1fr); }
