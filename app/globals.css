@@ -1144,6 +1144,19 @@ input:focus, textarea:focus, select:focus { border-color: #f07b58; box-shadow: 0
 .profile-protection-note span { display: grid; gap: 3px; }
 .profile-protection-note small { color: #537269; }
 .profile-editor-actions { display: flex; justify-content: flex-end; margin-top: 18px; }
+.service-price-editor { display: grid; gap: 12px; margin-top: 5px; padding-top: 19px; border-top: 1px solid #e5eaed; }
+.service-price-editor > div:first-child { display: grid; gap: 4px; }
+.service-price-editor > div:first-child > small { color: var(--muted); }
+.service-price-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+.service-price-list article { display: grid; grid-template-columns: minmax(0, 1fr) 130px; align-items: center; gap: 12px; padding: 14px; border: 1px solid #e1e7ea; border-radius: 14px; background: #f7f9fa; opacity: .72; }
+.service-price-list article.enabled { border-color: #f0c5b4; background: #fff8f4; opacity: 1; }
+.service-enable { display: grid !important; grid-template-columns: auto minmax(0, 1fr); align-items: center !important; gap: 9px !important; cursor: pointer; }
+.service-enable input { width: 18px; height: 18px; min-height: 0; }
+.service-enable span { display: grid; gap: 3px; min-width: 0; }
+.service-enable small { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.service-charge { gap: 5px !important; }
+.service-charge > span { color: var(--muted); font-size: 10px; }
+.service-charge input { min-height: 42px; }
 
 /* Private Pandit account menu and settings */
 .account-menu { position: relative; }
@@ -1206,6 +1219,8 @@ input:focus, textarea:focus, select:focus { border-color: #f07b58; box-shadow: 0
   .profile-form-grid { grid-template-columns: 1fr; }
   .profile-form-grid .span-2 { grid-column: auto; }
   .profile-editor-actions .btn { width: 100%; }
+  .service-price-list { grid-template-columns: 1fr; }
+  .service-price-list article { grid-template-columns: minmax(0, 1fr) 112px; padding: 12px; }
   .account-menu-panel { position: fixed; top: 70px; right: 10px; left: 10px; width: auto; max-width: none; }
   .settings-workspace { grid-template-columns: 1fr; }
   .settings-workspace > aside { position: static; padding: 10px; }

@@ -20,6 +20,7 @@ type Profile = {
   service_radius_km?: number;
   base_charge?: number;
 };
+type ServicePrice = { service_id: string; name: string; description?: string; price: number; enabled: boolean };
 
 const empty = {
   name: "", phone: "", city: "", email: "", defaultAddress: "",
@@ -34,16 +35,18 @@ export function ProfileEditor({ role, onSaved }: { role: Role; onSaved?: () => v
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
+  const [pricing, setPricing] = useState<ServicePrice[]>([]);
 
   useEffect(() => {
     void fetch("/api/profile", { cache: "no-store" })
       .then(async (response) => {
-        const data = await readJson<{ profile?: Profile; error?: string }>(response);
+        const data = await readJson<{ profile?: Profile; pricing?: ServicePrice[]; error?: string }>(response);
         if (!response.ok || !data.profile) {
           setError(data.error ?? "Unable to load profile");
           return;
         }
         const profile = data.profile;
+        setPricing((data.pricing ?? []).map((service) => ({ ...service, price: Number(service.price) })));
         setForm({
           name: profile.name ?? "",
           phone: profile.phone ?? "",
@@ -79,7 +82,7 @@ export function ProfileEditor({ role, onSaved }: { role: Role; onSaved?: () => v
           languages: form.languages.split(",").map((value) => value.trim()).filter(Boolean),
           specialities: form.specialities.split(",").map((value) => value.trim()).filter(Boolean),
           bio: form.bio, serviceRadiusKm: Number(form.serviceRadiusKm),
-          baseCharge: Number(form.baseCharge),
+          pricing: pricing.map((service) => ({ serviceId: service.service_id, price: Number(service.price), enabled: service.enabled })),
         };
     try {
       const response = await fetch("/api/profile", {
@@ -119,11 +122,11 @@ export function ProfileEditor({ role, onSaved }: { role: Role; onSaved?: () => v
           </> : <>
             <label className="span-2">Current address<textarea rows={3} value={form.currentAddress} onChange={(event) => field("currentAddress", event.target.value)} maxLength={500} /></label>
             <label>Years of experience<input type="number" min={0} max={80} value={form.experienceYears} onChange={(event) => field("experienceYears", Number(event.target.value))} /></label>
-            <label>Public starting charge (INR)<input type="number" min={0} max={1000000} value={form.baseCharge} onChange={(event) => field("baseCharge", Number(event.target.value))} /></label>
             <label>Service radius (km)<input type="number" min={1} max={25} value={form.serviceRadiusKm} onChange={(event) => field("serviceRadiusKm", Number(event.target.value))} /></label>
             <label>Languages<small>Separate multiple languages with commas.</small><input value={form.languages} onChange={(event) => field("languages", event.target.value)} /></label>
             <label className="span-2">Puja specialities<small>Separate multiple specialities with commas.</small><input value={form.specialities} onChange={(event) => field("specialities", event.target.value)} /></label>
             <label className="span-2">Professional introduction<textarea rows={5} value={form.bio} onChange={(event) => field("bio", event.target.value)} maxLength={1500} /></label>
+            <div className="service-price-editor span-2"><div><strong>Services and charges</strong><small>Enable the Pujas you offer and set the customer-visible charge for each service.</small></div><div className="service-price-list">{pricing.map((service, index) => <article className={service.enabled ? "enabled" : ""} key={service.service_id}><label className="service-enable"><input type="checkbox" checked={service.enabled} onChange={(event) => setPricing((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, enabled: event.target.checked } : item))} /><span><strong>{service.name}</strong><small>{service.description}</small></span></label><label className="service-charge"><span>Charge (INR)</span><input type="number" min={0} max={1000000} disabled={!service.enabled} value={service.price} onChange={(event) => setPricing((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, price: Number(event.target.value) } : item))} /></label></article>)}</div></div>
           </>}
         </div>
         {role === "PANDIT" && <div className="profile-protection-note"><ShieldCheck /><span><strong>Protected verification details</strong><small>Government ID, date of birth, bank/UPI proof and verified documents cannot be changed here. Contact support or follow an Admin change request.</small></span></div>}

@@ -303,6 +303,12 @@ test("customer and Pandit profile editing is role scoped and protects verified f
   assert.match(editor, /readOnly disabled/);
   assert.match(editor, /Protected verification details/);
   assert.match(editor, /Save profile changes/);
+  assert.match(editor, /Services and charges/);
+  assert.match(editor, /service\.service_id/);
+  assert.match(route, /pim_v2\.pandit_service_pricing/);
+  assert.match(route, /pim_v2\.pandit_services/);
+  assert.match(route, /Enable at least one Puja service/);
+  assert.match(route, /verification_status='APPROVED'/);
   assert.match(shell, /PanditAccountMenu/);
   assert.doesNotMatch(shell, /#pandit-profile/);
 });

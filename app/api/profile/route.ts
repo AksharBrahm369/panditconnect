@@ -17,6 +17,11 @@ const customerSchema = z.object({
   defaultAddress: z.string().trim().max(500),
   preferredLanguage: z.enum(["Hindi", "Marathi", "Gujarati", "English", "Sanskrit"]),
 }).strict();
+const servicePriceSchema = z.object({
+  serviceId: z.string().trim().min(1).max(80),
+  price: z.number().int().min(0).max(1_000_000),
+  enabled: z.boolean(),
+});
 const panditSchema = z.object({
   ...shared,
   currentAddress: z.string().trim().min(10).max(500),
@@ -25,8 +30,11 @@ const panditSchema = z.object({
   specialities: z.array(z.string().trim().min(1).max(100)).min(1).max(30),
   bio: z.string().trim().min(30).max(1500),
   serviceRadiusKm: z.number().int().min(1).max(25),
-  baseCharge: z.number().int().min(0).max(1_000_000),
-}).strict();
+  pricing: z.array(servicePriceSchema).min(1).max(100),
+}).strict().superRefine((value, context) => {
+  if (!value.pricing.some((service) => service.enabled)) context.addIssue({ code: "custom", path: ["pricing"], message: "Enable at least one Puja service" });
+  if (new Set(value.pricing.map((service) => service.serviceId)).size !== value.pricing.length) context.addIssue({ code: "custom", path: ["pricing"], message: "Duplicate Puja service pricing is not allowed" });
+});
 
 export async function GET() {
   try {
@@ -37,8 +45,11 @@ export async function GET() {
       return NextResponse.json({ role: user.role, profile: result.rows[0] }, { headers: { "Cache-Control": "private, no-store" } });
     }
     if (user.role === "PANDIT") {
-      const result = await sql(`SELECT u.name,u.phone,u.city,p.email,p.current_address,p.experience_years,p.languages,p.specialities,p.bio,p.service_radius_km,p.base_charge,p.verification_status FROM pim_v2.users u JOIN pim_v2.pandit_profiles p ON p.user_id=u.id WHERE u.id=$1`, [user.id]);
-      return NextResponse.json({ role: user.role, profile: result.rows[0] }, { headers: { "Cache-Control": "private, no-store" } });
+      const [result, pricing] = await Promise.all([
+        sql(`SELECT u.name,u.phone,u.city,p.email,p.current_address,p.experience_years,p.languages,p.specialities,p.bio,p.service_radius_km,p.base_charge,p.verification_status FROM pim_v2.users u JOIN pim_v2.pandit_profiles p ON p.user_id=u.id WHERE u.id=$1`, [user.id]),
+        sql(`SELECT s.id AS service_id,s.name,s.description,COALESCE(pp.price,ps.charge,s.base_price) AS price,COALESCE(pp.enabled,ps.pandit_id IS NOT NULL,false) AS enabled FROM pim_v2.services s LEFT JOIN pim_v2.pandit_service_pricing pp ON pp.service_id=s.id AND pp.pandit_id=$1 LEFT JOIN pim_v2.pandit_services ps ON ps.service_id=s.id AND ps.pandit_id=$1 WHERE s.active=true ORDER BY s.name`, [user.id]),
+      ]);
+      return NextResponse.json({ role: user.role, profile: result.rows[0], pricing: pricing.rows }, { headers: { "Cache-Control": "private, no-store" } });
     }
     return NextResponse.json({ error: "Profile editing is unavailable for this role" }, { status: 403 });
   } catch (error) {
@@ -67,6 +78,9 @@ export async function PUT(request: Request) {
       const parsed = panditSchema.safeParse(await request.json());
       if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Check your professional details" }, { status: 400 });
       const value = parsed.data;
+      const available = await sql<{ id: string }>(`SELECT id FROM pim_v2.services WHERE active=true AND id=ANY($1::text[])`, [value.pricing.map((service) => service.serviceId)]);
+      if (available.rowCount !== value.pricing.length) return NextResponse.json({ error: "One or more Puja services are unavailable" }, { status: 400 });
+      const baseCharge = Math.min(...value.pricing.filter((service) => service.enabled).map((service) => service.price));
       const updated = await sql(`WITH updated_user AS (
         UPDATE pim_v2.users SET name=$2,city=$3
         WHERE id=$1 AND EXISTS(SELECT 1 FROM pim_v2.pandit_profiles WHERE user_id=$1)
@@ -74,8 +88,13 @@ export async function PUT(request: Request) {
       )
       UPDATE pim_v2.pandit_profiles p SET email=$4,current_address=$5,experience_years=$6,languages=$7,specialities=$8,bio=$9,service_radius_km=$10,base_charge=$11,updated_at=now()
       FROM updated_user u WHERE p.user_id=u.id RETURNING p.user_id`,
-      [user.id,value.name,value.city,value.email||null,value.currentAddress,value.experienceYears,value.languages,value.specialities,value.bio,value.serviceRadiusKm,value.baseCharge]);
+      [user.id,value.name,value.city,value.email||null,value.currentAddress,value.experienceYears,value.languages,value.specialities,value.bio,value.serviceRadiusKm,baseCharge]);
       if (!updated.rowCount) return NextResponse.json({ error: "Complete your Pandit onboarding before editing this profile" }, { status: 409 });
+      for (const service of value.pricing) {
+        await sql(`INSERT INTO pim_v2.pandit_service_pricing(pandit_id,service_id,price,enabled) VALUES($1,$2,$3,$4) ON CONFLICT(pandit_id,service_id) DO UPDATE SET price=EXCLUDED.price,enabled=EXCLUDED.enabled,updated_at=now()`, [user.id,service.serviceId,service.price,service.enabled]);
+      }
+      await sql(`INSERT INTO pim_v2.pandit_services(pandit_id,service_id,charge) SELECT pandit_id,service_id,price FROM pim_v2.pandit_service_pricing WHERE pandit_id=$1 AND enabled=true AND EXISTS(SELECT 1 FROM pim_v2.pandit_profiles WHERE user_id=$1 AND verification_status='APPROVED') ON CONFLICT(pandit_id,service_id) DO UPDATE SET charge=EXCLUDED.charge`, [user.id]);
+      await sql(`DELETE FROM pim_v2.pandit_services ps WHERE ps.pandit_id=$1 AND NOT EXISTS(SELECT 1 FROM pim_v2.pandit_service_pricing pp WHERE pp.pandit_id=$1 AND pp.service_id=ps.service_id AND pp.enabled=true)`, [user.id]);
       await refreshCurrentSessionUser({ ...user, name: value.name, city: value.city });
       await notifyAdmins({ title: "Pandit profile updated", body: `${value.name} updated professional profile information.`, url: "/admin#admin-pandits", eventType: "PANDIT_PROFILE_UPDATED" });
       return NextResponse.json({ success: true });
