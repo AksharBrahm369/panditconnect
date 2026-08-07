@@ -20,13 +20,17 @@ export async function GET(request: Request) {
   try {
     const params = new URL(request.url).searchParams;
     const serviceId = params.get("serviceId") ?? "ganesh-puja";
+    const language = params.get("language")?.trim();
     const latitude = Number(params.get("lat"));
     const longitude = Number(params.get("lng"));
     if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
         !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
       return NextResponse.json({ error: "A valid current location is required" }, { status: 400 });
     }
-    const cacheKey = `${serviceId}:${latitude.toFixed(3)}:${longitude.toFixed(3)}`;
+    if (!language || !["Hindi", "Marathi", "Gujarati", "English", "Sanskrit"].includes(language)) {
+      return NextResponse.json({ error: "Choose a supported preferred language" }, { status: 400 });
+    }
+    const cacheKey = `${serviceId}:${language.toLowerCase()}:${latitude.toFixed(3)}:${longitude.toFixed(3)}`;
     const cached = nearbyCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       return NextResponse.json(
@@ -48,6 +52,7 @@ export async function GET(request: Request) {
          JOIN pim_v2.pandit_services ps ON ps.pandit_id=p.user_id AND ps.service_id=$1
          WHERE p.verification_status='APPROVED' AND p.is_online=true
            AND p.latitude IS NOT NULL AND p.longitude IS NOT NULL
+           AND EXISTS (SELECT 1 FROM unnest(p.languages) listed_language WHERE lower(listed_language)=lower($4))
        )
        SELECT id,name,experience_years,languages,rating,rating_count,completed_jobs,charge,service_radius_km,
          round(distance::numeric,1)::text AS distance_km,
@@ -55,7 +60,7 @@ export async function GET(request: Request) {
        FROM available
        WHERE distance <= service_radius_km
        ORDER BY distance,rating DESC LIMIT 50`,
-      [serviceId, latitude, longitude],
+      [serviceId, latitude, longitude, language],
     );
     nearbyCache.set(cacheKey, { pandits: result.rows, expiresAt: Date.now() + 10_000 });
     return NextResponse.json(

@@ -43,6 +43,10 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
         AND p.latitude IS NOT NULL
         AND p.longitude IS NOT NULL
         AND NOT (p.user_id = ANY(o.excluded_pandit_ids))
+        AND (o.preferred_language IS NULL OR EXISTS (
+          SELECT 1 FROM unnest(p.languages) listed_language
+          WHERE lower(listed_language)=lower(o.preferred_language)
+        ))
        JOIN pim_v2.users u ON u.id=p.user_id
        JOIN pim_v2.pandit_services ps ON ps.pandit_id=p.user_id AND ps.service_id=o.service_id
        WHERE 6371 * acos(least(1, greatest(-1,
@@ -50,9 +54,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
          cos(radians(p.longitude) - radians(o.longitude)) +
          sin(radians(o.latitude)) * sin(radians(p.latitude))
        ))) <= least(COALESCE(p.service_radius_km,25),25)
-       ORDER BY
-         CASE WHEN o.preferred_language IS NULL OR o.preferred_language=ANY(p.languages) THEN 0 ELSE 1 END,
-         distance,p.rating DESC
+       ORDER BY distance,p.rating DESC
        LIMIT 1
      ),
      reassigned AS (

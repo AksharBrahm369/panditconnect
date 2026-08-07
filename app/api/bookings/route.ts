@@ -83,12 +83,16 @@ export async function POST(request: Request) {
   };
   const latitude = Number(body.latitude);
   const longitude = Number(body.longitude);
+  const preferredLanguage = body.preferredLanguage?.trim();
   if (!body.serviceId || !body.address?.trim() || !body.panditId) {
     return NextResponse.json({ error: "Choose a nearby Pandit and enter the service address" }, { status: 400 });
   }
   if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
       !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
     return NextResponse.json({ error: "Allow current GPS location before sending the request" }, { status: 400 });
+  }
+  if (!preferredLanguage || !["Hindi", "Marathi", "Gujarati", "English", "Sanskrit"].includes(preferredLanguage)) {
+    return NextResponse.json({ error: "Choose a supported preferred language" }, { status: 400 });
   }
 
   const match = await sql<{ id: string; charge: number; name: string; distance_km: string; eta_minutes: number }>(
@@ -104,16 +108,17 @@ export async function POST(request: Request) {
        JOIN pim_v2.pandit_services ps ON ps.pandit_id=p.user_id AND ps.service_id=$1
        WHERE u.id=$4 AND u.id<>$5 AND p.verification_status='APPROVED' AND p.is_online=true
          AND p.latitude IS NOT NULL AND p.longitude IS NOT NULL
+         AND EXISTS (SELECT 1 FROM unnest(p.languages) listed_language WHERE lower(listed_language)=lower($6))
      )
      SELECT id,name,charge,round(distance::numeric,1)::text AS distance_km,
        greatest(10,round(distance*3)::int+8) AS eta_minutes
      FROM matches WHERE distance <= service_radius_km`,
-    [body.serviceId, latitude, longitude, body.panditId, user.id],
+    [body.serviceId, latitude, longitude, body.panditId, user.id, preferredLanguage],
   );
   const pandit = match.rows[0];
   if (!pandit) {
     return NextResponse.json(
-      { error: "This Pandit is no longer available nearby. Refresh the list and choose another Pandit." },
+      { error: `This Pandit is unavailable for the selected Puja, ${preferredLanguage} language, or your current location. Choose another matching Pandit.` },
       { status: 409 },
     );
   }
@@ -134,7 +139,7 @@ export async function POST(request: Request) {
     [
       id, user.id, pandit.id, body.serviceId, body.address.trim().slice(0, 500), latitude, longitude,
       body.notes?.trim().slice(0, 1000) || null, pandit.charge, await encryptArrivalOtp(otp), requestType,
-      body.situation?.trim().slice(0, 1200) || null, body.preferredLanguage?.trim() || null, materialsOption,
+      body.situation?.trim().slice(0, 1200) || null, preferredLanguage, materialsOption,
     ],
   );
   await notifyUser(pandit.id, { title: "New urgent Puja request", body: `${body.serviceId.replaceAll("-", " ")} request is waiting for your response.`, url: "/pandit#pandit-requests", eventType: "BOOKING_REQUESTED" });

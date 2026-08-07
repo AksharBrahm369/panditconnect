@@ -293,7 +293,7 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
     setMessage("");
     const current = coordinates ?? await locateFromAddress();
     if (!current) { setBusy(false); return; }
-    const params = new URLSearchParams({ serviceId, lat: String(current.latitude), lng: String(current.longitude) });
+    const params = new URLSearchParams({ serviceId, language, lat: String(current.latitude), lng: String(current.longitude) });
     const response = await fetch(`/api/pandits/nearby?${params}`, { cache: "no-store" });
     const data = await readJson<{ error?: string; pandits?: NearbyPandit[] }>(response);
     if (!response.ok) {
