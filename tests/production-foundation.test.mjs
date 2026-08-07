@@ -40,7 +40,7 @@ test("manual location fallback is authenticated and sends only a PIN code", asyn
 
 test("service migration is idempotent and contains all permanent services", async () => {
   const migration = await readFile(new URL("../db/migrations/0009_production_foundation.sql", import.meta.url), "utf8");
-  for (const id of ["ganesh-puja", "lakshmi-puja", "satyanarayan", "havan", "griha-pravesh", "religious-guidance"]) assert.match(migration, new RegExp(`'${id}'`));
+  for (const id of ["ganesh-puja", "lakshmi-puja", "satyanarayan", "havan", "griha-pravesh"]) assert.match(migration, new RegExp(`'${id}'`));
   assert.match(migration, /ON CONFLICT\(id\) DO NOTHING/i);
 });
 
@@ -205,4 +205,12 @@ test("Pandit and admin onboarding no longer require or display interviews", asyn
   for (const source of [pandit,admin,onboarding]) assert.doesNotMatch(source,/interview/i);
   assert.doesNotMatch(review,/videoInterviewStatus|video_interview_status/);
   assert.match(review,/document_type<>'VIDEO_INTERVIEW'/);
+});
+
+test("online consultation is excluded from the Puja service selector", async () => {
+  const migration = await readFile(new URL("../db/migrations/0020_remove_consultation_from_puja_services.sql", import.meta.url), "utf8");
+  const route = await readFile(new URL("../app/api/services/route.ts", import.meta.url), "utf8");
+  assert.match(migration,/id='religious-guidance'/);
+  assert.match(migration,/active=false/);
+  assert.match(route,/id<>'religious-guidance'/);
 });
