@@ -8,6 +8,7 @@ import { readJson } from "@/lib/http";
 import { getCurrentCoordinates, type BrowserCoordinates } from "@/lib/browser-location";
 import { PanditOnboarding } from "./pandit-onboarding";
 import { SupportCenter } from "./support-center";
+import { ProfileEditor } from "./profile-editor";
 
 type Profile = { name: string | null; city: string | null; experience_years: number; languages: string[]; specialities: string[]; bio: string | null; verification_status: string; review_note?: string | null; is_online: boolean; rating: string; rating_count: number; completed_jobs: number; latitude: number | null; longitude: number | null; consultation_online: boolean; consultation_rate_5min: number };
 type Booking = {
@@ -226,6 +227,7 @@ export function PanditPortal() {
         <section className="history" id="completed-pujas"><div className="section-title"><div><h2>Customer payment status</h2><p>The customer chooses the payment method from their phone after you complete the Puja.</p></div></div>
           {completed.length ? <div className="completed-payment-list">{completed.map((booking) => <article key={booking.id}><div><strong>{booking.service_name}</strong><span>{booking.customer_name ?? "Customer"} · ₹{booking.amount.toLocaleString("en-IN")}</span>{booking.payment_status !== "CONFIRMED" && <small>Waiting for the customer. Cash, UPI and Card options are shown only on the customer&apos;s completed booking.</small>}</div><span className={`status ${booking.payment_status === "CONFIRMED" ? "paid" : ""}`}>{booking.payment_status === "CONFIRMED" ? booking.payment_method === "CASH" ? "Customer chose Cash" : "Customer arranged payment" : "Customer choosing payment"}</span></article>)}</div> : <div className="empty compact">No completed Puja yet.</div>}
         </section>
+        <ProfileEditor role="PANDIT" onSaved={() => void loadProfile(false)} />
         <SupportCenter bookings={bookings.map(({id,service_name,status})=>({id,service_name,status}))} />
       </>}
     </AppShell>

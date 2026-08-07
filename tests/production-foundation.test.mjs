@@ -286,3 +286,23 @@ test("rematching and consultation selection stay nearby, notify Pandits and prev
   assert.match(consultation, /user_id<>\$2/);
   assert.match(consultation, /CONSULTATION_STARTED/);
 });
+
+test("customer and Pandit profile editing is role scoped and protects verified fields", async () => {
+  const migration = await readFile(new URL("../db/migrations/0021_role_profiles.sql", import.meta.url), "utf8");
+  const route = await readFile(new URL("../app/api/profile/route.ts", import.meta.url), "utf8");
+  const editor = await readFile(new URL("../components/profile-editor.tsx", import.meta.url), "utf8");
+  const shell = await readFile(new URL("../components/app-shell.tsx", import.meta.url), "utf8");
+  assert.match(migration, /CREATE TABLE IF NOT EXISTS pim_v2\.customer_profiles/);
+  assert.match(migration, /REFERENCES pim_v2\.users\(id\) ON DELETE CASCADE/);
+  assert.match(route, /requireUser\(\)/);
+  assert.match(route, /WHERE u\.id=\$1/);
+  assert.match(route, /UPDATE pim_v2\.users SET name=\$2,city=\$3 WHERE id=\$1/);
+  assert.match(route, /WITH updated_user AS/);
+  assert.match(route, /notifyAdmins/);
+  assert.match(editor, /Verified mobile number/);
+  assert.match(editor, /readOnly disabled/);
+  assert.match(editor, /Protected verification details/);
+  assert.match(editor, /Save profile changes/);
+  assert.match(shell, /#customer-profile/);
+  assert.match(shell, /#pandit-profile/);
+});

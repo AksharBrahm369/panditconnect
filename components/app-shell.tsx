@@ -3,7 +3,7 @@
 import Link from "next/link";
 import {
   Activity, BadgeCheck, BookOpenCheck, LayoutDashboard,
-  Headphones, LogOut, MapPinned, MessageCircle, Radio, ShieldCheck, Sparkles, UsersRound,
+  Headphones, LogOut, MapPinned, MessageCircle, Radio, ShieldCheck, Sparkles, UserRound, UsersRound,
 } from "lucide-react";
 import { NotificationCenter } from "./notification-center";
 
@@ -13,12 +13,14 @@ const roleNavigation = {
     { label: "Request help", href: "#request-assistance", icon: Sparkles },
     { label: "Live guidance", href: "#online-guidance", icon: MessageCircle },
     { label: "Live requests", href: "#live-requests", icon: Activity },
+    { label: "Profile", href: "#customer-profile", icon: UserRound },
   ],
   Pandit: [
     { label: "Overview", href: "#portal-overview", icon: LayoutDashboard },
     { label: "Availability", href: "#pandit-status", icon: Radio },
     { label: "Live chats", href: "#online-guidance", icon: MessageCircle },
     { label: "Urgent requests", href: "#pandit-requests", icon: MapPinned },
+    { label: "Profile", href: "#pandit-profile", icon: UserRound },
   ],
   Admin: [
     { label: "Overview", href: "#portal-overview", icon: LayoutDashboard },
