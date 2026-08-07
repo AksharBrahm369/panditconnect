@@ -352,11 +352,11 @@ test("customers have a private gear menu for profile and request settings", asyn
 test("customer portal uses the simplified devotional home experience", async () => {
   const portal = await readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8");
   const shell = await readFile(new URL("../components/app-shell.tsx", import.meta.url), "utf8");
-  assert.match(portal, /Book a Pandit at home/);
-  assert.match(portal, /Namaste\. How can we help your family today/);
+  assert.match(portal, /Help me choose and book/);
+  assert.match(portal, /What do you need help with today/);
   assert.match(portal, /customer-puja-welcome\.png/);
-  assert.match(portal, /Tell us your need/);
-  assert.match(portal, /Choose a Pandit/);
+  assert.match(portal, /Describe/);
+  assert.match(portal, /Choose your Pandit/);
   assert.match(shell, /Book Pandit/);
   assert.match(shell, /My bookings/);
 });

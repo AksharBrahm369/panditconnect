@@ -344,16 +344,16 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
         <section className="customer-home" id="customer-home">
           <div className="customer-welcome">
             <div className="customer-welcome-copy">
-              <span className="customer-devotional-label">ॐ · सरल पूजा सहायता</span>
-              <h1>Namaste. How can we help your family today?</h1>
-              <p>You do not need to know the Puja name. Tell us what happened or choose an option—we will guide every next step.</p>
-              <button className="customer-primary-action" onClick={() => choosePath("NEED_GUIDANCE")}><span className="customer-action-icon"><Sparkles /></span><span><small>Recommended for most people</small><strong>Book a Pandit at home</strong><em>Describe the occasion in your own words</em></span><ChevronRight /></button>
-              <div className="customer-simple-steps"><span><b>1</b> Tell us your need</span><i /><span><b>2</b> Choose a Pandit</span><i /><span><b>3</b> Track arrival</span></div>
+              <span className="customer-devotional-label">ॐ · Puja help</span>
+              <h1>What do you need help with today?</h1>
+              <p>Choose one option below. You do not need to know the Puja name—we will guide the rest.</p>
+              <button className="customer-primary-action" onClick={() => choosePath("NEED_GUIDANCE")}><span className="customer-action-icon"><Sparkles /></span><span><small>Best place to start</small><strong>Help me choose and book</strong><em>Describe the occasion in simple words</em></span><ChevronRight /></button>
+              <div className="customer-simple-steps"><span><b>1</b> Describe</span><i /><span><b>2</b> Choose</span><i /><span><b>3</b> Confirm</span></div>
             </div>
             <div className="customer-welcome-image"><Image src="/images/customer-puja-welcome.png" alt="A family receiving Puja guidance from a trusted Pandit at home" width={1750} height={900} priority /><span><ShieldCheck /> Verified Pandits · Private booking</span></div>
           </div>
 
-          <div className="customer-choice-heading" id="request-assistance"><div><span>More ways we can help</span><h2>Choose only if this matches your need</h2></div><p>You can always go back before sending a request.</p></div>
+          <div className="customer-choice-heading" id="request-assistance"><div><span>Quick options</span><h2>Or choose what you already know</h2></div><p>Nothing is submitted until you confirm.</p></div>
           <div className="customer-choice-grid">
             <button className="customer-choice-card urgent" onClick={() => choosePath("PANDIT_SOS")}><span><AlertTriangle /></span><div><small>Urgent help</small><strong>My Pandit cancelled</strong><p>Quickly find another approved Pandit nearby.</p></div><ChevronRight /></button>
             <button className="customer-choice-card" onClick={() => choosePath("KNOWN_PUJA")}><span><Sparkles /></span><div><small>Quick booking</small><strong>I know the Puja</strong><p>Select the ritual and compare nearby Pandits.</p></div><ChevronRight /></button>
