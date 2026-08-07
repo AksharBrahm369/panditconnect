@@ -66,6 +66,12 @@ export async function forgetSession(token: string) {
   sessionCache.delete(await digest(token));
 }
 
+export async function refreshCurrentSessionUser(user: AppUser) {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!token) return;
+  sessionCache.set(await digest(token), { user, expiresAt: Date.now() + 60_000 });
+}
+
 export async function currentUser(): Promise<AppUser | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;

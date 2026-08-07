@@ -303,6 +303,23 @@ test("customer and Pandit profile editing is role scoped and protects verified f
   assert.match(editor, /readOnly disabled/);
   assert.match(editor, /Protected verification details/);
   assert.match(editor, /Save profile changes/);
-  assert.match(shell, /#customer-profile/);
-  assert.match(shell, /#pandit-profile/);
+  assert.match(shell, /PanditAccountMenu/);
+  assert.doesNotMatch(shell, /#pandit-profile/);
+});
+
+test("Pandit private account features live behind a named gear menu and protected pages", async () => {
+  const menu = await readFile(new URL("../components/pandit-account-menu.tsx", import.meta.url), "utf8");
+  const shell = await readFile(new URL("../components/app-shell.tsx", import.meta.url), "utf8");
+  const dashboard = await readFile(new URL("../components/pandit-portal.tsx", import.meta.url), "utf8");
+  const payoutRoute = await readFile(new URL("../app/api/pandit/payout/route.ts", import.meta.url), "utf8");
+  const profilePage = await readFile(new URL("../app/pandit/settings/profile/page.tsx", import.meta.url), "utf8");
+  for (const path of ["/pandit/settings/profile", "/pandit/settings/payments", "/pandit/settings/notifications", "/pandit/settings/security"]) assert.match(menu, new RegExp(path));
+  assert.match(shell, /userName \|\| "Pandit"/);
+  assert.doesNotMatch(dashboard, /ProfileEditor/);
+  assert.match(profilePage, /currentUser/);
+  assert.match(profilePage, /user\.role !== "PANDIT"/);
+  assert.match(payoutRoute, /requirePandit/);
+  assert.match(payoutRoute, /encryptSensitive/);
+  assert.match(payoutRoute, /bank_status='PENDING'/);
+  assert.doesNotMatch(payoutRoute, /bank_account_number.*SELECT/);
 });

@@ -8,7 +8,6 @@ import { readJson } from "@/lib/http";
 import { getCurrentCoordinates, type BrowserCoordinates } from "@/lib/browser-location";
 import { PanditOnboarding } from "./pandit-onboarding";
 import { SupportCenter } from "./support-center";
-import { ProfileEditor } from "./profile-editor";
 
 type Profile = { name: string | null; city: string | null; experience_years: number; languages: string[]; specialities: string[]; bio: string | null; verification_status: string; review_note?: string | null; is_online: boolean; rating: string; rating_count: number; completed_jobs: number; latitude: number | null; longitude: number | null; consultation_online: boolean; consultation_rate_5min: number };
 type Booking = {
@@ -19,7 +18,7 @@ type Booking = {
   payment_method: "CASH" | "UPI" | "CARD" | "OTHER" | null; payment_status: "NOT_SELECTED" | "CONFIRMED"; payment_confirmed_at: string | null;
 };
 
-export function PanditPortal() {
+export function PanditPortal({ userName }: { userName?: string | null }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [notice, setNotice] = useState("");
@@ -168,14 +167,14 @@ export function PanditPortal() {
     await loadProfile(false);
   }
 
-  if (!profile) return <AppShell role="Pandit" title="Loading your portal…" subtitle="Preparing your profile and requests."><div className="loading-card">Loading…</div></AppShell>;
+  if (!profile) return <AppShell role="Pandit" userName={userName} title="Loading your portal…" subtitle="Preparing your profile and requests."><div className="loading-card">Loading…</div></AppShell>;
   const awaitingReview = ["PENDING", "SUBMITTED", "UNDER_REVIEW"].includes(profile.verification_status);
   const incomplete = ["INCOMPLETE", "CHANGES_REQUESTED", "REJECTED"].includes(profile.verification_status);
   const active = bookings.filter((b) => !["COMPLETED", "DECLINED", "CANCELLED"].includes(b.status));
   const completed = bookings.filter((b) => b.status === "COMPLETED").slice(0, 6);
 
   return (
-    <AppShell role="Pandit" title={awaitingReview ? "Application under admin review" : incomplete ? "Complete your verified Pandit profile" : `Namaste, ${profile.name ?? "Pandit ji"}`} subtitle={awaitingReview ? "Your details were submitted successfully. Please check again later." : incomplete ? "A trusted profile helps customers book with confidence." : "Manage availability and urgent requests from one screen."}>
+    <AppShell role="Pandit" userName={profile.name ?? userName} title={awaitingReview ? "Application under admin review" : incomplete ? "Complete your verified Pandit profile" : `Namaste, ${profile.name ?? "Pandit ji"}`} subtitle={awaitingReview ? "Your details were submitted successfully. Please check again later." : incomplete ? "A trusted profile helps customers book with confidence." : "Manage availability and urgent requests from one screen."}>
       {notice && <div className="alert success">{notice}</div>}
       {profile.verification_status === "CHANGES_REQUESTED" && <div className="alert error">Admin requested changes: {profile.review_note ?? "Please review and update your profile."}</div>}
       {profile.verification_status === "REJECTED" && <div className="alert error">Your application was not approved: {profile.review_note ?? "Review your information and contact support if you need help."}</div>}
@@ -227,7 +226,6 @@ export function PanditPortal() {
         <section className="history" id="completed-pujas"><div className="section-title"><div><h2>Customer payment status</h2><p>The customer chooses the payment method from their phone after you complete the Puja.</p></div></div>
           {completed.length ? <div className="completed-payment-list">{completed.map((booking) => <article key={booking.id}><div><strong>{booking.service_name}</strong><span>{booking.customer_name ?? "Customer"} · ₹{booking.amount.toLocaleString("en-IN")}</span>{booking.payment_status !== "CONFIRMED" && <small>Waiting for the customer. Cash, UPI and Card options are shown only on the customer&apos;s completed booking.</small>}</div><span className={`status ${booking.payment_status === "CONFIRMED" ? "paid" : ""}`}>{booking.payment_status === "CONFIRMED" ? booking.payment_method === "CASH" ? "Customer chose Cash" : "Customer arranged payment" : "Customer choosing payment"}</span></article>)}</div> : <div className="empty compact">No completed Puja yet.</div>}
         </section>
-        <ProfileEditor role="PANDIT" onSaved={() => void loadProfile(false)} />
         <SupportCenter bookings={bookings.map(({id,service_name,status})=>({id,service_name,status}))} />
       </>}
     </AppShell>

@@ -8,6 +8,5 @@ export default async function PanditPage() {
   const user = await currentUser();
   if (!user) redirect("/login?role=pandit");
   if (user.role !== "PANDIT") redirect("/customer");
-  return <PanditPortal />;
+  return <PanditPortal userName={user.name} />;
 }
-

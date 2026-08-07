@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { z } from "zod";
-import { requireUser } from "@/lib/auth";
+import { refreshCurrentSessionUser, requireUser } from "@/lib/auth";
 import { authorizationResponse } from "@/lib/api-auth";
 import { sql } from "@/lib/db";
 import { notifyAdmins } from "@/lib/push-notifications";
@@ -60,6 +60,7 @@ export async function PUT(request: Request) {
       SELECT id,$4,$5,$6,now() FROM updated_user
       ON CONFLICT(user_id) DO UPDATE SET email=EXCLUDED.email,default_address=EXCLUDED.default_address,preferred_language=EXCLUDED.preferred_language,updated_at=now()`,
       [user.id,value.name,value.city,value.email||null,value.defaultAddress||null,value.preferredLanguage]);
+      await refreshCurrentSessionUser({ ...user, name: value.name, city: value.city });
       return NextResponse.json({ success: true });
     }
     if (user.role === "PANDIT") {
@@ -75,6 +76,7 @@ export async function PUT(request: Request) {
       FROM updated_user u WHERE p.user_id=u.id RETURNING p.user_id`,
       [user.id,value.name,value.city,value.email||null,value.currentAddress,value.experienceYears,value.languages,value.specialities,value.bio,value.serviceRadiusKm,value.baseCharge]);
       if (!updated.rowCount) return NextResponse.json({ error: "Complete your Pandit onboarding before editing this profile" }, { status: 409 });
+      await refreshCurrentSessionUser({ ...user, name: value.name, city: value.city });
       await notifyAdmins({ title: "Pandit profile updated", body: `${value.name} updated professional profile information.`, url: "/admin#admin-pandits", eventType: "PANDIT_PROFILE_UPDATED" });
       return NextResponse.json({ success: true });
     }

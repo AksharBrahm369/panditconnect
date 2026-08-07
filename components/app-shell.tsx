@@ -3,34 +3,33 @@
 import Link from "next/link";
 import {
   Activity, BadgeCheck, BookOpenCheck, LayoutDashboard,
-  Headphones, LogOut, MapPinned, MessageCircle, Radio, ShieldCheck, Sparkles, UserRound, UsersRound,
+  Headphones, LogOut, MapPinned, MessageCircle, Radio, ShieldCheck, Sparkles, UsersRound,
 } from "lucide-react";
 import { NotificationCenter } from "./notification-center";
+import { PanditAccountMenu } from "./pandit-account-menu";
 
 const roleNavigation = {
   Customer: [
-    { label: "Overview", href: "#portal-overview", icon: LayoutDashboard },
-    { label: "Request help", href: "#request-assistance", icon: Sparkles },
-    { label: "Live guidance", href: "#online-guidance", icon: MessageCircle },
-    { label: "Live requests", href: "#live-requests", icon: Activity },
-    { label: "Profile", href: "#customer-profile", icon: UserRound },
+    { label: "Overview", href: "/customer#portal-overview", icon: LayoutDashboard },
+    { label: "Request help", href: "/customer#request-assistance", icon: Sparkles },
+    { label: "Live guidance", href: "/customer#online-guidance", icon: MessageCircle },
+    { label: "Live requests", href: "/customer#live-requests", icon: Activity },
   ],
   Pandit: [
-    { label: "Overview", href: "#portal-overview", icon: LayoutDashboard },
-    { label: "Availability", href: "#pandit-status", icon: Radio },
-    { label: "Live chats", href: "#online-guidance", icon: MessageCircle },
-    { label: "Urgent requests", href: "#pandit-requests", icon: MapPinned },
-    { label: "Profile", href: "#pandit-profile", icon: UserRound },
+    { label: "Overview", href: "/pandit#portal-overview", icon: LayoutDashboard },
+    { label: "Availability", href: "/pandit#pandit-status", icon: Radio },
+    { label: "Live chats", href: "/pandit#online-guidance", icon: MessageCircle },
+    { label: "Urgent requests", href: "/pandit#pandit-requests", icon: MapPinned },
   ],
   Admin: [
-    { label: "Overview", href: "#portal-overview", icon: LayoutDashboard },
-    { label: "Bookings", href: "#admin-bookings", icon: BookOpenCheck },
-    { label: "Pandit network", href: "#admin-pandits", icon: UsersRound },
-    { label: "Support", href: "#admin-support", icon: Headphones },
+    { label: "Overview", href: "/admin#portal-overview", icon: LayoutDashboard },
+    { label: "Bookings", href: "/admin#admin-bookings", icon: BookOpenCheck },
+    { label: "Pandit network", href: "/admin#admin-pandits", icon: UsersRound },
+    { label: "Support", href: "/admin#admin-support", icon: Headphones },
   ],
 } as const;
 
-export function AppShell({ role, title, subtitle, children }: { role: "Customer" | "Pandit" | "Admin"; title: string; subtitle: string; children: React.ReactNode }) {
+export function AppShell({ role, userName, title, subtitle, children }: { role: "Customer" | "Pandit" | "Admin"; userName?: string | null; title: string; subtitle: string; children: React.ReactNode }) {
   const navigation = roleNavigation[role];
   async function logout() {
     await fetch("/api/auth/logout", { method: "POST" });
@@ -43,7 +42,7 @@ export function AppShell({ role, title, subtitle, children }: { role: "Customer"
         <nav className="portal-tabs" aria-label={`${role} navigation`}>
           {navigation.map(({ label, href, icon: Icon }, index) => <a className={index === 0 ? "active" : ""} href={href} key={href}><Icon size={17} /><span>{label}</span></a>)}
         </nav>
-        <div className="portal-account"><span>{role === "Admin" ? <ShieldCheck /> : role === "Pandit" ? <BadgeCheck /> : <Sparkles />}</span><div><small>Signed in as</small><strong>{role}</strong></div><NotificationCenter /><button className="icon-button" onClick={logout} aria-label="Log out"><LogOut size={17} /></button></div>
+        <div className="portal-account"><span>{role === "Admin" ? <ShieldCheck /> : role === "Pandit" ? <BadgeCheck /> : <Sparkles />}</span><div className="account-identity"><small>Signed in as</small><strong>{role === "Pandit" ? userName || "Pandit" : role}</strong></div><NotificationCenter />{role === "Pandit" ? <PanditAccountMenu onLogout={logout} /> : <button className="icon-button" onClick={logout} aria-label="Log out"><LogOut size={17} /></button>}</div>
       </header>
 
       <main className="portal-main">
