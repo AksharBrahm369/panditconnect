@@ -7,6 +7,7 @@ import {
 } from "lucide-react";
 import { NotificationCenter } from "./notification-center";
 import { PanditAccountMenu } from "./pandit-account-menu";
+import { CustomerAccountMenu } from "./customer-account-menu";
 
 const roleNavigation = {
   Customer: [
@@ -42,7 +43,7 @@ export function AppShell({ role, userName, title, subtitle, children }: { role: 
         <nav className="portal-tabs" aria-label={`${role} navigation`}>
           {navigation.map(({ label, href, icon: Icon }, index) => <a className={index === 0 ? "active" : ""} href={href} key={href}><Icon size={17} /><span>{label}</span></a>)}
         </nav>
-        <div className="portal-account"><span>{role === "Admin" ? <ShieldCheck /> : role === "Pandit" ? <BadgeCheck /> : <Sparkles />}</span><div className="account-identity"><small>Signed in as</small><strong>{role === "Pandit" ? userName || "Pandit" : role}</strong></div><NotificationCenter />{role === "Pandit" ? <PanditAccountMenu onLogout={logout} /> : <button className="icon-button" onClick={logout} aria-label="Log out"><LogOut size={17} /></button>}</div>
+        <div className="portal-account"><span>{role === "Admin" ? <ShieldCheck /> : role === "Pandit" ? <BadgeCheck /> : <Sparkles />}</span><div className="account-identity"><small>Signed in as</small><strong>{role === "Pandit" ? userName || "Pandit" : role}</strong></div><NotificationCenter />{role === "Pandit" ? <PanditAccountMenu onLogout={logout} /> : role === "Customer" ? <CustomerAccountMenu onLogout={logout} /> : <button className="icon-button" onClick={logout} aria-label="Log out"><LogOut size={17} /></button>}</div>
       </header>
 
       <main className="portal-main">

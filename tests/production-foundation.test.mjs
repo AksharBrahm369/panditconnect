@@ -329,3 +329,13 @@ test("Pandit private account features live behind a named gear menu and protecte
   assert.match(payoutRoute, /bank_status='PENDING'/);
   assert.doesNotMatch(payoutRoute, /bank_account_number.*SELECT/);
 });
+
+test("customers have a private gear menu for profile and request settings", async () => {
+  const shell = await readFile(new URL("../components/app-shell.tsx", import.meta.url), "utf8");
+  const menu = await readFile(new URL("../components/customer-account-menu.tsx", import.meta.url), "utf8");
+  assert.match(shell, /CustomerAccountMenu/);
+  assert.match(menu, /Customer account settings/);
+  assert.match(menu, /customer#customer-profile/);
+  assert.match(menu, /customer#live-requests/);
+  assert.match(menu, /Privacy & security/);
+});
