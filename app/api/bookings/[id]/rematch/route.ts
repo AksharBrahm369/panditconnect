@@ -2,8 +2,10 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { encryptArrivalOtp } from "@/lib/arrival-otp";
+import { notifyUser } from "@/lib/push-notifications";
 
 type RematchResult = {
+  id: string;
   name: string;
   distance_km: string;
   eta_minutes: number;
@@ -28,7 +30,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
        WHERE id=$1 AND customer_id=$2 AND status='DECLINED'
      ),
      matches AS (
-       SELECT u.id,u.name,ps.charge,p.rating,
+       SELECT u.id,u.name,ps.charge,p.rating,least(COALESCE(p.service_radius_km,25),25) AS service_radius_km,
          6371 * acos(least(1, greatest(-1,
            cos(radians(o.latitude)) * cos(radians(p.latitude)) *
            cos(radians(p.longitude) - radians(o.longitude)) +
@@ -43,6 +45,11 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
         AND NOT (p.user_id = ANY(o.excluded_pandit_ids))
        JOIN pim_v2.users u ON u.id=p.user_id
        JOIN pim_v2.pandit_services ps ON ps.pandit_id=p.user_id AND ps.service_id=o.service_id
+       WHERE 6371 * acos(least(1, greatest(-1,
+         cos(radians(o.latitude)) * cos(radians(p.latitude)) *
+         cos(radians(p.longitude) - radians(o.longitude)) +
+         sin(radians(o.latitude)) * sin(radians(p.latitude))
+       ))) <= least(COALESCE(p.service_radius_km,25),25)
        ORDER BY
          CASE WHEN o.preferred_language IS NULL OR o.preferred_language=ANY(p.languages) THEN 0 ELSE 1 END,
          distance,p.rating DESC
@@ -55,9 +62,9 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
          declined_pandit_ids=original.excluded_pandit_ids
        FROM matches,original
        WHERE b.id=original.id
-       RETURNING matches.name,matches.distance
+       RETURNING matches.id,matches.name,matches.distance
      )
-     SELECT name,round(distance::numeric,1)::text AS distance_km,
+     SELECT id,name,round(distance::numeric,1)::text AS distance_km,
        greatest(10,round(distance*3)::int+8) AS eta_minutes
      FROM reassigned`,
     [id, user.id, await encryptArrivalOtp(otp)],
@@ -80,6 +87,8 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
       { status: 409 },
     );
   }
+
+  await notifyUser(match.id, { title: "New urgent Puja request", body: "A nearby customer selected you as a replacement Pandit.", url: "/pandit#pandit-requests", eventType: "BOOKING_REQUESTED" });
 
   return NextResponse.json({
     success: true,

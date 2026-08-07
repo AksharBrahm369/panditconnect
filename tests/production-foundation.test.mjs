@@ -274,3 +274,15 @@ test("Pandits receive the customer address and GPS directions only after accepti
   assert.match(portal, /Open directions/);
   assert.match(portal, /google\.com\/maps\/dir/);
 });
+
+test("rematching and consultation selection stay nearby, notify Pandits and prevent self-selection", async () => {
+  const rematch = await readFile(new URL("../app/api/bookings/[id]/rematch/route.ts", import.meta.url), "utf8");
+  const booking = await readFile(new URL("../app/api/bookings/route.ts", import.meta.url), "utf8");
+  const consultation = await readFile(new URL("../app/api/consultations/route.ts", import.meta.url), "utf8");
+  assert.match(rematch, /service_radius_km/);
+  assert.match(rematch, /<= least\(COALESCE\(p\.service_radius_km,25\),25\)/);
+  assert.match(rematch, /notifyUser\(match\.id/);
+  assert.match(booking, /u\.id<>\$5/);
+  assert.match(consultation, /user_id<>\$2/);
+  assert.match(consultation, /CONSULTATION_STARTED/);
+});

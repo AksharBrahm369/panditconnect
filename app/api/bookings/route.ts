@@ -102,13 +102,13 @@ export async function POST(request: Request) {
        FROM pim_v2.pandit_profiles p
        JOIN pim_v2.users u ON u.id=p.user_id
        JOIN pim_v2.pandit_services ps ON ps.pandit_id=p.user_id AND ps.service_id=$1
-       WHERE u.id=$4 AND p.verification_status='APPROVED' AND p.is_online=true
+       WHERE u.id=$4 AND u.id<>$5 AND p.verification_status='APPROVED' AND p.is_online=true
          AND p.latitude IS NOT NULL AND p.longitude IS NOT NULL
      )
      SELECT id,name,charge,round(distance::numeric,1)::text AS distance_km,
        greatest(10,round(distance*3)::int+8) AS eta_minutes
      FROM matches WHERE distance <= service_radius_km`,
-    [body.serviceId, latitude, longitude, body.panditId],
+    [body.serviceId, latitude, longitude, body.panditId, user.id],
   );
   const pandit = match.rows[0];
   if (!pandit) {

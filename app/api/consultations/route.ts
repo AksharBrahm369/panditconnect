@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { paymentsEnabled } from "@/lib/payments";
+import { notifyUser } from "@/lib/push-notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -48,8 +49,8 @@ export async function POST(request: Request) {
   }
   const pandit = await sql<{ consultation_rate_5min: number }>(
     `SELECT consultation_rate_5min FROM pim_v2.pandit_profiles
-     WHERE user_id=$1 AND verification_status='APPROVED' AND consultation_online=true`,
-    [body.panditId],
+     WHERE user_id=$1 AND user_id<>$2 AND verification_status='APPROVED' AND consultation_online=true`,
+    [body.panditId, user.id],
   );
   const available = pandit.rows[0];
   if (!available) return NextResponse.json({ error: "This Pandit is no longer available for chat." }, { status: 409 });
@@ -64,5 +65,6 @@ export async function POST(request: Request) {
      RETURNING id,topic,status,rate_5min,blocks,amount,payment_status,payment_method,started_at,ends_at`,
     [id, user.id, body.panditId, topic, available.consultation_rate_5min, blocks, amount, paymentStatus, paymentMethod],
   );
+  await notifyUser(body.panditId, { title: "New live guidance request", body: `A customer started a ${blocks * 5}-minute guidance chat.`, url: "/pandit#online-guidance", eventType: "CONSULTATION_STARTED" });
   return NextResponse.json({ consultation: result.rows[0], paymentsEnabled: billingEnabled });
 }
