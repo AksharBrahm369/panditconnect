@@ -225,3 +225,17 @@ test("submitted Pandits see a pending screen and receive admin decision notifica
   assert.match(admin,/Application not approved/);
   assert.match(admin,/notifyUser\(panditId/);
 });
+
+test("customers can review every eligible nearby Pandit before sending a request", async () => {
+  const nearby = await readFile(new URL("../app/api/pandits/nearby/route.ts", import.meta.url), "utf8");
+  const booking = await readFile(new URL("../app/api/bookings/route.ts", import.meta.url), "utf8");
+  const customer = await readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8");
+  assert.match(nearby, /WHERE distance <= service_radius_km/);
+  assert.match(nearby, /LIMIT 50/);
+  assert.match(booking, /body\.panditId/);
+  assert.match(booking, /u\.id=\$4/);
+  assert.doesNotMatch(booking, /ORDER BY language_rank,distance,rating DESC LIMIT 1/);
+  assert.match(customer, /Choose your Pandit/);
+  assert.match(customer, /nearbyPandits\.map/);
+  assert.match(customer, /Send request to/);
+});

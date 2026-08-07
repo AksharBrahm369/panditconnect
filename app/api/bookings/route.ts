@@ -78,22 +78,21 @@ export async function POST(request: Request) {
     situation?: string;
     preferredLanguage?: string;
     materialsOption?: "HAVE_MATERIALS" | "PANDIT_BRINGS" | "NEED_GUIDANCE";
+    panditId?: string;
   };
   const latitude = Number(body.latitude);
   const longitude = Number(body.longitude);
-  if (!body.serviceId || !body.address?.trim()) {
-    return NextResponse.json({ error: "Choose the recommended Puja and enter the service address" }, { status: 400 });
+  if (!body.serviceId || !body.address?.trim() || !body.panditId) {
+    return NextResponse.json({ error: "Choose a nearby Pandit and enter the service address" }, { status: 400 });
   }
   if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
       !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
     return NextResponse.json({ error: "Allow current GPS location before sending the request" }, { status: 400 });
   }
 
-  const preferredLanguage = body.preferredLanguage?.trim() ?? "";
   const match = await sql<{ id: string; charge: number; name: string; distance_km: string; eta_minutes: number }>(
     `WITH matches AS (
-       SELECT u.id,u.name,ps.charge,p.rating,
-         CASE WHEN $4='' OR $4=ANY(p.languages) THEN 0 ELSE 1 END AS language_rank,
+       SELECT u.id,u.name,ps.charge,COALESCE(p.service_radius_km,25) AS service_radius_km,
          6371 * acos(least(1, greatest(-1,
            cos(radians($2)) * cos(radians(p.latitude)) *
            cos(radians(p.longitude) - radians($3)) +
@@ -102,18 +101,18 @@ export async function POST(request: Request) {
        FROM pim_v2.pandit_profiles p
        JOIN pim_v2.users u ON u.id=p.user_id
        JOIN pim_v2.pandit_services ps ON ps.pandit_id=p.user_id AND ps.service_id=$1
-       WHERE p.verification_status='APPROVED' AND p.is_online=true
+       WHERE u.id=$4 AND p.verification_status='APPROVED' AND p.is_online=true
          AND p.latitude IS NOT NULL AND p.longitude IS NOT NULL
      )
      SELECT id,name,charge,round(distance::numeric,1)::text AS distance_km,
        greatest(10,round(distance*3)::int+8) AS eta_minutes
-     FROM matches ORDER BY language_rank,distance,rating DESC LIMIT 1`,
-    [body.serviceId, latitude, longitude, preferredLanguage],
+     FROM matches WHERE distance <= service_radius_km`,
+    [body.serviceId, latitude, longitude, body.panditId],
   );
   const pandit = match.rows[0];
   if (!pandit) {
     return NextResponse.json(
-      { error: "No approved Pandit is online for this Puja right now. Please try again shortly." },
+      { error: "This Pandit is no longer available nearby. Refresh the list and choose another Pandit." },
       { status: 409 },
     );
   }
@@ -134,7 +133,7 @@ export async function POST(request: Request) {
     [
       id, user.id, pandit.id, body.serviceId, body.address.trim().slice(0, 500), latitude, longitude,
       body.notes?.trim().slice(0, 1000) || null, pandit.charge, await encryptArrivalOtp(otp), requestType,
-      body.situation?.trim().slice(0, 1200) || null, preferredLanguage || null, materialsOption,
+      body.situation?.trim().slice(0, 1200) || null, body.preferredLanguage?.trim() || null, materialsOption,
     ],
   );
   await notifyUser(pandit.id, { title: "New urgent Puja request", body: `${body.serviceId.replaceAll("-", " ")} request is waiting for your response.`, url: "/pandit#pandit-requests", eventType: "BOOKING_REQUESTED" });

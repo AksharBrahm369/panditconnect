@@ -154,6 +154,19 @@ input:focus, textarea:focus, select:focus { border-color: var(--saffron); box-sh
 .checklist > strong { grid-column: span 2; }
 .checklist span { display: flex; align-items: center; gap: 7px; color: #315f49; font-size: 13px; }
 .match-success { margin-bottom: 24px; }
+.nearby-chooser { padding: 28px; border: 1px solid var(--line); border-radius: 20px; background: #fff; }
+.nearby-chooser .section-title { align-items: flex-start; margin-bottom: 20px; }
+.nearby-pandit-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(285px,1fr)); gap: 16px; }
+.nearby-pandit-card { display: grid; gap: 16px; padding: 20px; border: 1px solid #dfe5e1; border-radius: 17px; background: #fff; box-shadow: 0 8px 24px rgba(16,42,37,.06); }
+.nearby-pandit-head { display: grid; grid-template-columns: auto 1fr auto; gap: 11px; align-items: center; }
+.nearby-pandit-head h3 { margin: 0 0 5px; }.nearby-pandit-head > strong { white-space: nowrap; }
+.pandit-avatar { width: 45px; height: 45px; display: grid; place-items: center; border-radius: 14px; color: #b9421f; background: #ffebe2; font-weight: 900; text-transform: uppercase; }
+.online-label { color: #08774c; font-size: 11px; font-weight: 800; }.online-label::before { content: ""; display: inline-block; width: 7px; height: 7px; margin-right: 5px; border-radius: 50%; background: #23b77a; }
+.nearby-pandit-stats { display: grid; grid-template-columns: repeat(3,1fr); gap: 8px; }
+.nearby-pandit-stats span { display: grid; justify-items: center; gap: 3px; padding: 11px 5px; border-radius: 11px; background: #f5f7f6; text-align: center; }
+.nearby-pandit-stats svg { color: var(--saffron); }.nearby-pandit-stats small,.nearby-pandit-card > p { color: var(--muted); font-size: 11px; }.nearby-pandit-card > p { margin: 0; font-size: 13px; }
+.pandit-language-list { display: flex; flex-wrap: wrap; gap: 6px; }.pandit-language-list span { padding: 5px 8px; border-radius: 999px; color: #52635e; background: #eef3f1; font-size: 11px; font-weight: 700; }
+@media (max-width: 620px) { .nearby-chooser { padding: 18px; }.nearby-chooser .section-title { display: grid; gap: 14px; }.nearby-pandit-grid { grid-template-columns: 1fr; }.nearby-pandit-head { grid-template-columns: auto minmax(0,1fr) auto; } }
 .tracking-history { background: transparent; padding: 0; border: 0; }
 .tracking-list { display: grid; gap: 14px; }
 .tracking-card { background: white; border: 1px solid var(--line); border-radius: 16px; padding: 21px; }
