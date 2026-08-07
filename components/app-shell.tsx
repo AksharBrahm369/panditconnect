@@ -10,13 +10,13 @@ import { PanditAccountMenu } from "./pandit-account-menu";
 
 const roleNavigation = {
   Customer: [
-    { label: "Overview", href: "/customer#portal-overview", icon: LayoutDashboard },
-    { label: "Request help", href: "/customer#request-assistance", icon: Sparkles },
-    { label: "Live guidance", href: "/customer#online-guidance", icon: MessageCircle },
-    { label: "Live requests", href: "/customer#live-requests", icon: Activity },
+    { label: "Home", href: "/customer#portal-overview", icon: LayoutDashboard },
+    { label: "Get help", href: "/customer#request-assistance", icon: Sparkles },
+    { label: "Ask online", href: "/customer#online-guidance", icon: MessageCircle },
+    { label: "My requests", href: "/customer#live-requests", icon: Activity },
   ],
   Pandit: [
-    { label: "Overview", href: "/pandit#portal-overview", icon: LayoutDashboard },
+    { label: "Home", href: "/pandit#portal-overview", icon: LayoutDashboard },
     { label: "Availability", href: "/pandit#pandit-status", icon: Radio },
     { label: "Live chats", href: "/pandit#online-guidance", icon: MessageCircle },
     { label: "Urgent requests", href: "/pandit#pandit-requests", icon: MapPinned },
