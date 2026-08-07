@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { BadgeCheck, Save, ShieldCheck, UserRound } from "lucide-react";
+import { BadgeCheck, Info, Save, ShieldCheck, UserRound } from "lucide-react";
 import { readJson } from "@/lib/http";
 
 type Role = "CUSTOMER" | "PANDIT";
@@ -71,9 +71,13 @@ export function ProfileEditor({ role, onSaved }: { role: Role; onSaved?: () => v
   }
 
   async function save() {
-    setSaving(true);
     setMessage("");
     setError("");
+    if (!form.name.trim() || !form.city.trim()) {
+      setError("Please enter your full name and city before saving.");
+      return;
+    }
+    setSaving(true);
     const payload = role === "CUSTOMER"
       ? { name: form.name, city: form.city, email: form.email, defaultAddress: form.defaultAddress, preferredLanguage: form.preferredLanguage }
       : {
@@ -111,13 +115,14 @@ export function ProfileEditor({ role, onSaved }: { role: Role; onSaved?: () => v
         <span className="profile-editor-icon"><UserRound /></span>
       </div>
       {loading ? <div className="loading-card">Loading profile...</div> : <>
+        {role === "CUSTOMER" && !form.name && !form.city && !form.email && !form.defaultAddress && <div className="profile-empty-note"><Info size={19} /><span><strong>Complete your profile</strong><small>Your account is new, so these fields are empty. Add your details once and they will be available for future Puja requests.</small></span></div>}
         <div className="profile-form-grid">
-          <label>Full name<input value={form.name} onChange={(event) => field("name", event.target.value)} maxLength={120} /></label>
+          <label>Full name <b aria-hidden="true">*</b><input value={form.name} placeholder="For example, Darshan Zala" onChange={(event) => field("name", event.target.value)} maxLength={120} required /></label>
           <label>Verified mobile number<input value={form.phone} readOnly disabled /><small>Contact support if this verified number must change.</small></label>
-          <label>Email address<input type="email" value={form.email} onChange={(event) => field("email", event.target.value)} maxLength={180} /></label>
-          <label>City<input value={form.city} onChange={(event) => field("city", event.target.value)} maxLength={100} /></label>
+          <label>Email address <small>Optional</small><input type="email" value={form.email} placeholder="name@example.com" onChange={(event) => field("email", event.target.value)} maxLength={180} /></label>
+          <label>City <b aria-hidden="true">*</b><input value={form.city} placeholder="For example, Mumbai" onChange={(event) => field("city", event.target.value)} maxLength={100} required /></label>
           {role === "CUSTOMER" ? <>
-            <label className="span-2">Default service address<textarea rows={3} value={form.defaultAddress} onChange={(event) => field("defaultAddress", event.target.value)} maxLength={500} /></label>
+            <label className="span-2">Default service address <small>Optional</small><textarea rows={3} value={form.defaultAddress} placeholder="House or building, street, area and PIN code" onChange={(event) => field("defaultAddress", event.target.value)} maxLength={500} /></label>
             <label>Preferred language<select value={form.preferredLanguage} onChange={(event) => field("preferredLanguage", event.target.value)}>{["Hindi", "Marathi", "Gujarati", "English", "Sanskrit"].map((value) => <option key={value}>{value}</option>)}</select></label>
           </> : <>
             <label className="span-2">Current address<textarea rows={3} value={form.currentAddress} onChange={(event) => field("currentAddress", event.target.value)} maxLength={500} /></label>

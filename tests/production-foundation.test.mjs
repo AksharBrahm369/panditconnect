@@ -338,4 +338,8 @@ test("customers have a private gear menu for profile and request settings", asyn
   assert.match(menu, /customer#customer-profile/);
   assert.match(menu, /customer#live-requests/);
   assert.match(menu, /Privacy & security/);
+  const editor = await readFile(new URL("../components/profile-editor.tsx", import.meta.url), "utf8");
+  assert.match(editor, /Complete your profile/);
+  assert.match(editor, /Please enter your full name and city before saving/);
+  assert.match(editor, /House or building, street, area and PIN code/);
 });

@@ -1233,7 +1233,13 @@ input:focus, textarea:focus, select:focus { border-color: #f07b58; box-shadow: 0
 .portal-mobile-nav { border-top-color: #e1e6eb; background: rgba(255,255,255,.96); }
 
 /* Role-specific profile editors */
-.profile-editor { margin-top: 26px; padding: 26px; border: 1px solid #dfe6e9; border-radius: 24px; background: #fff; box-shadow: 0 14px 38px rgba(17, 40, 50, .06); scroll-margin-top: 96px; }
+.profile-editor { margin-top: 26px; padding: 26px; border: 1px solid #dfe6e9; border-radius: 24px; background: #fff; box-shadow: 0 14px 38px rgba(17, 40, 50, .06); scroll-margin-top: 118px; }
+.profile-empty-note { display:flex; align-items:flex-start; gap:11px; margin:0 0 20px; padding:14px 16px; border:1px solid #efd4a7; border-radius:14px; color:#704410; background:#fff9ec; }
+.profile-empty-note > svg { flex:0 0 auto; margin-top:2px; color:var(--saffron); }
+.profile-empty-note span { display:grid; gap:3px; }
+.profile-empty-note small { color:var(--muted); line-height:1.45; }
+.profile-form-grid label > b { color:#b9341d; }
+.profile-form-grid input::placeholder,.profile-form-grid textarea::placeholder { color:#9aa2a7; opacity:1; }
 .profile-editor-icon { display: grid; width: 48px; height: 48px; place-items: center; border-radius: 15px; color: var(--saffron); background: #fff1e9; }
 .profile-form-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 .profile-form-grid label { display: grid; align-content: start; gap: 7px; color: #182329; font-size: 14px; font-weight: 750; }
