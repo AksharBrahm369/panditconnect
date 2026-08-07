@@ -214,3 +214,14 @@ test("online consultation is excluded from the Puja service selector", async () 
   assert.match(migration,/active=false/);
   assert.match(route,/id<>'religious-guidance'/);
 });
+
+test("submitted Pandits see a pending screen and receive admin decision notifications", async () => {
+  const portal = await readFile(new URL("../components/pandit-portal.tsx", import.meta.url), "utf8");
+  const admin = await readFile(new URL("../app/api/admin/pandits/route.ts", import.meta.url), "utf8");
+  assert.match(portal,/Your request is pending with Admin/);
+  assert.match(portal,/checks for updates automatically/);
+  assert.match(portal,/Enable notifications from the bell icon/);
+  assert.match(admin,/Application approved/);
+  assert.match(admin,/Application not approved/);
+  assert.match(admin,/notifyUser\(panditId/);
+});

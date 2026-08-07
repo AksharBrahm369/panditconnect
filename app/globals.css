@@ -712,6 +712,18 @@ tbody tr:hover { background: #fafcfb; }
   .role-action-banner { grid-template-columns: auto 1fr; padding: 18px; }
   .role-action-banner .btn { grid-column: 1 / -1; width: 100%; }
 }
+.review-pending-screen { display: grid; justify-items: center; gap: 13px; padding: clamp(28px,6vw,64px); border: 1px solid #cfe7da; border-radius: 22px; background: linear-gradient(145deg,#f4fbf7,#fff); text-align: center; }
+.review-pending-screen h2 { margin: 0; font-size: clamp(25px,4vw,38px); }
+.review-pending-screen > p { max-width: 650px; margin: 0; color: var(--muted); line-height: 1.6; }
+.review-pending-icon { display: grid; place-items: center; width: 62px; height: 62px; border-radius: 50%; color: #087851; background: #e3f6ec; }
+.review-pending-icon svg { width: 30px; height: 30px; }
+.pending-status, .pending-notification-note { display: flex; align-items: center; gap: 11px; width: min(620px,100%); padding: 14px; border-radius: 13px; text-align: left; }
+.pending-status { background: #eaf7f0; }
+.pending-status > i { width: 10px; height: 10px; border-radius: 50%; background: #18a870; box-shadow: 0 0 0 5px #c9efdf; }
+.pending-status span, .pending-notification-note span { display: grid; gap: 3px; }
+.pending-status small, .pending-notification-note small { color: var(--muted); line-height: 1.4; }
+.pending-notification-note { border: 1px solid #f0ddc7; background: #fff8ee; }
+.pending-notification-note > svg { flex: 0 0 auto; color: var(--primary); }
 
 /* Marketplace discovery layer, inspired by best-in-class expert platforms */
 .topbar { border-bottom-color: rgba(255,255,255,.08); background: rgba(10,27,23,.95); }

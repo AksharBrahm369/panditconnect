@@ -82,8 +82,9 @@ export async function PATCH(request: Request) {
           : "CHANGES_REQUESTED";
     await sql(`INSERT INTO pim_v2.pandit_verification_events(id,pandit_id,admin_user_id,action,note) VALUES($1,$2,$3,$4,$5)`, [crypto.randomUUID(), panditId, admin.id, eventAction, body.note?.trim() || null]);
     await recordAdminAction(request, admin.id, `PANDIT_${body.action}`, "PANDIT_PROFILE", panditId, { noteProvided: Boolean(body.note?.trim()) });
-    const reviewCopy = body.action === "APPROVE" ? "Your Pandit profile has been approved." : body.action === "REJECT" ? "Your Pandit application was not approved. Open your profile for details." : body.action === "REQUEST_CHANGES" ? "The verification team requested changes to your Pandit profile." : "The verification team started reviewing your profile.";
-    await notifyUser(panditId, { title: "Pandit verification update", body: reviewCopy, url: "/pandit", eventType: `PANDIT_${eventAction}` });
+    const reviewCopy = body.action === "APPROVE" ? "Congratulations! Your Pandit profile is approved. Open the portal to go online." : body.action === "REJECT" ? `Your Pandit application was not approved.${body.note?.trim() ? ` Reason: ${body.note.trim()}` : " Open your profile for details."}` : body.action === "REQUEST_CHANGES" ? `Admin requested changes to your Pandit profile.${body.note?.trim() ? ` ${body.note.trim()}` : ""}` : "Admin has started reviewing your Pandit application.";
+    const reviewTitle = body.action === "APPROVE" ? "Application approved" : body.action === "REJECT" ? "Application not approved" : body.action === "REQUEST_CHANGES" ? "Profile changes required" : "Application review started";
+    await notifyUser(panditId, { title: reviewTitle, body: reviewCopy, url: "/pandit", eventType: `PANDIT_${eventAction}` });
     return NextResponse.json({ success: true });
   } catch (error) {
     const authResponse = authorizationResponse(error); if (authResponse) return authResponse;

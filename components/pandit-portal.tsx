@@ -168,15 +168,17 @@ export function PanditPortal() {
   }
 
   if (!profile) return <AppShell role="Pandit" title="Loading your portal…" subtitle="Preparing your profile and requests."><div className="loading-card">Loading…</div></AppShell>;
-  const incomplete = ["INCOMPLETE", "PENDING", "SUBMITTED", "UNDER_REVIEW", "CHANGES_REQUESTED", "REJECTED"].includes(profile.verification_status);
+  const awaitingReview = ["PENDING", "SUBMITTED", "UNDER_REVIEW"].includes(profile.verification_status);
+  const incomplete = ["INCOMPLETE", "CHANGES_REQUESTED", "REJECTED"].includes(profile.verification_status);
   const active = bookings.filter((b) => !["COMPLETED", "DECLINED", "CANCELLED"].includes(b.status));
   const completed = bookings.filter((b) => b.status === "COMPLETED").slice(0, 6);
 
   return (
-    <AppShell role="Pandit" title={incomplete ? "Complete your verified Pandit profile" : `Namaste, ${profile.name ?? "Pandit ji"}`} subtitle={incomplete ? "A trusted profile helps customers book with confidence." : "Manage availability and urgent requests from one screen."}>
+    <AppShell role="Pandit" title={awaitingReview ? "Application under admin review" : incomplete ? "Complete your verified Pandit profile" : `Namaste, ${profile.name ?? "Pandit ji"}`} subtitle={awaitingReview ? "Your details were submitted successfully. Please check again later." : incomplete ? "A trusted profile helps customers book with confidence." : "Manage availability and urgent requests from one screen."}>
       {notice && <div className="alert success">{notice}</div>}
       {profile.verification_status === "CHANGES_REQUESTED" && <div className="alert error">Admin requested changes: {profile.review_note ?? "Please review and update your profile."}</div>}
-      {incomplete ? <PanditOnboarding status={profile.verification_status} reviewNote={profile.review_note} onSaved={() => void loadProfile(true)} /> : <>
+      {profile.verification_status === "REJECTED" && <div className="alert error">Your application was not approved: {profile.review_note ?? "Review your information and contact support if you need help."}</div>}
+      {awaitingReview ? <section className="review-pending-screen" aria-live="polite"><span className="review-pending-icon"><Clock3 /></span><span className="eyebrow">Submitted successfully</span><h2>Your request is pending with Admin</h2><p>The verification team will review your identity, documents, references, knowledge and payout information. Please recheck later.</p><div className="pending-status"><i /><span><strong>{profile.verification_status === "UNDER_REVIEW" ? "Admin review in progress" : "Waiting for admin review"}</strong><small>This page checks for updates automatically every few seconds.</small></span></div><div className="pending-notification-note"><BellRing /><span><strong>Approval or rejection alert</strong><small>Enable notifications from the bell icon above. You will receive an in-app message and notification sound when Admin makes a decision.</small></span></div><button className="btn btn-primary" disabled={busy} onClick={() => void loadProfile(false)}>{busy ? "Checking…" : "Check status now"}</button></section> : incomplete ? <PanditOnboarding status={profile.verification_status} reviewNote={profile.review_note} onSaved={() => void loadProfile(true)} /> : <>
         <section className={`role-action-banner ${profile.is_online ? "online" : ""}`}>
           <span className="role-action-icon"><Power /></span>
           <div><span className="eyebrow">Your availability</span><h2>{profile.is_online ? "You are visible to nearby customers" : "Go online when you are ready for requests"}</h2><p>{profile.is_online ? "Keep this page open. New urgent requests appear automatically with a sound-ready action card." : "Your GPS location is captured only when you choose to go online."}</p></div>
