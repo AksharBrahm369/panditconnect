@@ -355,6 +355,7 @@ test("customer portal uses the simplified devotional home experience", async () 
   assert.match(portal, /Help me choose and book/);
   assert.match(portal, /What do you need help with today/);
   assert.match(portal, /customer-puja-welcome\.png/);
+  assert.match(portal, /priority unoptimized/);
   assert.match(portal, /Describe/);
   assert.match(portal, /Choose your Pandit/);
   assert.match(shell, /Book Pandit/);

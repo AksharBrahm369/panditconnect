@@ -350,7 +350,7 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
               <button className="customer-primary-action" onClick={() => choosePath("NEED_GUIDANCE")}><span className="customer-action-icon"><Sparkles /></span><span><small>Best place to start</small><strong>Help me choose and book</strong><em>Describe the occasion in simple words</em></span><ChevronRight /></button>
               <div className="customer-simple-steps"><span><b>1</b> Describe</span><i /><span><b>2</b> Choose</span><i /><span><b>3</b> Confirm</span></div>
             </div>
-            <div className="customer-welcome-image"><Image src="/images/customer-puja-welcome.png" alt="A family receiving Puja guidance from a trusted Pandit at home" width={1750} height={900} priority /><span><ShieldCheck /> Verified Pandits · Private booking</span></div>
+            <div className="customer-welcome-image"><Image src="/images/customer-puja-welcome.png" alt="A family receiving Puja guidance from a trusted Pandit at home" width={1750} height={900} priority unoptimized /><span><ShieldCheck /> Verified Pandits · Private booking</span></div>
           </div>
 
           <div className="customer-choice-heading" id="request-assistance"><div><span>Quick options</span><h2>Or choose what you already know</h2></div><p>Nothing is submitted until you confirm.</p></div>
