@@ -69,6 +69,7 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
   const [listening, setListening] = useState(false);
   const [match, setMatch] = useState<{ name: string; distanceKm: string; etaMinutes: number } | null>(null);
   const [nearbyPandits, setNearbyPandits] = useState<NearbyPandit[] | null>(null);
+  const [panditSort, setPanditSort] = useState<"NEAREST" | "RATING" | "EXPERIENCE">("NEAREST");
   const [rematchingId, setRematchingId] = useState<string | null>(null);
   const [rematchErrors, setRematchErrors] = useState<Record<string, string>>({});
   const [consultationMode, setConsultationMode] = useState(false);
@@ -116,6 +117,14 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
     () => recommendation ?? (serviceId ? ritualForService(serviceId) : null),
     [recommendation, serviceId],
   );
+  const sortedNearbyPandits = useMemo(() => {
+    if (!nearbyPandits) return [];
+    return [...nearbyPandits].sort((a, b) => {
+      if (panditSort === "RATING") return Number(b.rating) - Number(a.rating) || b.rating_count - a.rating_count || Number(a.distance_km) - Number(b.distance_km);
+      if (panditSort === "EXPERIENCE") return b.experience_years - a.experience_years || Number(a.distance_km) - Number(b.distance_km);
+      return Number(a.distance_km) - Number(b.distance_km);
+    });
+  }, [nearbyPandits, panditSort]);
 
   function choosePath(type: RequestType) {
     setRequestType(type);
@@ -405,9 +414,9 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
         <section className="nearby-chooser" id="nearby-pandits">
           <div className="section-title">
             <div><span className="eyebrow">Nearby and available</span><h2>Choose your Pandit</h2><p>{nearbyPandits.length} approved Pandit{nearbyPandits.length === 1 ? "" : "s"} can serve this Puja near your location.</p></div>
-            <button className="btn btn-ghost" onClick={() => setNearbyPandits(null)}><ArrowLeft size={16} /> Edit request</button>
+            <div className="nearby-actions"><label>Sort profiles<select value={panditSort} onChange={(event) => setPanditSort(event.target.value as typeof panditSort)}><option value="NEAREST">Nearest first</option><option value="RATING">Highest rated</option><option value="EXPERIENCE">Most experienced</option></select></label><button className="btn btn-ghost" onClick={() => setNearbyPandits(null)}><ArrowLeft size={16} /> Edit request</button></div>
           </div>
-          {nearbyPandits.length ? <div className="nearby-pandit-grid">{nearbyPandits.map((pandit) => (
+          {nearbyPandits.length ? <><p className="nearby-scope-note"><MapPin size={15} /> Only approved, online Pandits within 25 km and inside their own service radius are shown.</p><div className="nearby-pandit-grid">{sortedNearbyPandits.map((pandit) => (
             <article className="nearby-pandit-card" key={pandit.id}>
               <div className="nearby-pandit-head"><span className="pandit-avatar">{pandit.name.split(/\s+/).map((part) => part[0]).slice(0,2).join("")}</span><div><h3>{pandit.name}</h3><span className="online-label">Online now</span></div><strong>₹{pandit.charge.toLocaleString("en-IN")}</strong></div>
               <div className="nearby-pandit-stats"><span><MapPin size={16} /><b>{pandit.distance_km} km</b><small>away</small></span><span><Clock3 size={16} /><b>{pandit.eta_minutes} min</b><small>estimated</small></span><span><Star size={16} fill="currentColor" /><b>{pandit.rating_count ? Number(pandit.rating).toFixed(1) : "New"}</b><small>{pandit.rating_count ? `${pandit.rating_count} ratings` : "not rated"}</small></span></div>
@@ -415,7 +424,7 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
               <div className="pandit-language-list">{pandit.languages.map((item) => <span key={item}>{item}</span>)}</div>
               <button className="btn btn-primary btn-block" disabled={busy} onClick={() => sendRequest(pandit.id)}>{busy ? "Sending request…" : `Send request to ${pandit.name}`} <ChevronRight size={17} /></button>
             </article>
-          ))}</div> : <div className="empty"><MapPin size={26} /><strong>No approved Pandit is online nearby</strong><span>Try again in a few minutes or edit the Puja and location details.</span><button className="btn btn-ghost" onClick={() => setNearbyPandits(null)}>Edit request</button></div>}
+          ))}</div></> : <div className="empty"><MapPin size={26} /><strong>No approved Pandit is online nearby</strong><span>Try again in a few minutes or edit the Puja and location details.</span><button className="btn btn-ghost" onClick={() => setNearbyPandits(null)}>Edit request</button></div>}
         </section>
       )}
 

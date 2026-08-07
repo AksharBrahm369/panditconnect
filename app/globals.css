@@ -156,6 +156,8 @@ input:focus, textarea:focus, select:focus { border-color: var(--saffron); box-sh
 .match-success { margin-bottom: 24px; }
 .nearby-chooser { padding: 28px; border: 1px solid var(--line); border-radius: 20px; background: #fff; }
 .nearby-chooser .section-title { align-items: flex-start; margin-bottom: 20px; }
+.nearby-actions { display: flex; gap: 10px; align-items: end; }.nearby-actions label { gap: 4px; color: var(--muted); font-size: 11px; }.nearby-actions select { min-width: 155px; }
+.nearby-scope-note { display: flex; gap: 7px; align-items: center; margin: -6px 0 16px; color: #08774c; font-size: 12px; font-weight: 700; }
 .nearby-pandit-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(285px,1fr)); gap: 16px; }
 .nearby-pandit-card { display: grid; gap: 16px; padding: 20px; border: 1px solid #dfe5e1; border-radius: 17px; background: #fff; box-shadow: 0 8px 24px rgba(16,42,37,.06); }
 .nearby-pandit-head { display: grid; grid-template-columns: auto 1fr auto; gap: 11px; align-items: center; }
@@ -166,7 +168,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--saffron); box-sh
 .nearby-pandit-stats span { display: grid; justify-items: center; gap: 3px; padding: 11px 5px; border-radius: 11px; background: #f5f7f6; text-align: center; }
 .nearby-pandit-stats svg { color: var(--saffron); }.nearby-pandit-stats small,.nearby-pandit-card > p { color: var(--muted); font-size: 11px; }.nearby-pandit-card > p { margin: 0; font-size: 13px; }
 .pandit-language-list { display: flex; flex-wrap: wrap; gap: 6px; }.pandit-language-list span { padding: 5px 8px; border-radius: 999px; color: #52635e; background: #eef3f1; font-size: 11px; font-weight: 700; }
-@media (max-width: 620px) { .nearby-chooser { padding: 18px; }.nearby-chooser .section-title { display: grid; gap: 14px; }.nearby-pandit-grid { grid-template-columns: 1fr; }.nearby-pandit-head { grid-template-columns: auto minmax(0,1fr) auto; } }
+@media (max-width: 620px) { .nearby-chooser { padding: 18px; }.nearby-chooser .section-title { display: grid; gap: 14px; }.nearby-actions { display: grid; grid-template-columns: 1fr; align-items: stretch; }.nearby-actions select { width: 100%; }.nearby-pandit-grid { grid-template-columns: 1fr; }.nearby-pandit-head { grid-template-columns: auto minmax(0,1fr) auto; } }
 .tracking-history { background: transparent; padding: 0; border: 0; }
 .tracking-list { display: grid; gap: 14px; }
 .tracking-card { background: white; border: 1px solid var(--line); border-radius: 16px; padding: 21px; }

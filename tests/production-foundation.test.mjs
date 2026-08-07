@@ -231,11 +231,14 @@ test("customers can review every eligible nearby Pandit before sending a request
   const booking = await readFile(new URL("../app/api/bookings/route.ts", import.meta.url), "utf8");
   const customer = await readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8");
   assert.match(nearby, /WHERE distance <= service_radius_km/);
+  assert.match(nearby, /least\(COALESCE\(p\.service_radius_km,25\),25\)/);
   assert.match(nearby, /LIMIT 50/);
   assert.match(booking, /body\.panditId/);
   assert.match(booking, /u\.id=\$4/);
   assert.doesNotMatch(booking, /ORDER BY language_rank,distance,rating DESC LIMIT 1/);
   assert.match(customer, /Choose your Pandit/);
-  assert.match(customer, /nearbyPandits\.map/);
+  assert.match(customer, /sortedNearbyPandits\.map/);
   assert.match(customer, /Send request to/);
+  assert.match(customer, /Highest rated/);
+  assert.match(customer, /Most experienced/);
 });

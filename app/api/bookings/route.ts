@@ -92,7 +92,7 @@ export async function POST(request: Request) {
 
   const match = await sql<{ id: string; charge: number; name: string; distance_km: string; eta_minutes: number }>(
     `WITH matches AS (
-       SELECT u.id,u.name,ps.charge,COALESCE(p.service_radius_km,25) AS service_radius_km,
+       SELECT u.id,u.name,ps.charge,least(COALESCE(p.service_radius_km,25),25) AS service_radius_km,
          6371 * acos(least(1, greatest(-1,
            cos(radians($2)) * cos(radians(p.latitude)) *
            cos(radians(p.longitude) - radians($3)) +

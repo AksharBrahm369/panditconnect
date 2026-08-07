@@ -37,7 +37,7 @@ export async function GET(request: Request) {
     const result = await sql<NearbyPandit>(
       `WITH available AS (
          SELECT u.id,u.name,p.experience_years,p.languages,p.rating,p.rating_count,p.completed_jobs,ps.charge,
-           COALESCE(p.service_radius_km,25) AS service_radius_km,
+           least(COALESCE(p.service_radius_km,25),25) AS service_radius_km,
            6371 * acos(least(1, greatest(-1,
              cos(radians($2)) * cos(radians(p.latitude)) *
              cos(radians(p.longitude) - radians($3)) +
