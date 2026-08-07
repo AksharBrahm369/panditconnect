@@ -360,3 +360,13 @@ test("customer portal uses the simplified devotional home experience", async () 
   assert.match(shell, /Book Pandit/);
   assert.match(shell, /My bookings/);
 });
+
+test("empty API responses cannot crash the customer portal JSON parser", async () => {
+  const http = await readFile(new URL("../lib/http.ts", import.meta.url), "utf8");
+  const portal = await readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8");
+  assert.match(http, /await response\.text\(\)/);
+  assert.match(http, /server returned an empty response/);
+  assert.match(http, /JSON\.parse/);
+  assert.match(portal, /Bookings could not be refreshed/);
+  assert.match(portal, /catch\(\(\) => setServices\(\[\]\)\)/);
+});
