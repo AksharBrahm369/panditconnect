@@ -10,7 +10,7 @@ export async function POST(request: Request) {
     if (!adminPhoneAllowlist().has(phone)) return NextResponse.json({ error: "Administrator access could not be verified." }, { status: 403 });
     const result = await issueLoginOtp(request, phone, "ADMIN");
     return NextResponse.json({ success: true, ...result });
-  } catch (error) {
+  } catch (error) { 
     const otpResponse = otpErrorResponse(error);
     if (otpResponse) return otpResponse;
     console.error("Admin OTP request failed", error);

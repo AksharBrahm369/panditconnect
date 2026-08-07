@@ -362,12 +362,17 @@ test("customer portal uses the simplified devotional home experience", async () 
   assert.match(shell, /My bookings/);
 });
 
-test("empty API responses cannot crash the customer portal JSON parser", async () => {
-  const http = await readFile(new URL("../lib/http.ts", import.meta.url), "utf8");
+test("customers can discover nearby Pandits and open privacy-safe profiles", async () => {
   const portal = await readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8");
-  assert.match(http, /await response\.text\(\)/);
-  assert.match(http, /server returned an empty response/);
-  assert.match(http, /JSON\.parse/);
-  assert.match(portal, /Bookings could not be refreshed/);
-  assert.match(portal, /catch\(\(\) => setServices\(\[\]\)\)/);
+  const discovery = await readFile(new URL("../app/api/pandits/discover/route.ts", import.meta.url), "utf8");
+  const profile = await readFile(new URL("../app/customer/pandits/[id]/page.tsx", import.meta.url), "utf8");
+  assert.match(portal, /Show Pandits near me/);
+  assert.match(portal, /Request this Pandit/);
+  assert.match(portal, /Know more about/);
+  assert.match(discovery, /requireCustomer/);
+  assert.match(discovery, /verification_status='APPROVED'/);
+  assert.match(discovery, /p\.distance <= p\.service_radius_km/);
+  assert.match(profile, /Pujas and charges/);
+  assert.match(profile, /Phone number, personal address, documents and payment details stay private/);
+  assert.doesNotMatch(profile, /current_address|u\.phone|bank_account|upi_id/);
 });

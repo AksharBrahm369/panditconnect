@@ -92,39 +92,30 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
   const discoveryRail = useRef<HTMLDivElement>(null);
 
   const refreshBookings = useCallback(async () => {
-    try {
-      const response = await fetch(`/api/bookings?fresh=${Date.now()}`, {
-        cache: "no-store",
-        credentials: "same-origin",
-        headers: { "Cache-Control": "no-cache" },
-      });
-      const data = await readJson<{ customerId?: string; bookings?: Booking[]; error?: string }>(response);
-      if (response.status === 401) {
-        setBookings([]);
-        window.location.assign("/login?role=customer");
-        return;
-      }
-      if (!response.ok || !data.customerId) {
-        setMessage(data.error ?? "Bookings could not be refreshed. Please try again.");
-        return;
-      }
-      if (data.customerId !== customerId) {
-        setBookings([]);
-        setMessage("Your account session changed. Please sign in again to protect your booking history.");
-        await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
-        window.location.assign("/login?role=customer");
-        return;
-      }
-      setBookings(data.bookings ?? []);
-    } catch {
-      setMessage("Bookings could not be refreshed. Check your connection and try again.");
+    const response = await fetch(`/api/bookings?fresh=${Date.now()}`, {
+      cache: "no-store",
+      credentials: "same-origin",
+      headers: { "Cache-Control": "no-cache" },
+    });
+    const data = await readJson<{ customerId?: string; bookings?: Booking[] }>(response);
+    if (response.status === 401) {
+      setBookings([]);
+      window.location.assign("/login?role=customer");
+      return;
     }
+    if (!response.ok || data.customerId !== customerId) {
+      setBookings([]);
+      setMessage("Your account session changed. Please sign in again to protect your booking history.");
+      await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
+      window.location.assign("/login?role=customer");
+      return;
+    }
+    setBookings(data.bookings ?? []);
   }, [customerId]);
 
   useEffect(() => {
-    fetch("/api/services").then((response) => readJson<{ services?: Service[] }>(response))
-      .then((data) => setServices(data.services ?? []))
-      .catch(() => setServices([]));
+    fetch("/api/services").then((response) => readJson<{ services: Service[] }>(response))
+      .then((data) => setServices(data.services ?? []));
     const initialLoad = window.setTimeout(() => void refreshBookings(), 0);
     const timer = window.setInterval(refreshBookings, 10_000);
     return () => {
