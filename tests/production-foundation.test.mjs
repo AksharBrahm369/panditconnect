@@ -348,3 +348,15 @@ test("customers have a private gear menu for profile and request settings", asyn
   assert.doesNotMatch(dashboard, /ProfileEditor/);
   assert.doesNotMatch(dashboard, /SupportCenter/);
 });
+
+test("customer portal uses the simplified devotional home experience", async () => {
+  const portal = await readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8");
+  const shell = await readFile(new URL("../components/app-shell.tsx", import.meta.url), "utf8");
+  assert.match(portal, /Book a Pandit at home/);
+  assert.match(portal, /Namaste\. How can we help your family today/);
+  assert.match(portal, /customer-puja-welcome\.png/);
+  assert.match(portal, /Tell us your need/);
+  assert.match(portal, /Choose a Pandit/);
+  assert.match(shell, /Book Pandit/);
+  assert.match(shell, /My bookings/);
+});

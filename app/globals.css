@@ -1759,6 +1759,138 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 }
 .support-form { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; padding: 16px; border: 1px solid var(--line); border-radius: 14px; background: #fffaf7; }
 .support-form label { margin: 0; }
+/* Customer experience 2026 ??? a distinct, simple, devotional family journey. */
+.portal-customer {
+  --customer-maroon:#601b25;
+  --customer-maroon-dark:#3d1017;
+  --customer-saffron:#e36a1d;
+  --customer-gold:#e8aa3d;
+  --customer-cream:#fff9ee;
+  --customer-sand:#f5e8d2;
+  --customer-green:#267057;
+  min-height:100dvh;
+  color:#2c1d19;
+  background:#fbf7ef;
+  background-image:radial-gradient(circle at 5% 6%,rgba(232,170,61,.12),transparent 22%),radial-gradient(circle at 96% 18%,rgba(96,27,37,.06),transparent 22%);
+}
+.portal-customer .portal-header {
+  height:78px;
+  color:#fff8e8;
+  border:0;
+  border-bottom:1px solid rgba(255,222,168,.2);
+  background:linear-gradient(100deg,var(--customer-maroon-dark),var(--customer-maroon));
+  box-shadow:0 8px 28px rgba(54,15,20,.16);
+}
+.portal-customer .portal-brand { color:#fff9ec; }
+.portal-customer .brand-mark { color:#fff7df; border:1px solid rgba(255,224,165,.55); background:linear-gradient(145deg,#f39028,#ca451a); }
+.portal-customer .portal-tabs { padding:5px; border:1px solid rgba(255,235,201,.13); border-radius:16px; background:rgba(255,255,255,.06); }
+.portal-customer .portal-tabs a { min-height:42px; padding:0 14px; color:#f2dfce; border-radius:11px; }
+.portal-customer .portal-tabs a:hover,.portal-customer .portal-tabs a.active { color:#43131a; background:#fff5df; box-shadow:0 5px 15px rgba(35,5,8,.14); }
+.portal-customer .portal-account > span { color:#fff5dd; background:rgba(255,255,255,.11); }
+.portal-customer .account-identity small { color:#dfc4b8; }
+.portal-customer .account-identity strong { color:#fff; }
+.portal-customer .portal-account > .icon-button,.portal-customer .portal-account .account-menu-trigger { color:#fff7e7; border-color:rgba(255,234,196,.28); background:rgba(255,255,255,.08); }
+.portal-customer .portal-account > .icon-button:hover,.portal-customer .portal-account .account-menu-trigger:hover { background:rgba(255,255,255,.16); }
+.portal-customer .portal-main { width:min(100%,1320px); padding:32px clamp(20px,5vw,68px) 110px; }
+.portal-customer .portal-main:has(> .customer-home) > .page-heading { display:none; }
+
+.customer-home { display:grid; gap:28px; scroll-margin-top:100px; }
+.customer-welcome { display:grid; grid-template-columns:minmax(0,.92fr) minmax(420px,1.08fr); min-height:510px; overflow:hidden; border:1px solid #ead8bb; border-radius:32px; background:linear-gradient(135deg,#fffdf7 0%,#fff6e6 58%,#f5e3c8 100%); box-shadow:0 24px 65px rgba(81,34,20,.11); }
+.customer-welcome-copy { display:flex; flex-direction:column; justify-content:center; padding:clamp(34px,5vw,68px); }
+.customer-devotional-label { display:inline-flex; width:max-content; align-items:center; margin-bottom:16px; padding:7px 11px; color:#7c2d27; border:1px solid #eacda6; border-radius:999px; background:#fff7e7; font-size:11px; font-weight:850; letter-spacing:.1em; }
+.customer-welcome h1 { max-width:650px; margin:0; color:var(--customer-maroon-dark); font-family:Georgia,"Times New Roman",serif; font-size:clamp(38px,4.3vw,64px); font-weight:600; line-height:1.02; letter-spacing:-.045em; }
+.customer-welcome-copy > p { max-width:610px; margin:20px 0 26px; color:#6e5950; font-size:17px; line-height:1.7; }
+.customer-primary-action { display:grid; grid-template-columns:52px minmax(0,1fr) 24px; align-items:center; gap:14px; width:100%; max-width:560px; min-height:96px; padding:15px 18px; color:#fff; border:0; border-radius:20px; background:linear-gradient(135deg,#da6017,#b83a16); box-shadow:0 14px 30px rgba(170,57,20,.23); cursor:pointer; text-align:left; transition:transform .2s ease,box-shadow .2s ease; }
+.customer-primary-action:hover { transform:translateY(-2px); box-shadow:0 18px 36px rgba(150,47,19,.29); }
+.customer-primary-action > span:nth-child(2) { display:grid; gap:2px; }
+.customer-primary-action small { color:#ffe3b3; font-size:10px; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
+.customer-primary-action strong { font-size:19px; }
+.customer-primary-action em { color:#ffecda; font-size:12px; font-style:normal; }
+.customer-action-icon { display:grid; width:52px; height:52px; place-items:center; border-radius:16px; background:rgba(255,255,255,.16); }
+.customer-simple-steps { display:flex; align-items:center; gap:9px; margin-top:23px; color:#705d54; font-size:11px; font-weight:700; }
+.customer-simple-steps span { display:flex; align-items:center; gap:6px; white-space:nowrap; }
+.customer-simple-steps b { display:grid; width:22px; height:22px; place-items:center; color:#fff; border-radius:50%; background:var(--customer-maroon); font-size:10px; }
+.customer-simple-steps i { width:18px; height:1px; background:#d9c2a4; }
+.customer-welcome-image { position:relative; min-height:100%; overflow:hidden; }
+.customer-welcome-image::after { position:absolute; inset:0; content:""; background:linear-gradient(90deg,#f8ead4 0%,transparent 26%),linear-gradient(0deg,rgba(49,14,12,.3),transparent 45%); pointer-events:none; }
+.customer-welcome-image img { width:100%; height:100%; object-fit:cover; object-position:61% center; }
+.customer-welcome-image > span { position:absolute; z-index:2; right:24px; bottom:24px; display:flex; align-items:center; gap:8px; padding:11px 14px; color:#fff; border:1px solid rgba(255,255,255,.32); border-radius:12px; background:rgba(54,19,16,.72); backdrop-filter:blur(8px); font-size:12px; font-weight:750; }
+.customer-choice-heading { display:flex; align-items:end; justify-content:space-between; gap:24px; padding-top:6px; }
+.customer-choice-heading span { color:#bd4b18; font-size:10px; font-weight:850; letter-spacing:.12em; text-transform:uppercase; }
+.customer-choice-heading h2 { margin:5px 0 0; color:#3d211b; font-family:Georgia,"Times New Roman",serif; font-size:30px; }
+.customer-choice-heading p { margin:0; color:#7d6d65; font-size:13px; }
+.customer-choice-grid { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:16px; }
+.customer-choice-card { display:grid; grid-template-columns:48px minmax(0,1fr) 18px; align-items:center; gap:13px; min-height:132px; padding:19px; color:#33231f; border:1px solid #e7dac5; border-radius:20px; background:#fff; box-shadow:0 8px 24px rgba(64,33,22,.05); cursor:pointer; text-align:left; transition:.2s ease; }
+.customer-choice-card:hover { transform:translateY(-2px); border-color:#d99455; box-shadow:0 14px 32px rgba(82,36,19,.1); }
+.customer-choice-card > span { display:grid; width:48px; height:48px; place-items:center; color:#8b3228; border-radius:15px; background:#faead7; }
+.customer-choice-card.urgent > span { color:#b83622; background:#fff0eb; }
+.customer-choice-card.online > span { color:#226853; background:#eaf6f0; }
+.customer-choice-card > div { display:grid; gap:3px; }
+.customer-choice-card small { color:#b55420; font-size:9px; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
+.customer-choice-card strong { font-size:16px; }
+.customer-choice-card p { margin:0; color:#75665f; font-size:12px; line-height:1.45; }
+.customer-choice-card > svg { color:#9b8a7e; }
+.customer-trust-row { display:grid; grid-template-columns:repeat(3,1fr); overflow:hidden; border:1px solid #e8dbc7; border-radius:18px; background:#fffdf8; }
+.customer-trust-row > span { display:grid; grid-template-columns:36px 1fr; grid-template-rows:auto auto; align-items:center; column-gap:10px; padding:17px 22px; }
+.customer-trust-row > span + span { border-left:1px solid #eadfcf; }
+.customer-trust-row svg { grid-row:1/3; width:19px; color:var(--customer-green); }
+.customer-trust-row b { font-size:12px; }
+.customer-trust-row small { color:#7f7169; font-size:10px; }
+
+/* Continue the same visual language through the booking journey. */
+.portal-customer .guided-workspace,.portal-customer .nearby-chooser,.portal-customer .history,.portal-customer .consultation-shell { border-color:#eadbc5; border-radius:24px; background:#fffdf9; box-shadow:0 14px 38px rgba(69,32,19,.06); }
+.portal-customer .progress { padding:11px; border:1px solid #eadbc6; border-radius:16px; background:#fff9ed; }
+.portal-customer .progress span.active { color:var(--customer-maroon); }
+.portal-customer .progress i { background:#dfcab0; }
+.portal-customer .select-card:hover,.portal-customer .select-card.selected { border-color:#d77934; background:#fff6e8; }
+.portal-customer .btn-primary { color:#fff; border-color:transparent; background:linear-gradient(135deg,#dd6219,#ba3c17); box-shadow:0 8px 20px rgba(170,55,20,.19); }
+.portal-customer input:focus,.portal-customer textarea:focus,.portal-customer select:focus { border-color:#d77a36; box-shadow:0 0 0 4px rgba(222,105,27,.1); }
+.portal-customer .tracking-card { border-color:#e7d9c5; border-radius:18px; }
+.portal-customer .portal-mobile-nav { border-top:1px solid #e4d4bd; background:rgba(255,251,243,.97); box-shadow:0 -8px 26px rgba(68,29,18,.08); }
+.portal-customer .portal-mobile-nav a { color:#76645a; }
+.portal-customer .portal-mobile-nav a:first-child { color:var(--customer-maroon); }
+
+@media(max-width:1050px) {
+  .customer-welcome { grid-template-columns:1fr 42%; min-height:500px; }
+  .customer-welcome-copy { padding:42px; }
+  .customer-welcome h1 { font-size:48px; }
+  .customer-choice-grid { grid-template-columns:1fr; }
+  .customer-choice-card { min-height:108px; }
+}
+@media(max-width:760px) {
+  .portal-customer .portal-header { height:66px; }
+  .portal-customer .portal-main { padding:18px 12px 98px; }
+  .portal-customer .portal-tabs { display:none; }
+  .portal-customer .account-identity { display:none !important; }
+  .customer-home { gap:20px; }
+  .customer-welcome { display:flex; min-height:0; flex-direction:column; border-radius:24px; }
+  .customer-welcome-copy { order:2; padding:24px 20px 26px; }
+  .customer-welcome-image { order:1; height:230px; min-height:230px; }
+  .customer-welcome-image::after { background:linear-gradient(0deg,rgba(50,15,13,.34),transparent 55%); }
+  .customer-welcome-image > span { right:14px; bottom:14px; font-size:10px; }
+  .customer-welcome h1 { font-size:clamp(34px,10.5vw,46px); }
+  .customer-welcome-copy > p { margin:14px 0 20px; font-size:15px; }
+  .customer-primary-action { grid-template-columns:46px minmax(0,1fr) 18px; min-height:88px; padding:13px; border-radius:17px; }
+  .customer-action-icon { width:46px; height:46px; }
+  .customer-primary-action strong { font-size:17px; }
+  .customer-simple-steps { display:grid; grid-template-columns:auto 1fr; gap:8px 10px; }
+  .customer-simple-steps i { display:none; }
+  .customer-choice-heading { display:grid; gap:5px; }
+  .customer-choice-heading h2 { font-size:25px; }
+  .customer-choice-grid { gap:10px; }
+  .customer-choice-card { min-height:104px; padding:15px; border-radius:16px; }
+  .customer-trust-row { grid-template-columns:1fr; }
+  .customer-trust-row > span + span { border-top:1px solid #eadfcf; border-left:0; }
+}
+@media(max-width:390px) {
+  .portal-customer .portal-main { padding-inline:9px; }
+  .customer-welcome-image { height:190px; min-height:190px; }
+  .customer-welcome-copy { padding:20px 16px 22px; }
+  .customer-welcome h1 { font-size:34px; }
+  .customer-primary-action em { display:none; }
+  .customer-choice-card { grid-template-columns:42px minmax(0,1fr) 16px; gap:10px; padding:13px; }
+  .customer-choice-card > span { width:42px; height:42px; }
+}
 .support-form .wide { grid-column: 1 / -1; }
 .support-message { grid-column: 1 / -1; margin: 0; color: var(--green); }
 .support-case-list, .admin-support-list { display: grid; gap: 9px; }

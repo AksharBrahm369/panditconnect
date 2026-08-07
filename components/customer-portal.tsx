@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useState } from "react";
+import Image from "next/image";
 import {
-  AlertTriangle, ArrowLeft, BadgeHelp, CheckCircle2, ChevronRight, Clock3,
+  AlertTriangle, ArrowLeft, BadgeCheck, BadgeHelp, CheckCircle2, ChevronRight, Clock3,
   Banknote, Compass, CreditCard, MapPin, Mic, PackageCheck, RefreshCw, ShieldCheck, Smartphone, Sparkles, Star,
 } from "lucide-react";
 import { AppShell } from "./app-shell";
@@ -327,24 +328,30 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
   }
 
   return (
-    <AppShell role="Customer" title="How can we help you today?" subtitle="Choose one simple option below. We will guide every next step.">
+    <AppShell role="Customer" title="Puja help for your family" subtitle="Book a verified nearby Pandit in a few simple steps.">
       {message && <div className="alert error">{message}</div>}
 
       {!requestType && !match && !consultationMode && (
-        <section className="intent-shell" id="request-assistance">
-          <div className="new-user-guide">
-            <span className="guide-symbol"><Sparkles /></span>
-            <div><span className="eyebrow">पहली बार आए हैं? · New here?</span><h2>Just choose what you need.</h2><p>You do not need to know any Puja name. We will explain everything in simple steps.</p></div>
-            <div className="guide-steps"><span><b>1</b> Choose one option</span><span><b>2</b> Add basic details</span><span><b>3</b> Choose your Pandit</span></div>
+        <section className="customer-home" id="customer-home">
+          <div className="customer-welcome">
+            <div className="customer-welcome-copy">
+              <span className="customer-devotional-label">ॐ · सरल पूजा सहायता</span>
+              <h1>Namaste. How can we help your family today?</h1>
+              <p>You do not need to know the Puja name. Tell us what happened or choose an option—we will guide every next step.</p>
+              <button className="customer-primary-action" onClick={() => choosePath("NEED_GUIDANCE")}><span className="customer-action-icon"><Sparkles /></span><span><small>Recommended for most people</small><strong>Book a Pandit at home</strong><em>Describe the occasion in your own words</em></span><ChevronRight /></button>
+              <div className="customer-simple-steps"><span><b>1</b> Tell us your need</span><i /><span><b>2</b> Choose a Pandit</span><i /><span><b>3</b> Track arrival</span></div>
+            </div>
+            <div className="customer-welcome-image"><Image src="/images/customer-puja-welcome.png" alt="A family receiving Puja guidance from a trusted Pandit at home" width={1750} height={900} priority /><span><ShieldCheck /> Verified Pandits · Private booking</span></div>
           </div>
-          <div className="section-title intent-title"><div><h2>What would you like to do?</h2><p>Tap the option that feels closest. You can go back at any time.</p></div></div>
-          <div className="intent-grid">
-            <button className="intent-card recommended" onClick={() => choosePath("NEED_GUIDANCE")}><Sparkles /><span><b className="intent-kicker">Recommended for most families</b><strong>I need a Pandit at home</strong><small>Tell us the occasion. We will suggest the right Puja and show nearby Pandits.</small></span><ChevronRight /></button>
-            <button className="intent-card urgent" onClick={() => choosePath("PANDIT_SOS")}><AlertTriangle /><span><b className="intent-kicker">Urgent replacement</b><strong>My Pandit cancelled</strong><small>Use the Puja details you already have and find another qualified Pandit now.</small></span><ChevronRight /></button>
-            <button className="intent-card" onClick={() => choosePath("KNOWN_PUJA")}><Sparkles /><span><b className="intent-kicker">Quick booking</b><strong>I know which Puja I need</strong><small>Select the Puja and choose an available Pandit near you.</small></span><ChevronRight /></button>
-            <button className="intent-card guidance-live" onClick={() => setConsultationMode(true)}><BadgeHelp /><span><b className="intent-kicker">Online help</b><strong>Chat with a Pandit</strong><small>Ask a religious question privately through live chat.</small></span><ChevronRight /></button>
+
+          <div className="customer-choice-heading" id="request-assistance"><div><span>More ways we can help</span><h2>Choose only if this matches your need</h2></div><p>You can always go back before sending a request.</p></div>
+          <div className="customer-choice-grid">
+            <button className="customer-choice-card urgent" onClick={() => choosePath("PANDIT_SOS")}><span><AlertTriangle /></span><div><small>Urgent help</small><strong>My Pandit cancelled</strong><p>Quickly find another approved Pandit nearby.</p></div><ChevronRight /></button>
+            <button className="customer-choice-card" onClick={() => choosePath("KNOWN_PUJA")}><span><Sparkles /></span><div><small>Quick booking</small><strong>I know the Puja</strong><p>Select the ritual and compare nearby Pandits.</p></div><ChevronRight /></button>
+            <button className="customer-choice-card online" id="online-guidance" onClick={() => setConsultationMode(true)}><span><BadgeHelp /></span><div><small>Online guidance</small><strong>Chat with a Pandit</strong><p>Ask a religious question privately online.</p></div><ChevronRight /></button>
           </div>
-          <div className="privacy-band"><ShieldCheck size={18} /><span><strong>Private by design</strong>Your phone and exact address are never shown publicly.</span></div>
+
+          <div className="customer-trust-row"><span><ShieldCheck /><b>Verified profiles</b><small>Reviewed by Admin</small></span><span><MapPin /><b>Nearby matching</b><small>Based on your area</small></span><span><BadgeCheck /><b>Simple updates</b><small>Track every status</small></span></div>
         </section>
       )}
 
