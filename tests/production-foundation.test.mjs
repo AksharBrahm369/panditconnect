@@ -263,3 +263,14 @@ test("push notifications provide sound, delivery diagnostics and admin event cov
   assert.match(support, /notifyAdmins/);
   assert.match(booking, /notifyAdmins/);
 });
+
+test("Pandits receive the customer address and GPS directions only after accepting", async () => {
+  const route = await readFile(new URL("../app/api/bookings/route.ts", import.meta.url), "utf8");
+  const portal = await readFile(new URL("../components/pandit-portal.tsx", import.meta.url), "utf8");
+  assert.match(route, /CASE WHEN b\.status='REQUESTED' THEN 'Exact address shared after acceptance'/);
+  assert.match(route, /CASE WHEN b\.status='REQUESTED' THEN NULL ELSE b\.latitude/);
+  assert.match(route, /CASE WHEN b\.status='REQUESTED' THEN NULL ELSE b\.longitude/);
+  assert.match(portal, /Customer service address/);
+  assert.match(portal, /Open directions/);
+  assert.match(portal, /google\.com\/maps\/dir/);
+});

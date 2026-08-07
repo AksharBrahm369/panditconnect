@@ -48,7 +48,8 @@ export async function GET() {
         CASE WHEN b.status='REQUESTED' THEN 'Exact address shared after acceptance' ELSE b.address END AS address,
         b.amount,b.created_at,b.request_type,b.situation,b.preferred_language,b.materials_option,
         b.payment_method,b.payment_status,b.payment_confirmed_at,
-        b.latitude AS customer_latitude,b.longitude AS customer_longitude,
+        CASE WHEN b.status='REQUESTED' THEN NULL ELSE b.latitude END AS customer_latitude,
+        CASE WHEN b.status='REQUESTED' THEN NULL ELSE b.longitude END AS customer_longitude,
         s.name AS service_name,cu.name AS customer_name
        FROM pim_v2.bookings b
        JOIN pim_v2.services s ON s.id=b.service_id
