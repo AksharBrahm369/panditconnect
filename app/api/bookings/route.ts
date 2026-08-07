@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
-import { notifyUser } from "@/lib/push-notifications";
+import { notifyAdmins, notifyUser } from "@/lib/push-notifications";
 import { decryptArrivalOtp, encryptArrivalOtp } from "@/lib/arrival-otp";
 
 export const dynamic = "force-dynamic";
@@ -137,6 +137,7 @@ export async function POST(request: Request) {
     ],
   );
   await notifyUser(pandit.id, { title: "New urgent Puja request", body: `${body.serviceId.replaceAll("-", " ")} request is waiting for your response.`, url: "/pandit#pandit-requests", eventType: "BOOKING_REQUESTED" });
+  await notifyAdmins({ title: "New Puja request", body: `${pandit.name} received a nearby ${body.serviceId.replaceAll("-", " ")} request.`, url: "/admin#admin-bookings", eventType: "BOOKING_REQUESTED" });
   return NextResponse.json({
     success: true,
     bookingId: id,

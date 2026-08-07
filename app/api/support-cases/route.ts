@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
+import { notifyAdmins } from "@/lib/push-notifications";
 
 export const dynamic = "force-dynamic";
 const categories = new Set(["NO_SHOW","SAFETY","SERVICE_QUALITY","BOOKING","CHAT","ACCOUNT","OTHER"]);
@@ -30,5 +31,6 @@ export async function POST(request: Request) {
   }
   const priority = category === "SAFETY" || category === "NO_SHOW" ? "URGENT" : "NORMAL";
   const result = await sql(`INSERT INTO pim_v2.support_cases(id,reporter_id,booking_id,consultation_id,category,subject,description,priority) VALUES($1,$2,$3,$4,$5,$6,$7,$8) RETURNING id,status,priority,created_at`, [crypto.randomUUID(),user.id,body.bookingId||null,body.consultationId||null,category,subject.slice(0,120),description.slice(0,2000),priority]);
+  await notifyAdmins({ title: priority === "URGENT" ? "Urgent support case" : "New support case", body: subject.slice(0,120), url: "/admin#admin-support", eventType: "SUPPORT_CASE_CREATED" });
   return NextResponse.json({ case: result.rows[0] }, { status: 201 });
 }

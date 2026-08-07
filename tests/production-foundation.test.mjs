@@ -242,3 +242,24 @@ test("customers can review every eligible nearby Pandit before sending a request
   assert.match(customer, /Highest rated/);
   assert.match(customer, /Most experienced/);
 });
+
+test("push notifications provide sound, delivery diagnostics and admin event coverage", async () => {
+  const center = await readFile(new URL("../components/notification-center.tsx", import.meta.url), "utf8");
+  const worker = await readFile(new URL("../public/sw.js", import.meta.url), "utf8");
+  const push = await readFile(new URL("../lib/push-notifications.ts", import.meta.url), "utf8");
+  const onboarding = await readFile(new URL("../app/api/pandit/onboarding/route.ts", import.meta.url), "utf8");
+  const support = await readFile(new URL("../app/api/support-cases/route.ts", import.meta.url), "utf8");
+  const booking = await readFile(new URL("../app/api/bookings/route.ts", import.meta.url), "utf8");
+  assert.match(worker, /self\.skipWaiting/);
+  assert.match(worker, /self\.clients\.claim/);
+  assert.match(worker, /PANDITCONNECT_PUSH/);
+  assert.match(worker, /silent: false/);
+  assert.match(center, /navigator\.vibrate/);
+  assert.match(center, /playAlertSound/);
+  assert.match(center, /registration\.update/);
+  assert.match(center, /push delivery failed/i);
+  assert.match(push, /export async function notifyAdmins/);
+  assert.match(onboarding, /notifyAdmins/);
+  assert.match(support, /notifyAdmins/);
+  assert.match(booking, /notifyAdmins/);
+});

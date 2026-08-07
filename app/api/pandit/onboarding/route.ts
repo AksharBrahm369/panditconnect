@@ -4,6 +4,7 @@ import { requirePandit } from "@/lib/auth";
 import { authorizationResponse } from "@/lib/api-auth";
 import { sql } from "@/lib/db";
 import { encryptSensitive } from "@/lib/sensitive-data";
+import { notifyAdmins } from "@/lib/push-notifications";
 
 export const dynamic = "force-dynamic";
 
@@ -115,6 +116,7 @@ export async function PUT(request: Request) {
     await sql(`INSERT INTO pim_v2.pandit_verification_reviews(pandit_id) VALUES($1) ON CONFLICT(pandit_id) DO NOTHING`, [user.id]);
     if (value.submit) {
       await sql(`INSERT INTO pim_v2.pandit_verification_events(id,pandit_id,action) VALUES($1,$2,'SUBMITTED')`, [crypto.randomUUID(), user.id]);
+      await notifyAdmins({ title: "New Pandit application", body: `${value.legalName} submitted a profile for verification.`, url: "/admin#admin-pandits", eventType: "PANDIT_SUBMITTED" });
     }
     return NextResponse.json({ success: true, status: value.submit ? "SUBMITTED" : "DRAFT" });
   } catch (error) {
