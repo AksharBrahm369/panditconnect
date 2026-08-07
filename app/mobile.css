@@ -93,6 +93,13 @@
   .customer-pandit-facts strong { font-size:12px; }
   .customer-pandit-facts small { font-size:8px; line-height:1.25; }
   .availability-empty .location-help { padding:10px; border-radius:10px; color:#6b3b25; background:#fff3e6; font-size:12px; line-height:1.45; }
+  .live-pandit-list { gap:10px; }
+  .live-pandit-card { padding:11px; border-radius:14px; }
+  .live-pandit-card .mini-card { grid-template-columns:54px minmax(0,1fr) auto; gap:10px; padding:11px; }
+  .live-pandit-card .mini-card .avatar { width:54px; height:54px; }
+  .live-pandit-card .mini-card strong { font-size:14px; }
+  .live-pandit-card .mini-card small { font-size:10px; line-height:1.35; }
+  .live-pandit-card .route-line, .live-pandit-card .puja-summary { padding-block:10px; }
   .customer-pandit-top, .nearby-pandit-head { grid-template-columns: auto minmax(0,1fr); }
   .customer-pandit-top > :last-child, .nearby-pandit-head > :last-child { grid-column: 2; justify-self: start; }
   .preferred-pandit-note { grid-template-columns:auto minmax(0,1fr); }

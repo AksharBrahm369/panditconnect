@@ -31,4 +31,6 @@ test("homepage nearby matching sends every required filter and reports real loca
   assert.match(source, /data\.error \|\| "Nearby availability could not be checked/);
   assert.match(source, /Your location worked/);
   assert.match(source, /site-settings icon/);
+  assert.match(source, /pandits\.map\(\(nearbyPandit\)/);
+  assert.doesNotMatch(source, /pandits\?\.\[0\]/);
 });

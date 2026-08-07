@@ -48,7 +48,6 @@ export function LiveAvailabilityCard() {
       });
   }
 
-  const pandit = pandits?.[0];
   const loading = started && pandits === null;
   const availableCount = pandits?.length ?? 0;
   const available = availableCount > 0;
@@ -72,22 +71,24 @@ export function LiveAvailabilityCard() {
               : "No Pandits online near you"}
       </div>
 
-      {pandit ? (
-        <>
-          <div className="mini-card">
-            <div className="avatar">
-              {pandit.name.split(" ").slice(-2).map((part) => part[0]).join("")}
+      {pandits && pandits.length > 0 ? (
+        <div className="live-pandit-list" aria-label={`${availableCount} nearby Pandits`}>
+          {pandits.map((nearbyPandit) => <article className="live-pandit-card" key={nearbyPandit.id}>
+            <div className="mini-card">
+              <div className="avatar">
+                {nearbyPandit.name.split(" ").slice(-2).map((part) => part[0]).join("")}
+              </div>
+              <div>
+                <strong>{nearbyPandit.name}</strong>
+                <small>{nearbyPandit.experience_years} years · {nearbyPandit.languages.join(", ")}</small>
+              </div>
+              <b>{nearbyPandit.rating} ★</b>
             </div>
-            <div>
-              <strong>{pandit.name}</strong>
-              <small>{pandit.experience_years} years · {pandit.languages.join(", ")}</small>
-            </div>
-            <b>{pandit.rating} ★</b>
-          </div>
-          <div className="route-line"><span>{pandit.distance_km} km away</span><strong>{pandit.eta_minutes} min</strong></div>
-          <div className="puja-summary"><span>Ganesh Puja</span><b>₹{pandit.charge.toLocaleString("en-IN")}</b></div>
-          <Link href="/login?role=customer" className="btn btn-primary btn-block">Send urgent request</Link>
-        </>
+            <div className="route-line"><span>{nearbyPandit.distance_km} km away</span><strong>{nearbyPandit.eta_minutes} min</strong></div>
+            <div className="puja-summary"><span>Ganesh Puja</span><b>₹{nearbyPandit.charge.toLocaleString("en-IN")}</b></div>
+            <Link href="/login?role=customer" className="btn btn-primary btn-block">Request {nearbyPandit.name}</Link>
+          </article>)}
+        </div>
       ) : (
         <div className="availability-empty">
           <strong>{loading ? "Finding nearby Pandits…" : error ? "We could not use your location" : "No Pandits are online nearby"}</strong>
