@@ -32,11 +32,6 @@ const onboardingSchema = z.object({
   bio: z.string().trim().min(30).max(1500),
   serviceRadiusKm: z.number().int().min(1).max(100),
   availabilityPreference: z.enum(["AVAILABLE_AFTER_APPROVAL", "OFFLINE"]),
-  interviewMode: z.enum(["LIVE_VIDEO_CALL", "RECORDED_VIDEO"]),
-  interviewPreferredAt: z.string().optional().default(""),
-  interviewAlternateAt: z.string().optional().default(""),
-  interviewLanguage: z.string().trim().min(1).max(50),
-  interviewNote: z.string().trim().max(500).optional().default(""),
   payoutMethod: z.enum(["BANK", "UPI"]),
   bankAccountName: z.string().trim().max(120).optional().default(""),
   bankAccountNumber: z.string().trim().max(30).optional().default(""),
@@ -53,9 +48,6 @@ const onboardingSchema = z.object({
   if (value.payoutMethod === "UPI" && !/^[\w.-]+@[\w.-]+$/.test(value.upiId)) {
     context.addIssue({ code: "custom", path: ["upiId"], message: "Enter a valid UPI ID" });
   }
-  if (value.interviewMode === "LIVE_VIDEO_CALL" && !value.interviewPreferredAt) {
-    context.addIssue({ code: "custom", path: ["interviewPreferredAt"], message: "Select a preferred video interview time" });
-  }
 });
 
 export async function GET() {
@@ -67,7 +59,7 @@ export async function GET() {
       sql(`SELECT service_id,price,enabled FROM pim_v2.pandit_service_pricing WHERE pandit_id=$1`, [user.id]),
       sql(`SELECT id,name,description,base_price FROM pim_v2.services WHERE active=true ORDER BY name`),
       sql(`SELECT id,document_type,original_name,mime_type,size_bytes,review_status,review_note,uploaded_at FROM pim_v2.pandit_documents WHERE pandit_id=$1 ORDER BY uploaded_at DESC`, [user.id]),
-      sql(`SELECT identity_status,document_status,reference_status,video_interview_status,knowledge_check_status,bank_status,video_interview_at,knowledge_score,admin_note FROM pim_v2.pandit_verification_reviews WHERE pandit_id=$1`, [user.id]),
+      sql(`SELECT identity_status,document_status,reference_status,knowledge_check_status,bank_status,knowledge_score,admin_note FROM pim_v2.pandit_verification_reviews WHERE pandit_id=$1`, [user.id]),
     ]);
     return NextResponse.json({ profile: profile.rows[0], references: references.rows, pricing: pricing.rows, services: services.rows, documents: documents.rows, review: review.rows[0] ?? null }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
@@ -94,9 +86,6 @@ export async function PUT(request: Request) {
       for (const required of ["PROFILE_PHOTO", "GOVERNMENT_ID", "BANK_PROOF"]) {
         if (!types.has(required)) return NextResponse.json({ error: `Upload the required ${required.replaceAll("_", " ").toLowerCase()} before submitting` }, { status: 400 });
       }
-      if (value.interviewMode === "RECORDED_VIDEO" && !types.has("VIDEO_INTERVIEW")) {
-        return NextResponse.json({ error: "Upload your recorded video introduction before submitting" }, { status: 400 });
-      }
     }
 
     const encryptedAccount = await encryptSensitive(value.payoutMethod === "BANK" ? value.bankAccountNumber : null);
@@ -105,16 +94,13 @@ export async function PUT(request: Request) {
       `UPDATE pim_v2.pandit_profiles SET email=$2,date_of_birth=$3,current_address=$4,
        experience_years=$5,languages=$6,specialities=$7,bio=$8,service_radius_km=$9,availability_preference=$10,
        payout_method=$11,bank_account_name=$12,bank_account_number=$13,bank_ifsc=$14,upi_id=$15,
-       interview_mode=$16,interview_preferred_at=$17,interview_alternate_at=$18,interview_language=$19,interview_note=$20,
        platform_rules_accepted_at=COALESCE(platform_rules_accepted_at,now()),
-       verification_status=CASE WHEN $21 THEN 'SUBMITTED' ELSE verification_status END,
-       submitted_at=CASE WHEN $21 THEN now() ELSE submitted_at END,is_online=false,updated_at=now()
+       verification_status=CASE WHEN $16 THEN 'SUBMITTED' ELSE verification_status END,
+       submitted_at=CASE WHEN $16 THEN now() ELSE submitted_at END,is_online=false,updated_at=now()
        WHERE user_id=$1`,
       [user.id, value.email, value.dateOfBirth, value.currentAddress, value.experienceYears, value.languages,
         value.specialities, value.bio, value.serviceRadiusKm, value.availabilityPreference, value.payoutMethod, value.bankAccountName || null,
-        encryptedAccount, value.bankIfsc || null, value.payoutMethod === "UPI" ? value.upiId : null,
-        value.interviewMode, value.interviewPreferredAt || null, value.interviewAlternateAt || null,
-        value.interviewLanguage, value.interviewNote || null, value.submit],
+        encryptedAccount, value.bankIfsc || null, value.payoutMethod === "UPI" ? value.upiId : null, value.submit],
     );
     await sql(`DELETE FROM pim_v2.pandit_references WHERE pandit_id=$1`, [user.id]);
     for (const reference of value.references) {

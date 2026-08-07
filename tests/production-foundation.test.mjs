@@ -196,3 +196,13 @@ test("operations foundation provides support, moderation, cancellations and noti
   assert.match(booking,/cancellationReason/);
   assert.match(auth,/u\.account_status='ACTIVE'/);
 });
+
+test("Pandit and admin onboarding no longer require or display interviews", async () => {
+  const pandit = await readFile(new URL("../components/pandit-onboarding.tsx", import.meta.url), "utf8");
+  const admin = await readFile(new URL("../components/admin-portal.tsx", import.meta.url), "utf8");
+  const onboarding = await readFile(new URL("../app/api/pandit/onboarding/route.ts", import.meta.url), "utf8");
+  const review = await readFile(new URL("../app/api/admin/pandits/route.ts", import.meta.url), "utf8");
+  for (const source of [pandit,admin,onboarding]) assert.doesNotMatch(source,/interview/i);
+  assert.doesNotMatch(review,/videoInterviewStatus|video_interview_status/);
+  assert.match(review,/document_type<>'VIDEO_INTERVIEW'/);
+});

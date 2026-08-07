@@ -6,9 +6,8 @@ import { deletePrivateObject, uploadPrivateObject } from "@/lib/supabase-storage
 import { validateUploadedFile } from "@/lib/file-validation";
 
 export const dynamic = "force-dynamic";
-const types = new Set(["PROFILE_PHOTO","GOVERNMENT_ID","ADDRESS_PROOF","BANK_PROOF","REFERENCE_LETTER","VIDEO_INTERVIEW"]);
+const types = new Set(["PROFILE_PHOTO","GOVERNMENT_ID","ADDRESS_PROOF","BANK_PROOF","REFERENCE_LETTER"]);
 const documentMimeTypes = new Set(["image/jpeg","image/png","image/webp","application/pdf"]);
-const videoMimeTypes = new Set(["video/mp4","video/webm","video/quicktime"]);
 
 export async function POST(request: Request) {
   let path: string | null = null;
@@ -18,11 +17,8 @@ export async function POST(request: Request) {
     const file = form.get("file");
     const documentType = String(form.get("documentType") ?? "");
     if (!(file instanceof File) || !types.has(documentType)) return NextResponse.json({ error: "Choose a valid document" }, { status: 400 });
-    const isVideo = documentType === "VIDEO_INTERVIEW";
-    const allowedMime = isVideo ? videoMimeTypes.has(file.type) : documentMimeTypes.has(file.type);
-    const sizeLimit = isVideo ? 50 * 1024 * 1024 : 10 * 1024 * 1024;
-    if (!allowedMime || file.size <= 0 || file.size > sizeLimit) {
-      return NextResponse.json({ error: isVideo ? "Use an MP4, WebM or MOV video up to 50 MB" : "Use JPG, PNG, WebP or PDF up to 10 MB" }, { status: 400 });
+    if (!documentMimeTypes.has(file.type) || file.size <= 0 || file.size > 10 * 1024 * 1024) {
+      return NextResponse.json({ error: "Use JPG, PNG, WebP or PDF up to 10 MB" }, { status: 400 });
     }
     const extension = await validateUploadedFile(file);
     if (!extension) return NextResponse.json({ error: "The file content does not match its declared type." }, { status: 400 });

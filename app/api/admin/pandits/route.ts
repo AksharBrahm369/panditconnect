@@ -6,10 +6,10 @@ import { recordAdminAction } from "@/lib/admin-audit";
 import { notifyUser } from "@/lib/push-notifications";
 
 type ReviewAction = "APPROVE" | "REJECT" | "REQUEST_CHANGES" | "START_REVIEW" | "UPDATE_CHECKLIST";
-const checks = ["identityStatus","documentStatus","referenceStatus","videoInterviewStatus","knowledgeCheckStatus","bankStatus"] as const;
+const checks = ["identityStatus","documentStatus","referenceStatus","knowledgeCheckStatus","bankStatus"] as const;
 const databaseChecks: Record<(typeof checks)[number], string> = {
   identityStatus: "identity_status", documentStatus: "document_status", referenceStatus: "reference_status",
-  videoInterviewStatus: "video_interview_status", knowledgeCheckStatus: "knowledge_check_status", bankStatus: "bank_status",
+  knowledgeCheckStatus: "knowledge_check_status", bankStatus: "bank_status",
 };
 export const dynamic = "force-dynamic";
 
@@ -24,12 +24,11 @@ export async function GET(request: Request) {
     const result = await sql(
       `SELECT u.id,u.name,u.phone,u.city,u.created_at,p.email,p.date_of_birth,p.current_address,
        p.experience_years,p.languages,p.specialities,p.bio,p.base_charge,p.service_radius_km,p.payout_method,
-       p.bank_account_name,p.bank_ifsc,p.upi_id,p.interview_mode,p.interview_preferred_at,
-       p.interview_alternate_at,p.interview_language,p.interview_note,p.verification_status,p.review_note,p.submitted_at,
+       p.bank_account_name,p.bank_ifsc,p.upi_id,p.verification_status,p.review_note,p.submitted_at,
        COALESCE((SELECT json_agg(json_build_object('id',r.id,'name',r.reference_name,'relationship',r.relationship,'organisation',r.temple_or_organisation,'phone',r.phone,'status',r.verification_status,'note',r.verification_note) ORDER BY r.created_at) FROM pim_v2.pandit_references r WHERE r.pandit_id=u.id),'[]') AS references,
-       COALESCE((SELECT json_agg(json_build_object('id',d.id,'type',d.document_type,'name',d.original_name,'mimeType',d.mime_type,'size',d.size_bytes,'status',d.review_status,'note',d.review_note) ORDER BY d.uploaded_at DESC) FROM pim_v2.pandit_documents d WHERE d.pandit_id=u.id),'[]') AS documents,
+       COALESCE((SELECT json_agg(json_build_object('id',d.id,'type',d.document_type,'name',d.original_name,'mimeType',d.mime_type,'size',d.size_bytes,'status',d.review_status,'note',d.review_note) ORDER BY d.uploaded_at DESC) FROM pim_v2.pandit_documents d WHERE d.pandit_id=u.id AND d.document_type<>'VIDEO_INTERVIEW'),'[]') AS documents,
        COALESCE((SELECT json_agg(json_build_object('serviceId',sp.service_id,'serviceName',s.name,'price',sp.price,'enabled',sp.enabled) ORDER BY s.name) FROM pim_v2.pandit_service_pricing sp JOIN pim_v2.services s ON s.id=sp.service_id WHERE sp.pandit_id=u.id),'[]') AS pricing,
-       json_build_object('identityStatus',COALESCE(v.identity_status,'PENDING'),'documentStatus',COALESCE(v.document_status,'PENDING'),'referenceStatus',COALESCE(v.reference_status,'PENDING'),'videoInterviewStatus',COALESCE(v.video_interview_status,'PENDING'),'knowledgeCheckStatus',COALESCE(v.knowledge_check_status,'PENDING'),'bankStatus',COALESCE(v.bank_status,'PENDING'),'videoInterviewAt',v.video_interview_at,'knowledgeScore',v.knowledge_score,'adminNote',v.admin_note) AS review
+       json_build_object('identityStatus',COALESCE(v.identity_status,'PENDING'),'documentStatus',COALESCE(v.document_status,'PENDING'),'referenceStatus',COALESCE(v.reference_status,'PENDING'),'knowledgeCheckStatus',COALESCE(v.knowledge_check_status,'PENDING'),'bankStatus',COALESCE(v.bank_status,'PENDING'),'knowledgeScore',v.knowledge_score,'adminNote',v.admin_note) AS review
        FROM pim_v2.pandit_profiles p JOIN pim_v2.users u ON u.id=p.user_id
        LEFT JOIN pim_v2.pandit_verification_reviews v ON v.pandit_id=u.id
        WHERE p.verification_status IN ('SUBMITTED','UNDER_REVIEW','PENDING','INCOMPLETE','CHANGES_REQUESTED','REJECTED')
@@ -58,8 +57,8 @@ export async function PATCH(request: Request) {
       if (score != null && (!Number.isInteger(score) || score < 0 || score > 100)) return NextResponse.json({ error: "Knowledge score must be 0 to 100" }, { status: 400 });
       const columns = values.map(([key], index) => `${databaseChecks[key]}=$${index + 3}`).join(",");
       await sql(`INSERT INTO pim_v2.pandit_verification_reviews(pandit_id,reviewed_by) VALUES($1,$2) ON CONFLICT(pandit_id) DO NOTHING`, [panditId, admin.id]);
-      await sql(`UPDATE pim_v2.pandit_verification_reviews SET ${columns},knowledge_score=$9,video_interview_at=$10,admin_note=$11,reviewed_by=$2,updated_at=now() WHERE pandit_id=$1`,
-        [panditId, admin.id, ...values.map(([, value]) => value), score, body.videoInterviewAt || null, body.note?.trim() || null]);
+      await sql(`UPDATE pim_v2.pandit_verification_reviews SET ${columns},knowledge_score=$8,admin_note=$9,reviewed_by=$2,updated_at=now() WHERE pandit_id=$1`,
+        [panditId, admin.id, ...values.map(([, value]) => value), score, body.note?.trim() || null]);
       await sql(`INSERT INTO pim_v2.pandit_verification_events(id,pandit_id,admin_user_id,action,note) VALUES($1,$2,$3,'CHECKLIST_UPDATED',$4)`, [crypto.randomUUID(), panditId, admin.id, body.note?.trim() || null]);
       return NextResponse.json({ success: true });
     }
@@ -67,7 +66,7 @@ export async function PATCH(request: Request) {
     if (body.action === "APPROVE") {
       const review = await sql(`SELECT * FROM pim_v2.pandit_verification_reviews WHERE pandit_id=$1`, [panditId]);
       const row = review.rows[0];
-      if (!row || [row.identity_status,row.document_status,row.reference_status,row.video_interview_status,row.knowledge_check_status,row.bank_status].some((value) => value !== "VERIFIED")) return NextResponse.json({ error: "Complete and verify every review check before approval" }, { status: 409 });
+      if (!row || [row.identity_status,row.document_status,row.reference_status,row.knowledge_check_status,row.bank_status].some((value) => value !== "VERIFIED")) return NextResponse.json({ error: "Complete and verify every review check before approval" }, { status: 409 });
       await sql(`UPDATE pim_v2.pandit_profiles SET verification_status='APPROVED',review_note=NULL,reviewed_at=now(),is_online=false,updated_at=now() WHERE user_id=$1`, [panditId]);
       await sql(`INSERT INTO pim_v2.pandit_services(pandit_id,service_id,charge) SELECT pandit_id,service_id,price FROM pim_v2.pandit_service_pricing WHERE pandit_id=$1 AND enabled=true ON CONFLICT(pandit_id,service_id) DO UPDATE SET charge=EXCLUDED.charge`, [panditId]);
     } else {
