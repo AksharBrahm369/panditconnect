@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import {
   AlertTriangle, ArrowLeft, BadgeCheck, BadgeHelp, CheckCircle2, ChevronRight, Clock3,
   Banknote, Compass, CreditCard, MapPin, Mic, PackageCheck, RefreshCw, ShieldCheck, Smartphone, Sparkles, Star,
@@ -16,6 +17,11 @@ type Service = { id: string; name: string; description: string; base_price: numb
 type NearbyPandit = {
   id: string; name: string; experience_years: number; languages: string[]; rating: string;
   rating_count: number; completed_jobs: number; charge: number; distance_km: string; eta_minutes: number;
+};
+type DiscoveryPandit = {
+  id: string; name: string; city: string | null; experience_years: number; languages: string[];
+  specialities: string[]; rating: string; rating_count: number; completed_jobs: number;
+  starting_charge: number; distance_km: string; eta_minutes: number; services: string[];
 };
 type Booking = {
   id: string; status: string; service_name: string; pandit_name: string | null; amount: number;
@@ -79,6 +85,11 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
   const [ratingMessages, setRatingMessages] = useState<Record<string, string>>({});
   const [paymentBusy, setPaymentBusy] = useState<string | null>(null);
   const [paymentMessages, setPaymentMessages] = useState<Record<string, string>>({});
+  const [discoveryPandits, setDiscoveryPandits] = useState<DiscoveryPandit[]>([]);
+  const [discoveryBusy, setDiscoveryBusy] = useState(false);
+  const [discoveryMessage, setDiscoveryMessage] = useState("");
+  const [preferredPandit, setPreferredPandit] = useState<{ id: string; name: string } | null>(null);
+  const discoveryRail = useRef<HTMLDivElement>(null);
 
   const refreshBookings = useCallback(async () => {
     try {
@@ -122,6 +133,38 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
     };
   }, [refreshBookings]);
 
+  const loadNearbyDiscovery = useCallback(async () => {
+    setDiscoveryBusy(true);
+    setDiscoveryMessage("");
+    try {
+      const current = await getCurrentCoordinates();
+      setCoordinates(current);
+      setLocationSource("GPS");
+      const params = new URLSearchParams({ lat: String(current.latitude), lng: String(current.longitude) });
+      const response = await fetch(`/api/pandits/discover?${params}`, { cache: "no-store" });
+      const data = await readJson<{ pandits?: DiscoveryPandit[]; error?: string }>(response);
+      if (!response.ok) throw new Error(data.error ?? "Unable to load nearby Pandits.");
+      setDiscoveryPandits(data.pandits ?? []);
+      if (!data.pandits?.length) setDiscoveryMessage("No approved Pandit is online near you right now. Please check again shortly.");
+    } catch (error) {
+      setDiscoveryMessage(error instanceof Error ? error.message : "Allow location access to see nearby Pandits.");
+    } finally {
+      setDiscoveryBusy(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    const applySelection = window.setTimeout(() => {
+      const selectedId = new URLSearchParams(window.location.search).get("pandit");
+      const selectedName = new URLSearchParams(window.location.search).get("name");
+      if (selectedId) {
+        setPreferredPandit({ id: selectedId, name: selectedName || "this Pandit" });
+        setRequestType("KNOWN_PUJA");
+      }
+    }, 0);
+    return () => window.clearTimeout(applySelection);
+  }, []);
+
   const guidance = useMemo(
     () => recommendation ?? (serviceId ? ritualForService(serviceId) : null),
     [recommendation, serviceId],
@@ -144,6 +187,16 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
     setMatch(null);
     setNearbyPandits(null);
     setMessage("");
+  }
+
+  function requestDiscoveryPandit(pandit: DiscoveryPandit) {
+    choosePath("KNOWN_PUJA");
+    setPreferredPandit({ id: pandit.id, name: pandit.name });
+    window.setTimeout(() => document.getElementById("request-assistance")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  }
+
+  function moveDiscovery(direction: -1 | 1) {
+    discoveryRail.current?.scrollBy({ left: direction * Math.min(360, discoveryRail.current.clientWidth * .86), behavior: "smooth" });
   }
 
   async function detectLocation() {
@@ -248,12 +301,25 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
       setBusy(false);
       return;
     }
-    setNearbyPandits(data.pandits ?? []);
+    const eligible = data.pandits ?? [];
+    if (preferredPandit) {
+      const selected = eligible.find((pandit) => pandit.id === preferredPandit.id);
+      if (!selected) {
+        setMessage(`${preferredPandit.name} is not available for this Puja at your location. Choose another nearby Pandit below.`);
+        setNearbyPandits(eligible);
+        setPreferredPandit(null);
+        setBusy(false);
+        return;
+      }
+      await sendRequest(selected.id, current);
+      return;
+    }
+    setNearbyPandits(eligible);
     setBusy(false);
   }
 
-  async function sendRequest(panditId: string) {
-    if (!coordinates || !requestType) return;
+  async function sendRequest(panditId: string, confirmedLocation = coordinates) {
+    if (!confirmedLocation || !requestType) return;
     setBusy(true);
     setMessage("");
     const response = await fetch("/api/bookings", {
@@ -261,7 +327,7 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         panditId, serviceId, address, notes, requestType, situation, preferredLanguage: language,
-        materialsOption, latitude: coordinates.latitude, longitude: coordinates.longitude,
+        materialsOption, latitude: confirmedLocation.latitude, longitude: confirmedLocation.longitude,
       }),
     });
     const data = await readJson<{ error?: string; matchedPandit?: { name: string; distanceKm: string; etaMinutes: number } }>(response);
@@ -351,9 +417,33 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
               <div className="customer-simple-steps"><span><b>1</b> Describe</span><i /><span><b>2</b> Choose</span><i /><span><b>3</b> Confirm</span></div>
             </div>
             <div className="customer-welcome-image"><Image src="/images/customer-puja-welcome.png" alt="A family receiving Puja guidance from a trusted Pandit at home" width={1750} height={900} priority unoptimized /><span><ShieldCheck /> Verified Pandits · Private booking</span></div>
-          </div>
+            </div>
 
-          <div className="customer-choice-heading" id="request-assistance"><div><span>Quick options</span><h2>Or choose what you already know</h2></div><p>Nothing is submitted until you confirm.</p></div>
+            <section className="customer-pandit-discovery" aria-labelledby="nearby-pandit-heading">
+              <div className="customer-discovery-heading">
+                <div><span>Nearby verified Pandits</span><h2 id="nearby-pandit-heading">Choose someone your family can trust</h2><p>Only approved, online Pandits inside their service area are shown.</p></div>
+                <div className="customer-discovery-controls">
+                  <button className="btn btn-ghost" onClick={loadNearbyDiscovery} disabled={discoveryBusy}><MapPin size={16} /> {discoveryBusy ? "Checking location…" : discoveryPandits.length ? "Refresh nearby" : "Show Pandits near me"}</button>
+                  {discoveryPandits.length > 1 && <><button className="icon-button" aria-label="Previous Pandits" onClick={() => moveDiscovery(-1)}><ArrowLeft size={18} /></button><button className="icon-button" aria-label="Next Pandits" onClick={() => moveDiscovery(1)}><ChevronRight size={18} /></button></>}
+                </div>
+              </div>
+              {discoveryMessage && <div className="customer-discovery-message"><MapPin size={18} /><span>{discoveryMessage}</span></div>}
+              {discoveryPandits.length > 0 && <div className="customer-pandit-rail" ref={discoveryRail}>{discoveryPandits.map((pandit) => {
+                const labels = pandit.services.length ? pandit.services : pandit.specialities;
+                const extraCount = Math.max(0, labels.length - 3);
+                return <article className="customer-pandit-card" key={pandit.id}>
+                  <div className="customer-pandit-top"><span className="pandit-avatar">{pandit.name.split(/\s+/).map((part) => part[0]).slice(0,2).join("")}</span><div><h3>{pandit.name}</h3><span className="online-label">Available nearby</span></div><b>{pandit.distance_km} km</b></div>
+                  <div className="customer-pandit-tags">{labels.slice(0,3).map((item) => <span key={item}>{item}</span>)}{extraCount > 0 && <span>+{extraCount} more</span>}</div>
+                  <div className="customer-pandit-facts"><span><Star size={15} fill="currentColor" /><strong>{pandit.rating_count ? Number(pandit.rating).toFixed(1) : "New"}</strong><small>{pandit.rating_count ? `${pandit.rating_count} ratings` : "No ratings yet"}</small></span><span><Clock3 size={15} /><strong>{pandit.experience_years} years</strong><small>Experience</small></span><span><BadgeCheck size={15} /><strong>{pandit.completed_jobs}</strong><small>Pujas completed</small></span></div>
+                  <p className="customer-pandit-language">Speaks {pandit.languages.slice(0,3).join(", ")}</p>
+                  <div className="customer-pandit-price"><span>Starts from <strong>₹{pandit.starting_charge.toLocaleString("en-IN")}</strong></span><small>About {pandit.eta_minutes} min away</small></div>
+                  <button className="btn btn-primary btn-block" onClick={() => requestDiscoveryPandit(pandit)}>Request this Pandit</button>
+                  <Link className="customer-pandit-more" href={`/customer/pandits/${pandit.id}`}>Know more about {pandit.name} <ChevronRight size={15} /></Link>
+                </article>;
+              })}</div>}
+            </section>
+
+            <div className="customer-choice-heading" id="request-assistance"><div><span>Quick options</span><h2>Or choose what you already know</h2></div><p>Nothing is submitted until you confirm.</p></div>
           <div className="customer-choice-grid">
             <button className="customer-choice-card urgent" onClick={() => choosePath("PANDIT_SOS")}><span><AlertTriangle /></span><div><small>Urgent help</small><strong>My Pandit cancelled</strong><p>Quickly find another approved Pandit nearby.</p></div><ChevronRight /></button>
             <button className="customer-choice-card" onClick={() => choosePath("KNOWN_PUJA")}><span><Sparkles /></span><div><small>Quick booking</small><strong>I know the Puja</strong><p>Select the ritual and compare nearby Pandits.</p></div><ChevronRight /></button>
@@ -366,7 +456,7 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
 
       {consultationMode && <ConsultationPanel role="CUSTOMER" onBack={() => setConsultationMode(false)} />}
 
-      {requestType && !match && nearbyPandits === null && (
+          {requestType && !match && nearbyPandits === null && (
         <>
           <div className="flow-assurance"><ShieldCheck /><div><strong>You stay in control</strong><span>Nothing is sent until you review the Puja, language, materials and address.</span></div></div>
           <div className="progress"><span className="active">1 Your need</span><i /><span className={serviceId ? "active" : ""}>2 Guidance</span><i /><span>3 Match & track</span></div>
@@ -410,8 +500,9 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
               )}
             </div>
 
-            <aside className="side-card sticky">
-              <h3>Request details</h3>
+                <aside className="side-card sticky">
+                  <h3>Request details</h3>
+                  {preferredPandit && <div className="preferred-pandit-note"><BadgeCheck size={18} /><span><small>Your selected Pandit</small><strong>{preferredPandit.name}</strong><em>We will confirm this Pandit serves the selected Puja and your location.</em></span><button onClick={() => setPreferredPandit(null)}>Change</button></div>}
               <label>Preferred language<select value={language} onChange={(event) => setLanguage(event.target.value)}><option>Hindi</option><option>Marathi</option><option>Gujarati</option><option>English</option><option>Sanskrit</option></select></label>
               <label>Puja materials<select value={materialsOption} onChange={(event) => setMaterialsOption(event.target.value)}>{Object.entries(materialsLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
               <label>Full service address<textarea rows={3} value={address} onChange={(event) => { setAddress(event.target.value); if (locationSource === "POSTAL_CODE") { setCoordinates(null); setLocationSource(null); } }} placeholder="Building, street, area and PIN code" /></label>
@@ -419,7 +510,7 @@ export function CustomerPortal({ customerId }: { customerId: string }) {
               <button className="btn btn-ghost btn-block" onClick={locateFromAddress} disabled={locationBusy || !address.trim()}><Compass size={16} /> Confirm using PIN code area</button>
               <p className={`location-state ${coordinates ? "ready" : ""}`}>{coordinates ? locationSource === "GPS" ? `GPS detected within about ${Math.round(coordinates.accuracy)} metres` : "PIN code area confirmed. Matching and ETA will be approximate." : "GPS gives the best ETA. If unavailable, add a PIN code and confirm the area."}</p>
               <label>Additional note <em>Optional</em><textarea rows={2} value={notes} onChange={(event) => setNotes(event.target.value)} /></label>
-              <button className="btn btn-primary btn-block" disabled={busy || !serviceId} onClick={findNearbyPandits}>{busy ? "Finding nearby Pandits…" : requestType === "PANDIT_SOS" ? "Find replacement now" : "Show nearby Pandits"} <ChevronRight size={17} /></button>
+                  <button className="btn btn-primary btn-block" disabled={busy || !serviceId} onClick={findNearbyPandits}>{busy ? "Checking availability…" : preferredPandit ? `Confirm and request ${preferredPandit.name}` : requestType === "PANDIT_SOS" ? "Find replacement now" : "Show nearby Pandits"} <ChevronRight size={17} /></button>
               <p className="privacy-note"><ShieldCheck size={15} /> Exact address is released to the matched Pandit only after acceptance.</p>
             </aside>
           </section>
