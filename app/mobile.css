@@ -1,0 +1,161 @@
+/* Final mobile layout authority. Keep this after globals.css so every portal,
+   settings screen and transactional flow follows the same phone rules. */
+@media (max-width: 760px) {
+  :root { --mobile-gutter: 14px; }
+  html { -webkit-text-size-adjust: 100%; scroll-padding-top: 76px; }
+  body { min-width: 0; overflow-x: clip; overscroll-behavior-y: none; }
+  body, button, input, select, textarea { font-size-adjust: none; }
+  img, video, canvas, svg { max-width: 100%; }
+  main, section, article, form, fieldset, header, footer, nav, div { min-width: 0; }
+  p, h1, h2, h3, h4, strong, small, span { overflow-wrap: break-word; }
+
+  button, [role="button"], .btn, .icon-button, .text-button, a.account-menu-trigger {
+    min-height: 44px;
+    touch-action: manipulation;
+  }
+  input, select, textarea { width: 100%; max-width: 100%; min-height: 48px; font-size: 16px; }
+  input[type="checkbox"], input[type="radio"] { width: 20px; min-height: 20px; }
+
+  .topbar { height: 64px; padding-inline: var(--mobile-gutter); }
+  .topbar .brand { min-width: 0; }
+  .topbar .brand span:last-child { overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+  .topbar .nav-actions { flex: 0 0 auto; gap: 6px; }
+  .topbar .nav-actions .btn { padding-inline: 10px; }
+
+  .hero { min-height: 0; padding: 34px var(--mobile-gutter) 48px; }
+  .hero h1 { font-size: clamp(34px, 11vw, 48px); line-height: 1.02; }
+  .hero-copy > p { font-size: 16px; line-height: 1.55; }
+  .hero-actions, .button-row, .nearby-actions, .review-actions { width: 100%; }
+  .hero-actions .btn, .button-row .btn, .nearby-actions .btn { width: 100%; justify-content: center; }
+  .hero-showcase, .hero-photo { min-height: 0; }
+
+  .auth-shell { display: block; min-height: 100dvh; }
+  .auth-side { min-height: 170px; padding: 20px var(--mobile-gutter); }
+  .auth-side > div { margin-top: 20px; }
+  .auth-side h1 { font-size: clamp(27px, 8vw, 36px); }
+  .auth-form-wrap { min-height: 0; padding: 12px var(--mobile-gutter) 28px; }
+  .auth-card { width: 100%; padding: 20px 16px; border-radius: 20px; }
+  .auth-card h1, .auth-card h2 { font-size: clamp(26px, 8vw, 31px); }
+  .role-tabs { margin: 18px 0; }
+  .role-tabs button { padding-inline: 6px; }
+  .phone-field { grid-template-columns: 58px minmax(0,1fr); }
+
+  .portal-header { height: 66px; grid-template-columns:minmax(0,1fr) auto; gap: 8px; padding-inline: var(--mobile-gutter); }
+  .portal-header .portal-brand { min-width: 0; gap: 8px; }
+  .portal-header .brand-mark { flex: 0 0 38px; width: 38px; height: 38px; }
+  .portal-header .portal-brand > span:last-child { display: inline; overflow: hidden; font-size: 14px; text-overflow: ellipsis; white-space: nowrap; }
+  .portal-tabs, .portal-role-mark, .portal-account .account-identity { display: none !important; }
+  .portal-account { flex: 0 0 auto; gap: 6px; padding: 0; border: 0; }
+  .portal-account .notification-button, .portal-account .account-menu-trigger, .portal-account > .icon-button { width: 42px; height: 42px; padding: 0; }
+  .portal-main, .portal-customer .portal-main { width: 100%; padding: 20px var(--mobile-gutter) calc(102px + env(safe-area-inset-bottom)); }
+  .page-heading { margin-bottom: 18px; }
+  .page-heading h1 { font-size: clamp(27px, 8vw, 34px); }
+  .page-heading p { font-size: 14px; }
+
+  .portal-mobile-nav {
+    right: 8px;
+    bottom: calc(8px + env(safe-area-inset-bottom));
+    left: 8px;
+    width: auto;
+    padding: 5px;
+    border-radius: 16px;
+    grid-template-columns: repeat(4,minmax(0,1fr));
+  }
+  .portal-mobile-nav a { min-width: 0; min-height: 52px; gap: 3px; padding: 6px 2px; font-size: 9px; line-height: 1.1; }
+  .portal-mobile-nav a svg { width: 18px; height: 18px; }
+  .portal-mobile-nav a span { max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .portal-mobile-nav.mobile-nav-3 { grid-template-columns: repeat(3,minmax(0,1fr)); }
+
+  .workspace, .guided-workspace, .onboarding-card, .settings-workspace, .consultation-setup,
+  .profile-form-grid, .settings-form, .form-grid, .service-grid, .request-grid,
+  .document-grid, .payout-box, .approved-grid, .review-facts, .support-form {
+    grid-template-columns: minmax(0,1fr);
+  }
+  .intent-shell, .guided-main, .workspace-main, .side-card, .history, .tracking-card,
+  .onboarding-card, .consultation-center, .consultation-chat, .profile-editor,
+  .private-settings-card, .booking-payment { padding: 16px; border-radius: 17px; }
+  .intent-card, .customer-choice-card { min-height: 96px; padding: 14px; }
+  .form-grid .wide, .profile-form-grid .span-2, .support-form .wide, .support-message { grid-column: auto; }
+
+  .customer-welcome { min-height: 0; border-radius: 19px; }
+  .customer-welcome-copy { padding: 18px 16px 20px; }
+  .customer-welcome-image { height: 140px; min-height: 140px; }
+  .customer-welcome h1 { font-size: clamp(28px, 9vw, 37px); }
+  .customer-primary-action { min-height: 76px; }
+  .customer-choice-grid, .customer-trust-row { grid-template-columns: minmax(0,1fr); }
+  .customer-pandit-rail { grid-auto-columns: min(86vw,330px); margin-inline: calc(var(--mobile-gutter) * -1); padding-inline: var(--mobile-gutter); scroll-padding-inline: var(--mobile-gutter); }
+  .customer-pandit-card { scroll-snap-align: center; }
+  .customer-pandit-top, .nearby-pandit-head { grid-template-columns: auto minmax(0,1fr); }
+  .customer-pandit-top > :last-child, .nearby-pandit-head > :last-child { grid-column: 2; justify-self: start; }
+  .preferred-pandit-note { grid-template-columns:auto minmax(0,1fr); }
+  .preferred-pandit-note .btn { grid-column:1/-1; width:100%; }
+
+  .status-track { grid-template-columns: repeat(5,92px); overflow-x: auto; padding: 4px 0 10px; scrollbar-width: none; }
+  .status-track::-webkit-scrollbar, .customer-pandit-rail::-webkit-scrollbar { display: none; }
+  .request-unavailable, .customer-location-card, .request-top, .approved-head,
+  .review-list-item, .review-profile-head, .onboarding-status-card {
+    grid-template-columns: auto minmax(0,1fr);
+  }
+  .request-unavailable .btn, .customer-location-card .btn, .request-top > :last-child,
+  .approved-head > :last-child, .onboarding-status-card > strong { grid-column: 1/-1; width: 100%; }
+  .payment-method-grid { grid-template-columns: minmax(0,1fr); }
+  .completed-payment-list article { align-items: stretch; flex-direction: column; }
+
+  .onboarding-header { align-items: flex-start; gap: 10px; }
+  .onboarding-header h1 { font-size: 27px; }
+  .progress-ring { flex: 0 0 66px; width: 66px; height: 66px; }
+  .pricing-row, .document-upload { grid-template-columns:auto minmax(0,1fr); }
+  .price-input, .document-state { grid-column: 1/-1 !important; }
+  .price-input input, .document-upload input[type="file"] { width: 100%; max-width: 100%; }
+  .reference-row { grid-template-columns: minmax(0,1fr); }
+  .requirements-card { grid-template-columns: minmax(0,1fr); }
+  .requirements-card ul { columns:1; }
+
+  .settings-workspace { gap: 12px; }
+  .settings-workspace > aside { position: static; overflow: hidden; padding: 8px; }
+  .settings-workspace > aside > strong, .settings-workspace > aside > small { display:none; }
+  .settings-workspace > aside nav { grid-template-columns: repeat(2,minmax(0,1fr)); gap: 5px; margin:0; }
+  .settings-workspace > aside nav a { min-height:48px; justify-items:start; grid-template-columns:20px minmax(0,1fr); gap:8px; padding:9px; font-size:11px; text-align:left; }
+  .private-card-heading { grid-template-columns:auto minmax(0,1fr); }
+  .private-card-heading > b { grid-column:1/-1; justify-self:start; }
+  .security-setting-row { grid-template-columns:auto minmax(0,1fr); }
+  .security-setting-row > :last-child { grid-column:2; justify-self:start; }
+  .security-links { flex-direction:column; gap:10px; }
+  .settings-save, .profile-editor-actions .btn { width:100%; }
+
+  .review-overlay { align-items:stretch; }
+  .review-drawer { width:100%; max-width:none; padding:16px var(--mobile-gutter) calc(24px + env(safe-area-inset-bottom)); border-radius:0; }
+  .review-drawer > header { position:sticky; top:0; z-index:3; margin:-16px calc(var(--mobile-gutter) * -1) 12px; padding:12px var(--mobile-gutter); background:rgba(255,255,255,.97); }
+  .review-actions, .review-actions.multi { display:grid; grid-template-columns:minmax(0,1fr); }
+  .review-actions .btn { width:100%; }
+  .admin-bookings-table { overflow:visible; }
+
+  .notification-panel { position:fixed; inset:68px 8px auto; width:auto; max-height:calc(100dvh - 84px); overflow-y:auto; border-radius:16px; }
+  .notification-permission { grid-template-columns:auto minmax(0,1fr); }
+  .notification-permission button { grid-column:1/-1; width:100%; }
+  .account-menu-panel { position:fixed; inset:68px 8px auto; width:auto; max-width:none; max-height:calc(100dvh - 84px); overflow-y:auto; }
+
+  .chat-messages { min-height:42dvh; max-height:56dvh; padding:12px 8px; }
+  .chat-bubble { max-width:92%; }
+  .chat-composer { position:sticky; bottom:0; grid-template-columns:minmax(0,1fr); padding:9px; }
+  .chat-composer .btn { width:100%; }
+  .legal-document { width:calc(100% - 20px); padding:20px 16px; }
+}
+
+@media (max-width: 370px) {
+  :root { --mobile-gutter: 10px; }
+  .portal-header .portal-brand > span:last-child, .topbar .brand span:last-child { display:none; }
+  .portal-mobile-nav a { font-size:8px; }
+  .stat-grid, .admin-stats, .customer-pandit-facts { grid-template-columns:minmax(0,1fr); }
+  .customer-pandit-facts > span + span { border-left:0; border-top:1px solid #eee3d5; }
+}
+
+@media (max-height: 520px) and (orientation: landscape) {
+  .portal-mobile-nav { position:static; margin:10px; }
+  .portal-main, .portal-customer .portal-main { padding-bottom:24px; }
+  .auth-side { display:none; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after { scroll-behavior:auto !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+}
