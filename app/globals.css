@@ -1852,6 +1852,51 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .portal-customer .btn-primary { color:#fff; border-color:transparent; background:linear-gradient(135deg,#dd6219,#ba3c17); box-shadow:0 8px 20px rgba(170,55,20,.19); }
 .portal-customer input:focus,.portal-customer textarea:focus,.portal-customer select:focus { border-color:#d77a36; box-shadow:0 0 0 4px rgba(222,105,27,.1); }
 .portal-customer .tracking-card { border-color:#e7d9c5; border-radius:18px; }
+.portal-customer .tracking-history { display:grid; gap:18px; }
+.portal-customer .live-request-title { align-items:center; margin:0; padding:0 2px; }
+.portal-customer .live-request-title .eyebrow { display:block; margin-bottom:6px; color:#b84b1e; }
+.portal-customer .tracking-list { gap:20px; }
+.portal-customer .tracking-card { display:grid; gap:20px; padding:26px; border-color:#e5d5be; border-radius:24px; background:#fffdfa; box-shadow:0 12px 36px rgba(76,39,22,.07); }
+.portal-customer .tracking-card::before { width:5px; background:linear-gradient(#e56b25,#bd3c1c); }
+.portal-customer .tracking-head { align-items:flex-start; padding-bottom:18px; border-bottom:1px solid #eee1d0; }
+.portal-customer .tracking-head .status { display:inline-flex; padding:6px 9px; color:#98401f; border-radius:999px; background:#fff0df; font-size:9px; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
+.portal-customer .tracking-head h3 { margin:11px 0 4px; color:#351d18; font:700 25px/1.15 Georgia,"Times New Roman",serif; }
+.portal-customer .tracking-head p { color:#77675e; font-size:13px; }
+.portal-customer .tracking-head p strong { color:#3f2c25; }
+.portal-customer .tracking-price { display:grid; gap:3px; min-width:128px; padding:11px 14px; border:1px solid #eadfce; border-radius:14px; background:#fff9ef; text-align:right; }
+.portal-customer .tracking-price small { color:#8b796e; font-size:10px; }
+.portal-customer .tracking-price strong { color:#291b17; font-size:18px; }
+.portal-customer .booking-current-state { display:grid; grid-template-columns:48px minmax(0,1fr); gap:14px; align-items:center; padding:17px 18px; border:1px solid #cbe7dc; border-radius:18px; background:#eff9f4; }
+.portal-customer .booking-current-state > span { display:grid; width:48px; height:48px; place-items:center; color:#fff; border-radius:15px; background:#16805e; }
+.portal-customer .booking-current-state svg { width:22px; }
+.portal-customer .booking-current-state div { display:grid; gap:3px; }
+.portal-customer .booking-current-state small { color:#167457; font-size:9px; font-weight:850; letter-spacing:.09em; text-transform:uppercase; }
+.portal-customer .booking-current-state h4 { margin:0; color:#143c31; font-size:17px; }
+.portal-customer .booking-current-state p { margin:0; color:#55736a; font-size:12px; line-height:1.45; }
+.portal-customer .booking-current-state.state-requested { border-color:#efd9b2; background:#fff8e9; }
+.portal-customer .booking-current-state.state-requested > span { background:#d88723; }
+.portal-customer .booking-current-state.state-requested small { color:#9a621d; }
+.portal-customer .booking-current-state.state-requested h4 { color:#513814; }
+.portal-customer .status-track { margin:2px 0 0; }
+.portal-customer .status-track span { color:#9b8d83; font-size:9px; font-weight:700; letter-spacing:.02em; text-transform:none; }
+.portal-customer .status-track span.current { color:#0b7655; font-weight:900; }
+.portal-customer .status-track i { width:14px; height:14px; border-width:3px; }
+.portal-customer .status-track span.current i { outline:4px solid #dff3eb; }
+.portal-customer .tracking-facts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); overflow:hidden; border:1px solid #eadfce; border-radius:16px; background:#fff; }
+.portal-customer .tracking-facts > span { display:grid; grid-template-columns:22px minmax(0,1fr); grid-template-rows:auto auto; gap:2px 9px; align-items:center; padding:14px 16px; }
+.portal-customer .tracking-facts > span + span { border-left:1px solid #eadfce; }
+.portal-customer .tracking-facts svg { grid-row:1/3; color:#a84c26; }
+.portal-customer .tracking-facts small { color:#938278; font-size:9px; text-transform:uppercase; }
+.portal-customer .tracking-facts strong { overflow:hidden; color:#4b3931; font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
+.portal-customer .tracking-actions { display:flex; align-items:center; gap:16px; }
+.portal-customer .tracking-actions:empty { display:none; }
+.portal-customer .arrival-code { margin:0; padding:16px 18px; border-radius:16px; }
+.portal-customer .arrival-code > span { display:grid; gap:3px; color:#472a20; }
+.portal-customer .arrival-code > span strong { font-size:13px; }
+.portal-customer .arrival-code > span small { color:#806c61; font-size:10px; }
+.portal-customer .arrival-code code { padding:8px 13px; color:#b9421f; font-size:20px; letter-spacing:.14em; }
+.portal-customer .arrival-code-locked { display:grid; grid-template-columns:auto 1fr; justify-content:start; gap:11px; color:#6d604f; border-style:solid; border-color:#e5dccf; background:#f8f5f0; }
+.portal-customer .arrival-code-locked svg { color:#8b7a69; }
 .portal-customer .portal-mobile-nav { border-top:1px solid #e4d4bd; background:rgba(255,251,243,.97); box-shadow:0 -8px 26px rgba(68,29,18,.08); }
 .portal-customer .portal-mobile-nav a { color:#76645a; }
 .portal-customer .portal-mobile-nav a.active { color:var(--customer-maroon); background:#fff2df; }
@@ -1893,6 +1938,22 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   .customer-choice-heading h2 { font-size:25px; }
   .customer-choice-grid { gap:10px; }
   .customer-choice-card { min-height:104px; padding:15px; border-radius:16px; }
+  .portal-customer .tracking-card { gap:16px; padding:18px 16px; border-radius:19px; }
+  .portal-customer .tracking-head { gap:10px; }
+  .portal-customer .tracking-head h3 { font-size:21px; }
+  .portal-customer .tracking-price { min-width:0; padding:9px 10px; }
+  .portal-customer .tracking-price small { display:none; }
+  .portal-customer .booking-current-state { grid-template-columns:42px minmax(0,1fr); padding:14px; }
+  .portal-customer .booking-current-state > span { width:42px; height:42px; border-radius:13px; }
+  .portal-customer .status-track { grid-template-columns:repeat(5,82px); margin-inline:0; }
+  .portal-customer .tracking-facts { grid-template-columns:1fr; }
+  .portal-customer .tracking-facts > span + span { border-top:1px solid #eadfce; border-left:0; }
+  .portal-customer .tracking-facts strong { white-space:normal; }
+  .portal-customer .tracking-actions { align-items:stretch; flex-direction:column; }
+  .portal-customer .tracking-actions .btn,.portal-customer .tracking-actions button { width:100%; justify-content:center; }
+  .portal-customer .arrival-code { align-items:flex-start; gap:12px; }
+  .portal-customer .arrival-code:not(.arrival-code-locked) { display:grid; grid-template-columns:1fr; }
+  .portal-customer .arrival-code code { justify-self:start; }
   .customer-trust-row { grid-template-columns:1fr; }
   .customer-trust-row > span + span { border-top:1px solid #eadfcf; border-left:0; }
 }

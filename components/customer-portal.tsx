@@ -41,6 +41,21 @@ type SpeechRecognitionLike = {
 };
 
 const statusOrder = ["REQUESTED", "ACCEPTED", "ON_THE_WAY", "ARRIVED", "IN_PROGRESS", "COMPLETED"];
+const journeySteps = [
+  { value: "REQUESTED", label: "Requested" },
+  { value: "ACCEPTED", label: "Confirmed" },
+  { value: "ON_THE_WAY", label: "On the way" },
+  { value: "ARRIVED", label: "Arrived" },
+  { value: "IN_PROGRESS", label: "Puja started" },
+];
+const bookingStatusCopy: Record<string, { label: string; title: string; detail: string }> = {
+  REQUESTED: { label: "Awaiting response", title: "Waiting for Pandit confirmation", detail: "We sent your request. You will be notified as soon as the Pandit responds." },
+  ACCEPTED: { label: "Confirmed", title: "Your Pandit has accepted", detail: "Your booking is confirmed. We will notify you when the Pandit starts travelling." },
+  ON_THE_WAY: { label: "Travelling", title: "Your Pandit is on the way", detail: "Follow the latest location below and keep your phone nearby for updates." },
+  ARRIVED: { label: "At your location", title: "Your Pandit has arrived", detail: "Meet the Pandit first, then share the verification code shown below." },
+  IN_PROGRESS: { label: "Puja underway", title: "Your Puja has started", detail: "The arrival was verified successfully. No action is needed right now." },
+  COMPLETED: { label: "Completed", title: "Your Puja is complete", detail: "Confirm how you will pay and leave a rating for your Pandit." },
+};
 const materialsLabels: Record<string, string> = {
   HAVE_MATERIALS: "I have the Puja materials",
   PANDIT_BRINGS: "Pandit should bring materials",
@@ -532,29 +547,36 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
       )}
 
       <section className="history tracking-history" id="live-requests">
-        <div className="section-title"><div><h2>Live requests</h2><p>Acceptance, journey and arrival verification in one place.</p></div><button className="icon-button" onClick={refreshBookings} aria-label="Refresh requests"><RefreshCw size={17} /></button></div>
+        <div className="section-title live-request-title"><div><span className="eyebrow">My bookings</span><h2>Your Puja requests</h2><p>See the latest update and what you need to do next.</p></div><button className="icon-button" onClick={refreshBookings} aria-label="Refresh requests"><RefreshCw size={17} /></button></div>
         {bookings.length ? <div className="tracking-list">{bookings.map((booking) => {
           const activeIndex = statusOrder.indexOf(booking.status);
           const isDeclined = booking.status === "DECLINED";
           const isCancelled = booking.status === "CANCELLED";
           const hasLiveLocation = booking.pandit_latitude != null && booking.pandit_longitude != null && !["REQUESTED", "DECLINED", "CANCELLED"].includes(booking.status);
           const distance = hasLiveLocation ? distanceKm(booking.latitude, booking.longitude, booking.pandit_latitude!, booking.pandit_longitude!) : null;
+          const statusCopy = bookingStatusCopy[booking.status];
           return <article className="tracking-card" key={booking.id}>
-            <div className="tracking-head"><div><span className="status">{booking.request_type.replaceAll("_", " ")}</span><h3>{booking.service_name}</h3><p>{booking.pandit_name ?? "Finding a Pandit"}</p></div><strong>₹{booking.amount.toLocaleString("en-IN")}</strong></div>
+            <div className="tracking-head"><div><span className="status">{booking.request_type === "PANDIT_SOS" ? "Urgent replacement" : "Puja booking"}</span><h3>{booking.service_name}</h3><p>with <strong>{booking.pandit_name ?? "a nearby Pandit"}</strong></p></div><div className="tracking-price"><small>Service amount</small><strong>₹{booking.amount.toLocaleString("en-IN")}</strong></div></div>
             {isDeclined ? <div className="request-unavailable">
               <AlertTriangle size={22} />
               <div><strong>This Pandit is unavailable</strong><p>{booking.pandit_name ?? "The selected Pandit"} could not accept your request. No booking has been confirmed or charged. Search now for another available nearby Pandit.</p>{rematchErrors[booking.id] && <small className="rematch-error">{rematchErrors[booking.id]}</small>}</div>
               <button className="btn btn-primary" disabled={rematchingId === booking.id} onClick={() => findAnotherPandit(booking.id)}>{rematchingId === booking.id ? "Searching nearby…" : "Find another Pandit"}</button>
             </div> : isCancelled ? <div className="request-cancelled"><strong>Request cancelled</strong><p>This request is closed and no booking is active.</p></div> :
-            <div className="status-track">{statusOrder.slice(0, 5).map((status, index) => <span className={index <= activeIndex ? "done" : ""} key={status}><i />{status.replaceAll("_", " ")}</span>)}</div>}
-            <div className="tracking-meta">
-              <span><PackageCheck size={15} /> {materialsLabels[booking.materials_option] ?? "Materials guidance requested"}</span>
-              {distance != null && <span><MapPin size={15} /> Pandit is approximately {distance.toFixed(1)} km away</span>}
-              {booking.status === "REQUESTED" && <span><Clock3 size={15} /> Waiting for Pandit response</span>}
-              {["REQUESTED","ACCEPTED"].includes(booking.status) && <button className="text-button danger" onClick={() => void cancelBooking(booking.id)}>Cancel request</button>}
-            </div>
-            {hasLiveLocation && <a className="text-button map-link" target="_blank" rel="noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${booking.pandit_latitude},${booking.pandit_longitude}`}>Open current Pandit location</a>}
-            {!["REQUESTED", "DECLINED", "CANCELLED"].includes(booking.status) && <div className="arrival-code"><span>Arrival verification code</span><code>{booking.arrival_otp}</code></div>}
+            <>
+              <div className={`booking-current-state state-${booking.status.toLowerCase()}`}><span>{booking.status === "REQUESTED" ? <Clock3 /> : <CheckCircle2 />}</span><div><small>{statusCopy?.label ?? booking.status.replaceAll("_", " ")}</small><h4>{statusCopy?.title}</h4><p>{statusCopy?.detail}</p></div></div>
+              <div className="status-track">{journeySteps.map((step, index) => <span className={`${index <= activeIndex ? "done" : ""} ${index === Math.min(activeIndex, journeySteps.length - 1) ? "current" : ""}`} key={step.value}><i />{step.label}</span>)}</div>
+              <div className="tracking-facts">
+                <span><PackageCheck size={17} /><small>Materials</small><strong>{materialsLabels[booking.materials_option] ?? "Guidance requested"}</strong></span>
+                {distance != null && <span><MapPin size={17} /><small>Live distance</small><strong>About {distance.toFixed(1)} km away</strong></span>}
+                <span><Clock3 size={17} /><small>Requested on</small><strong>{new Date(booking.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</strong></span>
+              </div>
+              <div className="tracking-actions">
+                {hasLiveLocation && <a className="btn btn-primary" target="_blank" rel="noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${booking.pandit_latitude},${booking.pandit_longitude}`}><MapPin size={16} /> Track Pandit on map</a>}
+                {["REQUESTED","ACCEPTED"].includes(booking.status) && <button className="text-button danger" onClick={() => void cancelBooking(booking.id)}>Cancel request</button>}
+              </div>
+              {["ACCEPTED", "ON_THE_WAY"].includes(booking.status) && <div className="arrival-code arrival-code-locked"><ShieldCheck size={18} /><span><strong>Arrival code is protected</strong><small>It will appear after the Pandit marks “Arrived”.</small></span></div>}
+              {booking.status === "ARRIVED" && <div className="arrival-code"><span><strong>Share this code with the Pandit</strong><small>Only share it after meeting the Pandit at your address.</small></span><code>{booking.arrival_otp}</code></div>}
+            </>}
             {booking.status === "COMPLETED" && <div className="booking-payment">
               <div><span className="eyebrow">Action required · Payment</span><h4>{booking.payment_status === "CONFIRMED" ? "Payment method confirmed" : "Puja completed — choose a payment method"}</h4><p>Select the method you will use. No online charge is made by the platform during beta.</p></div>
               {booking.payment_status === "CONFIRMED" ? <div className="payment-confirmed"><CheckCircle2 size={20} /><span><strong>{booking.payment_method === "CASH" ? "Cash" : "Previously recorded payment"}</strong><small>Confirmed for this completed Puja</small></span></div> : <div className="payment-method-grid">
@@ -572,7 +594,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
               <button className="btn btn-primary" disabled={ratingBusy === booking.id} onClick={() => submitRating(booking.id)}>{ratingBusy === booking.id ? "Saving rating…" : "Submit rating"}</button>
             </div>)}
           </article>;
-        })}</div> : <div className="empty"><Clock3 size={26} /><strong>No active help requests</strong><span>Choose one of the three paths above when you need religious assistance.</span></div>}
+        })}</div> : <div className="empty"><Clock3 size={26} /><strong>No Puja requests yet</strong><span>Choose “Help me choose and book” whenever your family needs a Pandit.</span></div>}
       </section>
     </AppShell>
   );
