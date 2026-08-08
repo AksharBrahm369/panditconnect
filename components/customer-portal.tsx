@@ -89,6 +89,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
   const [language, setLanguage] = useState("Hindi");
   const [materialsOption, setMaterialsOption] = useState("NEED_GUIDANCE");
   const [address, setAddress] = useState("");
+  const [pinCode, setPinCode] = useState("");
   const [notes, setNotes] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
   const [policyAccepted, setPolicyAccepted] = useState(false);
@@ -241,9 +242,9 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
   }
 
   async function locateFromAddress() {
-    const postalCode = address.match(/\b[1-9]\d{5}\b/)?.[0];
-    if (!postalCode) {
-      setMessage("Add the 6-digit PIN code to your address so we can match by area without GPS.");
+    const postalCode = pinCode.replace(/\D/g, "");
+    if (!/^[1-9]\d{5}$/.test(postalCode)) {
+      setMessage("Enter a valid 6-digit Indian PIN code. The first digit cannot be 0.");
       return null;
     }
     setLocationBusy(true);
@@ -314,6 +315,10 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
       setMessage("Please add a short description of what happened.");
       return;
     }
+    if (!/^[1-9]\d{5}$/.test(pinCode)) {
+      setMessage("Enter your 6-digit service-area PIN code before continuing.");
+      return;
+    }
     setBusy(true);
     setMessage("");
     const current = coordinates ?? await locateFromAddress();
@@ -356,7 +361,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
-        panditId, serviceId, address, notes, requestType, situation, preferredLanguage: language,
+        panditId, serviceId, address, postalCode: pinCode, notes, requestType, situation, preferredLanguage: language,
         materialsOption, scheduledAt: requestType === "SCHEDULED_PUJA" ? new Date(scheduledAt).toISOString() : undefined,
         policyAccepted, policyVersion: cancellationPolicyVersion,
         clientRequestId,
@@ -572,7 +577,8 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
               <label>Preferred language<select value={language} onChange={(event) => setLanguage(event.target.value)}><option>Hindi</option><option>Marathi</option><option>Gujarati</option><option>English</option><option>Sanskrit</option></select></label>
               <label>Puja materials<select value={materialsOption} onChange={(event) => setMaterialsOption(event.target.value)}>{Object.entries(materialsLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
               {requestType === "SCHEDULED_PUJA" && <label>Puja date and time<input type="datetime-local" value={scheduledAt} min={dateTimeLocalValue(Date.now() + 2 * 60 * 60 * 1000)} max={dateTimeLocalValue(Date.now() + 180 * 24 * 60 * 60 * 1000)} onChange={(event) => setScheduledAt(event.target.value)} /><small className="field-hint">Schedule at least 2 hours ahead.</small></label>}
-              <label>Full service address<textarea rows={3} value={address} onChange={(event) => { setAddress(event.target.value); if (locationSource === "POSTAL_CODE") { setCoordinates(null); setLocationSource(null); } }} placeholder="Building, street, area and PIN code" /></label>
+              <label>Full service address<textarea rows={3} value={address} onChange={(event) => { const nextAddress=event.target.value;setAddress(nextAddress);const detectedPin=nextAddress.match(/(?:^|\D)([1-9]\d{2}[\s-]?\d{3})(?!\d)/)?.[1]?.replace(/\D/g,"");if(detectedPin)setPinCode(detectedPin);if (locationSource === "POSTAL_CODE") { setCoordinates(null); setLocationSource(null); } }} placeholder="House or building, street and area" /></label>
+              <label>6-digit PIN code<input inputMode="numeric" autoComplete="postal-code" maxLength={6} pattern="[1-9][0-9]{5}" value={pinCode} onChange={(event)=>{setPinCode(event.target.value.replace(/\D/g,"").slice(0,6));if(locationSource==="POSTAL_CODE"){setCoordinates(null);setLocationSource(null);}}} placeholder="Example: 400075"/><small className="field-hint">Enter the PIN code for the Puja address.</small></label>
               <button className="btn btn-ghost btn-block" onClick={detectLocation} disabled={locationBusy}>{locationBusy ? "Detecting GPS…" : <><MapPin size={16} /> Use my current GPS location</>}</button>
               <button className="btn btn-ghost btn-block" onClick={locateFromAddress} disabled={locationBusy || !address.trim()}><Compass size={16} /> Confirm using PIN code area</button>
               <p className={`location-state ${coordinates ? "ready" : ""}`}>{coordinates ? locationSource === "GPS" ? `GPS detected within about ${Math.round(coordinates.accuracy)} metres` : "PIN code area confirmed. Matching and ETA will be approximate." : "GPS gives the best ETA. If unavailable, add a PIN code and confirm the area."}</p>

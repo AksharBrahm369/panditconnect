@@ -33,6 +33,7 @@ export function PanditPortal({ userName }: { userName?: string | null }) {
   const [actionErrors, setActionErrors] = useState<Record<string, string>>({});
   const [consultationRate, setConsultationRate] = useState(99);
   const [urgentChatIds, setUrgentChatIds] = useState<string[]>([]);
+  const [currentTime, setCurrentTime] = useState(() => Date.now());
   const updateUrgentChats = useCallback((ids: string[]) => setUrgentChatIds(ids), []);
   const knownBookingStatuses = useRef<Map<string, string> | null>(null);
 
@@ -66,7 +67,7 @@ export function PanditPortal({ userName }: { userName?: string | null }) {
 
   useEffect(() => {
     const initial = window.setTimeout(() => load(true), 0);
-    const refresh = () => { load(false); };
+    const refresh = () => { setCurrentTime(Date.now()); load(false); };
     const timer = window.setInterval(refresh, 5_000);
     const onVisibility = () => { if (document.visibilityState === "visible") refresh(); };
     window.addEventListener("focus", refresh);
@@ -230,7 +231,7 @@ export function PanditPortal({ userName }: { userName?: string | null }) {
               {b.status === "ACCEPTED" && <button className="pandit-next-button" disabled={busy} onClick={() => transition(b.id, "ON_THE_WAY")}><Navigation /> I am leaving now <ChevronRight /></button>}
               {b.status === "ON_THE_WAY" && <button className="pandit-next-button" disabled={busy} onClick={() => transition(b.id, "ARRIVED")}><MapPin /> I have arrived <ChevronRight /></button>}
               {b.status === "ARRIVED" && <div className="pandit-code-step"><label htmlFor={`arrival-otp-${b.id}`}>Enter customer&apos;s 6-digit code</label><div><input id={`arrival-otp-${b.id}`} inputMode="numeric" autoComplete="one-time-code" maxLength={6} placeholder="000000" value={arrivalOtps[b.id] ?? ""} onChange={(event) => setArrivalOtps((current) => ({ ...current, [b.id]: event.target.value.replace(/\D/g, "").slice(0, 6) }))}/><button disabled={busy || (arrivalOtps[b.id]?.length ?? 0) !== 6} onClick={() => transition(b.id, "IN_PROGRESS", arrivalOtps[b.id])}><KeyRound /> Verify code & start Puja</button></div></div>}
-              {b.status === "ARRIVED"&&b.arrived_at&&Date.now()-new Date(b.arrived_at).getTime()>=15*60_000&&<button className="pandit-no-show-button" disabled={busy} onClick={()=>void reportNoShow(b.id)}>Customer is not available · Report no-show</button>}
+              {b.status === "ARRIVED"&&b.arrived_at&&currentTime-new Date(b.arrived_at).getTime()>=15*60_000&&<button className="pandit-no-show-button" disabled={busy} onClick={()=>void reportNoShow(b.id)}>Customer is not available · Report no-show</button>}
               {b.status === "IN_PROGRESS" && <button className="pandit-next-button" disabled={busy} onClick={() => transition(b.id, "COMPLETED")}><Check /> Puja is complete</button>}
             </div>{actionErrors[b.id] && <div className="inline-action-error">{actionErrors[b.id]}</div>}
           </article>; })}</div> : <div className="pandit-rest-state"><span><BellRing /></span><strong>No request needs action</strong><p>{profile.is_online ? "You can keep your phone nearby. New requests will appear here automatically." : "Go online above whenever you are ready."}</p></div>}

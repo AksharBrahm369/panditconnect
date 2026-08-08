@@ -76,6 +76,7 @@ export async function POST(request: Request) {
   const body = await request.json() as {
     serviceId?: string;
     address?: string;
+    postalCode?: string;
     notes?: string;
     latitude?: number;
     longitude?: number;
@@ -92,6 +93,8 @@ export async function POST(request: Request) {
   const latitude = Number(body.latitude);
   const longitude = Number(body.longitude);
   const preferredLanguage = body.preferredLanguage?.trim();
+  const addressPin = body.address?.match(/(?:^|\D)([1-9]\d{2}[\s-]?\d{3})(?!\d)/)?.[1]?.replace(/\D/g, "") ?? "";
+  const postalCode = (body.postalCode ?? addressPin).replace(/\D/g, "");
   if (body.policyAccepted !== true || body.policyVersion !== CANCELLATION_POLICY_VERSION) {
     return NextResponse.json({ error: "Review and accept the cancellation policy before booking" }, { status: 400 });
   }
@@ -99,7 +102,7 @@ export async function POST(request: Request) {
   if (!body.serviceId || !body.address?.trim() || !body.panditId) {
     return NextResponse.json({ error: "Choose a nearby Pandit and enter the service address" }, { status: 400 });
   }
-  if (!/\b[1-9]\d{5}\b/.test(body.address)) return NextResponse.json({ error: "Add a valid 6-digit PIN code to the service address" }, { status: 400 });
+  if (!/^[1-9]\d{5}$/.test(postalCode)) return NextResponse.json({ error: "Enter a valid 6-digit Indian PIN code for the service address" }, { status: 400 });
   if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
       !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
     return NextResponse.json({ error: "Allow current GPS location before sending the request" }, { status: 400 });
@@ -184,7 +187,7 @@ export async function POST(request: Request) {
      ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'REQUESTED',$10,$11,$12,$13,$14,$15,$16,now(),$17::jsonb,$18,$19,$20)
      ON CONFLICT(customer_id,client_request_id) WHERE client_request_id IS NOT NULL DO NOTHING RETURNING id`,
     [
-      id, user.id, pandit.id, body.serviceId, body.address.trim().slice(0, 500), latitude, longitude,
+      id, user.id, pandit.id, body.serviceId, `${body.address.trim().replace(/,?\s*PIN\s*[-:]?\s*[1-9]\d{5}\s*$/i, "")}, PIN ${postalCode}`.slice(0, 500), latitude, longitude,
       body.notes?.trim().slice(0, 1000) || null, pandit.charge, await encryptArrivalOtp(otp), requestType,
       body.situation?.trim().slice(0, 1200) || null, preferredLanguage, materialsOption, scheduledAt?.toISOString() ?? null,
       CANCELLATION_POLICY_VERSION,JSON.stringify(CANCELLATION_POLICY_SNAPSHOT),

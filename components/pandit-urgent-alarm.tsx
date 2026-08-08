@@ -34,7 +34,10 @@ export function PanditUrgentAlarm({ pujaRequests, chatRequests }: { pujaRequests
   const [muted, setMuted] = useState(false);
   const previousCount = useRef(0);
 
-  useEffect(() => setEnabled(localStorage.getItem(ALARM_KEY) === "on"), []);
+  useEffect(() => {
+    const timer = window.setTimeout(() => setEnabled(localStorage.getItem(ALARM_KEY) === "on"), 0);
+    return () => window.clearTimeout(timer);
+  }, []);
   useEffect(() => {
     if (urgentCount > previousCount.current) setMuted(false);
     previousCount.current = urgentCount;
