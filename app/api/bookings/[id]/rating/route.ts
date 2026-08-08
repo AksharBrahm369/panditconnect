@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
+import { recordBookingEvent } from "@/lib/booking-risk";
 
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await currentUser();
@@ -24,16 +25,12 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
      updated_profile AS (
        UPDATE pim_v2.pandit_profiles p
        SET rating=(
-             SELECT round(
-               (COALESCE(sum(b.customer_rating),0)+$3)::numeric /
-               (count(b.customer_rating)+1),
-               1
-             )
+             SELECT round(avg(b.customer_rating)::numeric,1)
              FROM pim_v2.bookings b
              WHERE b.pandit_id=p.user_id AND b.customer_rating IS NOT NULL
            ),
            rating_count=(
-             SELECT count(*)::int+1
+             SELECT count(*)::int
              FROM pim_v2.bookings b
              WHERE b.pandit_id=p.user_id AND b.customer_rating IS NOT NULL
            ),
@@ -51,5 +48,6 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
       { status: 409 },
     );
   }
+  await recordBookingEvent({bookingId:id,actorId:user.id,actorRole:user.role,eventType:"CUSTOMER_RATING_SUBMITTED",metadata:{rating,hasComment:Boolean(comment)}});
   return NextResponse.json({ success: true, ...result.rows[0] });
 }

@@ -18,12 +18,14 @@ export async function GET() {
     bookings: number;
     recent: unknown[];
     approved: unknown[];
+    risk: { outstanding_balance:number; restricted_customers:number; open_disputes:number };
   }>(
     `SELECT
       (SELECT count(*)::int FROM pim_v2.users) AS users,
       (SELECT count(*)::int FROM pim_v2.pandit_profiles WHERE verification_status IN ('PENDING','INCOMPLETE','SUBMITTED','UNDER_REVIEW','CHANGES_REQUESTED','REJECTED')) AS pending_pandits,
       (SELECT count(*)::int FROM pim_v2.pandit_profiles WHERE verification_status='APPROVED') AS approved_pandits,
       (SELECT count(*)::int FROM pim_v2.bookings) AS bookings,
+      json_build_object('outstanding_balance',COALESCE((SELECT sum(amount)::int FROM pim_v2.account_ledger WHERE entry_type='CANCELLATION_FEE' AND status='OUTSTANDING'),0),'restricted_customers',(SELECT count(*)::int FROM pim_v2.customer_risk_profiles WHERE restricted_until>now() OR requires_prepayment=true),'open_disputes',(SELECT count(*)::int FROM pim_v2.support_cases WHERE status IN ('OPEN','IN_REVIEW') AND category IN ('BOOKING','NO_SHOW'))) AS risk,
       COALESCE((
         SELECT json_agg(row_to_json(recent_rows)) FROM (
           SELECT b.id,b.status,b.amount,b.created_at,b.request_type,b.scheduled_at,s.name AS service_name,
@@ -62,6 +64,7 @@ export async function GET() {
       },
       recent: row.recent,
       approved: row.approved,
+      risk: row.risk,
     },
     { headers: { "Cache-Control": "no-store, max-age=0" } },
   );

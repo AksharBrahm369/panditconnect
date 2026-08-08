@@ -1,10 +1,11 @@
 import { LegalPage } from "@/components/legal-page";
 
 export default function CancellationPolicyPage() {
-  return <LegalPage title="Cancellation and refund policy" summary="Clear status messages help customers understand whether a request was sent, accepted, cancelled or completed.">
-    <section><h2>Before acceptance</h2><p>A customer may withdraw a request before a Pandit accepts it. If a Pandit declines or does not accept, no booking is confirmed and the customer can search for another available Pandit.</p></section>
-    <section><h2>After acceptance</h2><p>Cancellation after acceptance should be made as early as possible. During beta, the platform does not collect online payment, so no platform payment refund is generated. Any cash or direct payment dispute must be reported through support with the booking reference.</p></section>
-    <section><h2>Pandit cancellation or non-arrival</h2><p>If a Pandit cancels or cannot arrive, the customer may request rematching. Repeated cancellation, false status updates or non-arrival may trigger review or suspension.</p></section>
-    <section><h2>Future paid services</h2><p>Before online payments launch, this policy must be updated with cancellation windows, fees, refund destination and timing, chargeback handling, taxes and grievance escalation. Paid checkout must not be enabled until those terms are published.</p></section>
+  return <LegalPage title="Cancellation policy" summary="Policy version 2026-08-v1. The exact charge is shown before a customer confirms cancellation.">
+    <section><h2>Fees by booking stage</h2><p>Before acceptance: free. Within five minutes after acceptance: free. After that grace period: ₹49. Once the Pandit is travelling: 20% of the Puja amount, capped at ₹99. After verified arrival: 30%, capped at ₹199. Once the arrival code starts the Puja, online cancellation is unavailable and support must review any exceptional situation.</p></section>
+    <section><h2>Payment after Puja</h2><p>The full Puja amount remains payable after service. A late-cancellation charge is recorded separately as an outstanding account balance. Until online collection is enabled, customers can dispute or request a waiver through support. New bookings may be paused while a valid balance remains outstanding.</p></section>
+    <section><h2>Customer protections</h2><p>No charge should apply when the Pandit cancelled, asked the customer to cancel, materially failed to travel, arrived at the wrong location, or a genuine safety issue occurred. Select the relevant cancellation reason and create a support case. Admin can review GPS and the booking timeline and waive an incorrect charge.</p></section>
+    <section><h2>Pandit protection</h2><p>Late charges compensate reserved time and verified travel. False travel or arrival updates, repeated cancellations and non-arrival are reviewable and may lead to restrictions. Compensation remains pending until the related charge is collected and any dispute is resolved.</p></section>
+    <section><h2>Consent and records</h2><p>The customer must accept this policy before every booking. The platform records the policy version, acceptance time, booking status changes and limited security hashes. It does not publicly expose this information.</p></section>
   </LegalPage>;
 }

@@ -2161,6 +2161,32 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .pandit-cancelled article strong { color:#4a332d; font-size:13px; }
 .pandit-cancelled article span,.pandit-cancelled article p { margin:0; color:#8a776e; font-size:10px; }
 .pandit-cancelled article b { color:#b23f25; }
+.booking-policy-consent { display:grid; gap:8px; padding:13px; border:1px solid #ecd1bd; border-radius:14px; background:#fff9f2; }
+.booking-policy-consent > strong { color:#5a2b21; font-size:13px; }
+.booking-policy-consent > p { margin:0; color:#765f55; font-size:10px; line-height:1.5; }
+.booking-policy-consent > label { display:flex; align-items:flex-start; gap:9px; color:#4c3830; font-size:11px; line-height:1.4; }
+.booking-policy-consent input { flex:0 0 auto; width:17px; height:17px; min-height:0; margin-top:1px; }
+.booking-policy-consent > a { color:#a53b21; font-size:10px; font-weight:800; text-decoration:underline; }
+.pandit-payment-action { display:flex; align-items:center; justify-content:flex-end; gap:7px; flex-wrap:wrap; }
+.pandit-payment-action button,.pandit-no-show-button { padding:8px 10px; border:0; border-radius:9px; color:#fff; background:#177254; font-size:10px; font-weight:800; cursor:pointer; }
+.pandit-payment-action button.danger,.pandit-no-show-button { background:#a43d26; }
+.pandit-no-show-button { width:100%; min-height:42px; }
+.price-change-review { display:grid; grid-template-columns:minmax(0,1fr) auto auto; align-items:center; gap:10px; padding:14px; border:1px solid #e8c58d; border-radius:14px; background:#fff9e9; }
+.price-change-review > div { display:grid; gap:3px; }
+.price-change-review small { color:#a44a25; font-size:9px; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
+.price-change-review strong { color:#40251f; font-size:14px; }
+.price-change-review p { margin:0; color:#756158; font-size:11px; }
+.price-change-review button { min-height:40px; padding:8px 12px; border:1px solid #d9c8b6; border-radius:10px; color:#5b4035; background:#fff; font-weight:800; cursor:pointer; }
+.price-change-review button.approve { color:#fff; border-color:#167054; background:#167054; }
+.pandit-scope-control { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:12px 14px; border:1px solid #e5d7c8; border-radius:13px; background:#fffaf3; }
+.pandit-scope-control > span { display:grid; gap:2px; color:#806d63; font-size:10px; }
+.pandit-scope-control strong { color:#442820; font-size:12px; }
+.pandit-scope-control button { min-height:40px; padding:8px 11px; border:0; border-radius:10px; color:#fff; background:#a64325; font-weight:800; cursor:pointer; }
+.admin-risk-strip { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); overflow:hidden; margin-bottom:18px; border:1px solid #e3d7c8; border-radius:16px; background:#fff; }
+.admin-risk-strip > span { display:grid; gap:4px; padding:15px 18px; }
+.admin-risk-strip > span + span { border-left:1px solid #eadfd3; }
+.admin-risk-strip small { color:#7d6c63; font-size:10px; }
+.admin-risk-strip strong { color:#40251f; font-size:20px; }
 .pandit-jobs > header { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:24px 26px; border-bottom:1px solid #eadcc6; background:#fff9ed; }
 .pandit-jobs header h2 { margin:5px 0 4px; color:#43211e; font:700 clamp(23px,3vw,31px)/1.08 Georgia,"Times New Roman",serif; }
 .pandit-jobs header p { margin:0; color:#7d695f; font-size:12px; }
@@ -2246,6 +2272,13 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   .pandit-tools { grid-template-columns:1fr; }
 }
 @media(max-width:720px) {
+  .price-change-review { grid-template-columns:1fr 1fr; }
+  .price-change-review > div { grid-column:1/-1; }
+  .price-change-review button { width:100%; }
+  .pandit-scope-control { align-items:stretch; flex-direction:column; }
+  .pandit-scope-control button { width:100%; }
+  .admin-risk-strip { grid-template-columns:1fr; }
+  .admin-risk-strip > span + span { border-top:1px solid #eadfd3; border-left:0; }
   .pandit-urgent-alarm { grid-template-columns:42px minmax(0,1fr); padding:13px; border-radius:16px; }
   .pandit-alarm-icon { width:42px; height:42px; border-radius:13px; }
   .pandit-urgent-alarm button,.pandit-urgent-alarm > .pandit-alarm-ready { grid-column:1/-1; width:100%; }

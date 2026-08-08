@@ -30,7 +30,9 @@ type Booking = {
   situation: string | null; materials_option: string; latitude: number; longitude: number;
   pandit_latitude: number | null; pandit_longitude: number | null; location_updated_at: string | null;
   customer_rating: number | null; rating_comment: string | null; rated_at: string | null;
-  payment_method: "CASH" | "UPI" | "CARD" | "OTHER" | null; payment_status: "NOT_SELECTED" | "CONFIRMED"; payment_confirmed_at: string | null;
+  cancellation_fee:number;cancellation_fee_status:string;cancellation_reason:string|null;cancelled_at:string|null;
+  proposed_amount:number|null;price_change_reason:string|null;price_change_status:"NONE"|"PENDING"|"APPROVED"|"REJECTED";
+  payment_method: "CASH" | "UPI" | "CARD" | "OTHER" | null; payment_status: "NOT_SELECTED" | "AWAITING_PANDIT" | "CONFIRMED" | "DISPUTED"; payment_confirmed_at: string | null;
 };
 type SpeechRecognitionLike = {
   lang: string; interimResults: boolean; continuous: boolean;
@@ -62,6 +64,7 @@ const materialsLabels: Record<string, string> = {
   PANDIT_BRINGS: "Pandit should bring materials",
   NEED_GUIDANCE: "Help me understand what is needed",
 };
+const cancellationPolicyVersion = "2026-08-v1";
 
 function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number) {
   const toRad = (value: number) => value * Math.PI / 180;
@@ -88,6 +91,9 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
+  const [policyAccepted, setPolicyAccepted] = useState(false);
+  const [clientRequestId, setClientRequestId] = useState("");
+  const [outstandingBalance, setOutstandingBalance] = useState(0);
   const [coordinates, setCoordinates] = useState<BrowserCoordinates | null>(null);
   const [locationSource, setLocationSource] = useState<"GPS" | "POSTAL_CODE" | null>(null);
   const [recommendation, setRecommendation] = useState<RitualRecommendation | null>(null);
@@ -120,7 +126,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
       credentials: "same-origin",
       headers: { "Cache-Control": "no-cache" },
     });
-    const data = await readJson<{ customerId?: string; bookings?: Booking[] }>(response);
+    const data = await readJson<{ customerId?: string; bookings?: Booking[]; account?: { outstandingBalance?: number } }>(response);
     if (response.status === 401) {
       setBookings([]);
       window.location.assign("/login?role=customer");
@@ -135,6 +141,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
       return;
     }
     setBookings(data.bookings ?? []);
+    setOutstandingBalance(data.account?.outstandingBalance ?? 0);
   }, [customerId]);
 
   useEffect(() => {
@@ -203,6 +210,8 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
     setNearbyPandits(null);
     setMessage("");
     setScheduledAt("");
+    setPolicyAccepted(false);
+    setClientRequestId(crypto.randomUUID());
   }
 
   function requestDiscoveryPandit(pandit: DiscoveryPandit) {
@@ -349,6 +358,8 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
       body: JSON.stringify({
         panditId, serviceId, address, notes, requestType, situation, preferredLanguage: language,
         materialsOption, scheduledAt: requestType === "SCHEDULED_PUJA" ? new Date(scheduledAt).toISOString() : undefined,
+        policyAccepted, policyVersion: cancellationPolicyVersion,
+        clientRequestId,
         latitude: confirmedLocation.latitude, longitude: confirmedLocation.longitude,
       }),
     });
@@ -430,14 +441,25 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
     });
     const data = await readJson<{ error?: string }>(response);
     if (!response.ok) setPaymentMessages((current) => ({ ...current, [bookingId]: data.error ?? "Unable to save the payment method." }));
-    else await refreshBookings();
+    else {
+      setPaymentMessages((current) => ({ ...current, [bookingId]: "Payment preference saved. Waiting for the Pandit to confirm cash received." }));
+      await refreshBookings();
+    }
     setPaymentBusy(null);
   }
+  async function disputeCashPayment(bookingId:string){if(!window.confirm("Report a cash-payment disagreement? Please also create a support case with the facts."))return;setPaymentBusy(bookingId);const response=await fetch(`/api/bookings/${bookingId}/payment`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"DISPUTE"})});const data=await readJson<{error?:string}>(response);setPaymentMessages(current=>({...current,[bookingId]:response.ok?"Payment marked disputed. Open Help and safety to submit evidence.":data.error??"Unable to report payment issue."}));await refreshBookings();setPaymentBusy(null);}
+  async function decidePriceChange(bookingId:string,decision:"APPROVE"|"REJECT"){if(!window.confirm(decision==="APPROVE"?"Approve this revised total? The new amount will replace the original booking amount.":"Reject this change? The previously agreed amount and scope will remain."))return;const response=await fetch(`/api/bookings/${bookingId}/price-change`,{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({decision})});const data=await readJson<{error?:string}>(response);if(!response.ok)setMessage(data.error??"Unable to update the price request.");await refreshBookings();}
 
   async function cancelBooking(bookingId: string) {
-    const cancellationReason = window.prompt("Why are you cancelling this request?", "Plans changed")?.trim();
-    if (!cancellationReason) return;
     setMessage("");
+    const previewResponse=await fetch(`/api/bookings/${bookingId}/cancellation-preview`,{cache:"no-store"});
+    const preview=await readJson<{error?:string;fee?:number;stage?:string;free?:boolean}>(previewResponse);
+    if(!previewResponse.ok){setMessage(preview.error??"Unable to check cancellation terms.");return;}
+    const fee=preview.fee??0;
+    const accepted=window.confirm(fee>0?`Cancel this booking?\n\nA ₹${fee} cancellation charge will be added to your account because the Pandit has reserved time or started travelling. This amount must be cleared or disputed before another booking.\n\nPress OK to continue.`:"Cancel this booking? There is no cancellation charge at the current stage.");
+    if(!accepted)return;
+    const cancellationReason = window.prompt("Tell us why you are cancelling. For a late, unsafe or incorrect Pandit, describe it so support can review the charge.", "Plans changed")?.trim();
+    if (!cancellationReason) return;
     const response = await fetch(`/api/bookings/${bookingId}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status: "CANCELLED", cancellationReason }) });
     const data = await readJson<{ error?:string }>(response);
     if (!response.ok) setMessage(data.error ?? "Unable to cancel this request.");
@@ -447,6 +469,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
   return (
     <AppShell role="Customer" userName={customerName} title="Puja help for your family" subtitle="Book a verified nearby Pandit in a few simple steps.">
       {message && <div className="alert error">{message}</div>}
+      {outstandingBalance>0&&<div className="alert error"><strong>Outstanding cancellation balance: ₹{outstandingBalance.toLocaleString("en-IN")}</strong> New bookings are paused. Open Help and safety to pay later or dispute an incorrect charge.</div>}
 
       {!requestType && !match && !consultationMode && (
         <section className="customer-home" id="customer-home">
@@ -554,7 +577,8 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
               <button className="btn btn-ghost btn-block" onClick={locateFromAddress} disabled={locationBusy || !address.trim()}><Compass size={16} /> Confirm using PIN code area</button>
               <p className={`location-state ${coordinates ? "ready" : ""}`}>{coordinates ? locationSource === "GPS" ? `GPS detected within about ${Math.round(coordinates.accuracy)} metres` : "PIN code area confirmed. Matching and ETA will be approximate." : "GPS gives the best ETA. If unavailable, add a PIN code and confirm the area."}</p>
               <label>Additional note <em>Optional</em><textarea rows={2} value={notes} onChange={(event) => setNotes(event.target.value)} /></label>
-                  <button className="btn btn-primary btn-block" disabled={busy || !serviceId || (requestType === "SCHEDULED_PUJA" && !scheduledAt)} onClick={findNearbyPandits}>{busy ? "Checking availability…" : preferredPandit ? `Confirm and request ${preferredPandit.name}` : requestType === "SCHEDULED_PUJA" ? "Compare Pandits for this time" : "Compare nearby Pandits"} <ChevronRight size={17} /></button>
+              <div className="booking-policy-consent"><strong>Cancellation policy</strong><p>Cancellation is free before acceptance and for 5 minutes after acceptance. Later cancellation may cost ₹49, up to ₹99 while travelling, or up to ₹199 after arrival.</p><label><input type="checkbox" checked={policyAccepted} onChange={(event)=>setPolicyAccepted(event.target.checked)}/><span>I understand and agree to cancellation policy version {cancellationPolicyVersion}.</span></label><Link href="/cancellation-policy" target="_blank">Read full cancellation policy</Link></div>
+                  <button className="btn btn-primary btn-block" disabled={busy || !serviceId || !policyAccepted || (requestType === "SCHEDULED_PUJA" && !scheduledAt)} onClick={findNearbyPandits}>{busy ? "Checking availability…" : preferredPandit ? `Confirm and request ${preferredPandit.name}` : requestType === "SCHEDULED_PUJA" ? "Compare Pandits for this time" : "Compare nearby Pandits"} <ChevronRight size={17} /></button>
               <p className="privacy-note"><ShieldCheck size={15} /> Exact address is released to the matched Pandit only after acceptance.</p>
             </aside>
           </section>
@@ -594,11 +618,12 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
           const statusCopy = bookingStatusCopy[booking.status];
           return <article className={`tracking-card status-${booking.status.toLowerCase()}`} key={booking.id}>
               <div className="tracking-head"><div><span className="status">{booking.request_type === "PANDIT_SOS" ? "Urgent replacement" : booking.request_type === "SCHEDULED_PUJA" ? "Scheduled Puja" : "Puja booking"}</span><h3>{booking.service_name}</h3><p>with <strong>{booking.pandit_name ?? "a nearby Pandit"}</strong></p>{booking.scheduled_at && <p><CalendarDays size={15} /> <strong>{new Date(booking.scheduled_at).toLocaleString("en-IN", { dateStyle: "full", timeStyle: "short" })}</strong></p>}</div><div className="tracking-price"><small>Service amount</small><strong>₹{booking.amount.toLocaleString("en-IN")}</strong></div></div>
+              {booking.price_change_status==="PENDING"&&<div className="price-change-review"><div><small>Approval required</small><strong>Revised total: ₹{booking.proposed_amount?.toLocaleString("en-IN")}</strong><p>{booking.price_change_reason}</p></div><button onClick={()=>void decidePriceChange(booking.id,"REJECT")}>Keep original</button><button className="approve" onClick={()=>void decidePriceChange(booking.id,"APPROVE")}>Approve ₹{booking.proposed_amount?.toLocaleString("en-IN")}</button></div>}
             {isDeclined ? <div className="request-unavailable">
               <AlertTriangle size={22} />
               <div><strong>This Pandit is unavailable</strong><p>{booking.pandit_name ?? "The selected Pandit"} could not accept your request. No booking has been confirmed or charged. Search now for another available nearby Pandit.</p>{rematchErrors[booking.id] && <small className="rematch-error">{rematchErrors[booking.id]}</small>}</div>
               <button className="btn btn-primary" disabled={rematchingId === booking.id} onClick={() => findAnotherPandit(booking.id)}>{rematchingId === booking.id ? "Searching nearby…" : "Find another Pandit"}</button>
-            </div> : isCancelled ? <div className="request-cancelled"><strong>Request cancelled</strong><p>This request is closed and no booking is active.</p></div> :
+            </div> : isCancelled ? <div className="request-cancelled"><strong>Request cancelled</strong><p>{booking.cancellation_reason??"This request is closed and no booking is active."}</p>{booking.cancellation_fee>0&&<p><b>Cancellation charge: ₹{booking.cancellation_fee} · {booking.cancellation_fee_status.replaceAll("_"," ")}</b></p>}</div> :
             <>
               <div className={`booking-current-state state-${booking.status.toLowerCase()}`}><span>{booking.status === "REQUESTED" ? <Clock3 /> : <CheckCircle2 />}</span><div><small>{statusCopy?.label ?? booking.status.replaceAll("_", " ")}</small><h4>{statusCopy?.title}</h4><p>{statusCopy?.detail}</p></div></div>
               <div className="status-track">{journeySteps.map((step, index) => <span className={`${index <= activeIndex ? "done" : ""} ${index === Math.min(activeIndex, journeySteps.length - 1) ? "current" : ""}`} key={step.value}><i />{step.label}</span>)}</div>
@@ -609,14 +634,14 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
               </div>
               <div className="tracking-actions">
                 {hasLiveLocation && <a className="btn btn-primary" target="_blank" rel="noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${booking.pandit_latitude},${booking.pandit_longitude}`}><MapPin size={16} /> Track Pandit on map</a>}
-                {["REQUESTED","ACCEPTED"].includes(booking.status) && <button className="text-button danger" onClick={() => void cancelBooking(booking.id)}>Cancel request</button>}
+                {["REQUESTED","ACCEPTED","ON_THE_WAY","ARRIVED"].includes(booking.status) && <button className="text-button danger" onClick={() => void cancelBooking(booking.id)}>Review cancellation</button>}
               </div>
               {["ACCEPTED", "ON_THE_WAY"].includes(booking.status) && <div className="arrival-code arrival-code-locked"><ShieldCheck size={18} /><span><strong>Arrival code is protected</strong><small>It will appear after the Pandit marks “Arrived”.</small></span></div>}
               {booking.status === "ARRIVED" && <div className="arrival-code"><span><strong>Share this code with the Pandit</strong><small>Only share it after meeting the Pandit at your address.</small></span><code>{booking.arrival_otp}</code></div>}
             </>}
             {booking.status === "COMPLETED" && <div className={`booking-payment ${booking.payment_status === "CONFIRMED" ? "is-confirmed" : "needs-selection"}`}>
-              <div><span className="eyebrow">{booking.payment_status === "CONFIRMED" ? "Payment details" : "Choose payment method"}</span><h4>{booking.payment_status === "CONFIRMED" ? "Payment preference saved" : "How would you like to pay?"}</h4><p>{booking.payment_status === "CONFIRMED" ? "This records your chosen method only; the platform has not charged you." : "Select the method you will use. No online charge is made by the platform during beta."}</p></div>
-              {booking.payment_status === "CONFIRMED" ? <div className="payment-confirmed"><Banknote size={20} /><span><small>Selected method</small><strong>{booking.payment_method === "CASH" ? "Cash payment" : "Previously recorded payment"}</strong></span><CheckCircle2 size={18} /></div> : <div className="payment-method-grid">
+              <div><span className="eyebrow">{booking.payment_status === "CONFIRMED" ? "Payment settled" : booking.payment_status === "AWAITING_PANDIT" ? "Waiting for Pandit confirmation" : booking.payment_status === "DISPUTED" ? "Payment disputed" : "Choose payment method"}</span><h4>{booking.payment_status === "CONFIRMED" ? "Cash confirmed by both sides" : booking.payment_status === "AWAITING_PANDIT" ? "You selected cash payment" : booking.payment_status === "DISPUTED" ? "Support review needed" : "How would you like to pay?"}</h4><p>{booking.payment_status === "AWAITING_PANDIT" ? "The Pandit must confirm only after receiving the cash." : booking.payment_status === "DISPUTED" ? "Create a support case and describe what happened." : "No online charge is made by the platform during beta."}</p></div>
+              {booking.payment_status !== "NOT_SELECTED" ? <div className="payment-confirmed"><Banknote size={20} /><span><small>Cash status</small><strong>{booking.payment_status === "CONFIRMED" ? "Confirmed by both" : booking.payment_status === "DISPUTED" ? "Disputed" : "Awaiting Pandit"}</strong></span>{booking.payment_status === "CONFIRMED" ? <CheckCircle2 size={18} /> : <button className="text-button danger" disabled={paymentBusy===booking.id} onClick={()=>void disputeCashPayment(booking.id)}>Report issue</button>}</div> : <div className="payment-method-grid">
                 <button disabled={paymentBusy === booking.id} onClick={() => confirmPaymentMethod(booking.id, "CASH")}><Banknote /><span><strong>Cash</strong><small>Pay with cash after Puja</small></span></button>
                 <button disabled title="Available after secure payment setup"><Smartphone /><span><strong>UPI</strong><small>Coming soon</small></span></button>
                 <button disabled title="Available after secure payment setup"><CreditCard /><span><strong>Card</strong><small>Coming soon</small></span></button>

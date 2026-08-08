@@ -14,6 +14,7 @@
     "env:check": "node --env-file-if-exists=.env scripts/validate-env.mjs",
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:audit": "node --env-file=.env scripts/audit-db.mjs",
+    "db:migrate": "node --env-file=.env scripts/apply-migration.mjs",
     "db:legacy-audit": "node --env-file=.env scripts/audit-legacy-schema.mjs",
     "db:generate": "drizzle-kit generate",
     "e2e:production-flow": "node --env-file=.env scripts/e2e-production-flow.mjs"
