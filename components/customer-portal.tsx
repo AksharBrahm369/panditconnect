@@ -435,8 +435,9 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
               })}</div>}
             </section>
 
-            <div className="customer-choice-heading" id="request-assistance"><div><span>Need advice first?</span><h2>Speak with a Pandit online</h2></div><p>For a declined booking, use “Find another Pandit” inside My bookings.</p></div>
-          <div className="customer-choice-grid single-option">
+            <div className="customer-choice-heading" id="request-assistance"><div><span>Quick help</span><h2>Choose what you need now</h2></div><p>Nothing is submitted until you confirm.</p></div>
+          <div className="customer-choice-grid">
+            <button className="customer-choice-card urgent" onClick={() => choosePath("PANDIT_SOS")}><span><AlertTriangle /></span><div><small>Urgent help</small><strong>My Pandit cancelled</strong><p>Quickly find another approved Pandit nearby.</p></div><ChevronRight /></button>
             <button className="customer-choice-card online" id="online-guidance" onClick={() => setConsultationMode(true)}><span><BadgeHelp /></span><div><small>Online guidance</small><strong>Chat with a Pandit</strong><p>Ask a religious question privately online.</p></div><ChevronRight /></button>
           </div>
 
