@@ -36,16 +36,19 @@
 .portal-pandit .page-heading .eyebrow { color:#bd4a1e; }
 .portal-pandit .heading-mark { color:#a53a24; background:#fce8d7; }
 .pandit-simple-home { display:flex; flex-direction:column; gap:18px; }
+.portal-pandit .portal-main:has(> .pandit-simple-home) > .page-heading { display:none; }
 .portal-pandit .pandit-today-card { order:1; grid-template-columns:56px minmax(0,1fr) auto; margin:0; padding:25px; color:var(--pandit-ink); border:1px solid #e6cfab; border-radius:22px; background:linear-gradient(135deg,#fff8e8,#fffdf7); box-shadow:0 13px 32px rgba(91,47,23,.07); }
 .portal-pandit .pandit-today-card.online { color:#fff; border-color:#186a51; background:linear-gradient(135deg,#17694f,#0f563f); }
 .portal-pandit .pandit-today-card .role-action-icon { width:56px; height:56px; color:#b74822; border-radius:17px; background:#fbe3cf; }
 .portal-pandit .pandit-today-card.online .role-action-icon { color:#fff; background:rgba(255,255,255,.14); }
 .portal-pandit .pandit-today-card .eyebrow { color:#b14820; }
+.portal-pandit .pandit-greeting { display:block; margin-bottom:8px; color:#6f2228; font:700 clamp(23px,3vw,34px)/1.08 Georgia,"Times New Roman",serif; }
+.portal-pandit .pandit-today-card.online .pandit-greeting { color:#fff; }
 .portal-pandit .pandit-today-card:not(.online) h2 { color:#47241d; }
 .portal-pandit .pandit-today-card:not(.online) p { color:#795f50; }
 .portal-pandit .pandit-today-card .btn { min-width:175px; min-height:54px; font-size:15px; }
 .portal-pandit .pandit-today-card.online .btn { color:#144f3d; border-color:#fff; background:#fff; }
-.portal-pandit .stat-grid { order:2; margin:0; gap:12px; }
+.portal-pandit .stat-grid { order:4; margin:0; gap:12px; }
 .portal-pandit .stat-grid article { min-height:118px; grid-template-columns:auto minmax(0,1fr); grid-template-rows:auto auto auto; gap:2px 12px; padding:19px; border-color:#e6d8c4; border-radius:18px; background:#fffdf9; box-shadow:none; }
 .portal-pandit .stat-grid article > svg { grid-row:1/4; width:38px; height:38px; padding:9px; color:#a84924; border-radius:12px; background:#f9e8d9; }
 .portal-pandit .stat-grid article > span { color:#78645a; font-size:11px; font-weight:750; text-transform:uppercase; letter-spacing:.06em; }
@@ -54,7 +57,7 @@
 .portal-pandit .stat-grid article.needs-attention { border-color:#e0a877; background:#fff6e9; }
 .portal-pandit .stat-grid article.needs-attention > svg { color:#fff; background:#d75c1d; animation:pandit-gentle-ring 1.8s ease-in-out infinite; }
 @keyframes pandit-gentle-ring { 0%,100%{transform:rotate(0)} 12%{transform:rotate(-8deg)} 24%{transform:rotate(8deg)} 36%{transform:rotate(0)} }
-.portal-pandit .pandit-request-section { order:3; padding:24px; border:1px solid #e6d5bc; border-radius:22px; background:#fffdf9; box-shadow:0 12px 30px rgba(76,38,20,.055); }
+.portal-pandit .pandit-request-section { order:2; padding:24px; border:1px solid #e6d5bc; border-radius:22px; background:#fffdf9; box-shadow:0 12px 30px rgba(76,38,20,.055); }
 .portal-pandit .pandit-request-section .section-title { align-items:center; margin-bottom:17px; }
 .portal-pandit .pandit-request-section .section-title h2,.portal-pandit .pandit-payment-section .section-title h2 { margin:4px 0; color:#42241f; font:700 25px/1.15 Georgia,"Times New Roman",serif; }
 .portal-pandit .pandit-request-section .section-title p,.portal-pandit .pandit-payment-section .section-title p { color:#7a675d; }
@@ -74,13 +77,24 @@
 .portal-pandit .request-card .btn { min-height:50px; font-size:14px; }
 .portal-pandit .request-card .btn-primary { justify-content:center; color:#fff; border-color:#cf501a; background:linear-gradient(135deg,#de671f,#bf4219); box-shadow:0 7px 17px rgba(178,60,17,.17); }
 .portal-pandit .request-card .btn-primary svg:last-child { margin-left:auto; }
-.portal-pandit .consultation-availability { order:4; grid-template-columns:50px minmax(0,1fr) minmax(155px,190px) auto; margin:0; padding:21px; border-color:#e5d4ba; border-radius:20px; background:#fffaf0; }
+.portal-pandit .consultation-availability { order:5; grid-template-columns:50px minmax(0,1fr) minmax(155px,190px) auto; margin:0; padding:21px; border-color:#e5d4ba; border-radius:20px; background:#fffaf0; }
 .portal-pandit .consultation-availability > span { color:#9b3526; background:#f7dfd2; }
 .portal-pandit .consultation-availability.online { border-color:#bcdccb; background:#f1f9f5; }
-.portal-pandit .consultation-shell { order:5; }
-.portal-pandit .pandit-payment-section { order:6; padding:22px; border:1px solid #e6d5bc; border-radius:20px; background:#fffdf9; }
+.portal-pandit .consultation-shell { order:6; }
+.portal-pandit .pandit-payment-section { order:3; padding:22px; border:1px solid #e6d5bc; border-radius:20px; background:#fffdf9; }
 .portal-pandit .pandit-payment-section .section-title > svg { width:42px; height:42px; padding:10px; color:#a94823; border-radius:13px; background:#f9e7d7; }
 .portal-pandit .support-center { order:7; }
+.portal-pandit .review-pending-screen { position:relative; overflow:hidden; gap:16px; border-color:#e4c99f; background:linear-gradient(145deg,#fff8e8,#fffdf8); box-shadow:0 16px 42px rgba(88,43,21,.08); }
+.portal-pandit .review-pending-screen::after { position:absolute; right:4%; bottom:-25px; color:rgba(116,36,38,.055); content:"ॐ"; font:700 150px/1 Georgia,serif; }
+.portal-pandit .review-pending-screen > * { position:relative; z-index:1; }
+.portal-pandit .review-pending-icon { color:#fff; background:linear-gradient(145deg,#d96320,#9e3124); }
+.portal-pandit .pending-status,.portal-pandit .pending-notification-note { width:min(100%,620px); text-align:left; }
+.portal-pandit .review-pending-screen .btn { min-width:230px; min-height:52px; }
+.portal-pandit .trusted-onboarding { display:grid; gap:17px; }
+.portal-pandit .onboarding-header { border-color:#e4ca9f; background:linear-gradient(135deg,#fff8e9,#fffdf8); }
+.portal-pandit .onboarding-section { border-color:#e7d6bc; border-radius:20px; background:#fffdf9; box-shadow:0 9px 24px rgba(77,38,19,.045); }
+.portal-pandit .onboarding-section h3 { color:#6f2427; font-family:Georgia,"Times New Roman",serif; }
+.portal-pandit .onboarding-actions { position:sticky; bottom:14px; z-index:12; padding:12px; border:1px solid #e1cba9; border-radius:17px; background:rgba(255,251,243,.96); box-shadow:0 12px 34px rgba(73,34,18,.15); backdrop-filter:blur(14px); }
 .portal-pandit .completed-payment-list article { border-color:#e8dac6; background:#fff; }
 .portal-pandit .portal-mobile-nav { border-color:#e3d2b8; background:rgba(255,251,243,.98); box-shadow:0 -8px 28px rgba(77,35,18,.1); }
 .portal-pandit .portal-mobile-nav a { color:#776157; }
