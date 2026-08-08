@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   AlertTriangle, ArrowLeft, BadgeCheck, BadgeHelp, CheckCircle2, ChevronRight, Clock3,
-  Banknote, Compass, CreditCard, MapPin, Mic, PackageCheck, RefreshCw, ShieldCheck, Smartphone, Sparkles, Star,
+  Banknote, CalendarDays, Compass, CreditCard, MapPin, Mic, PackageCheck, RefreshCw, ShieldCheck, Smartphone, Sparkles, Star,
 } from "lucide-react";
 import { AppShell } from "./app-shell";
 import { ConsultationPanel } from "./consultation-panel";
@@ -26,7 +26,7 @@ type DiscoveryPandit = {
 };
 type Booking = {
   id: string; status: string; service_name: string; pandit_name: string | null; amount: number;
-  address: string; arrival_otp: string; created_at: string; request_type: RequestType;
+  address: string; arrival_otp: string; created_at: string; request_type: RequestType; scheduled_at: string | null;
   situation: string | null; materials_option: string; latitude: number; longitude: number;
   pandit_latitude: number | null; pandit_longitude: number | null; location_updated_at: string | null;
   customer_rating: number | null; rating_comment: string | null; rated_at: string | null;
@@ -72,6 +72,11 @@ function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number) {
   return 6371 * 2 * Math.atan2(Math.sqrt(value), Math.sqrt(1 - value));
 }
 
+function dateTimeLocalValue(timestamp: number) {
+  const date = new Date(timestamp);
+  return new Date(timestamp - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
+}
+
 export function CustomerPortal({ customerId, customerName }: { customerId: string; customerName?: string | null }) {
   const [services, setServices] = useState<Service[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
@@ -82,6 +87,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
   const [materialsOption, setMaterialsOption] = useState("NEED_GUIDANCE");
   const [address, setAddress] = useState("");
   const [notes, setNotes] = useState("");
+  const [scheduledAt, setScheduledAt] = useState("");
   const [coordinates, setCoordinates] = useState<BrowserCoordinates | null>(null);
   const [locationSource, setLocationSource] = useState<"GPS" | "POSTAL_CODE" | null>(null);
   const [recommendation, setRecommendation] = useState<RitualRecommendation | null>(null);
@@ -196,6 +202,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
     setMatch(null);
     setNearbyPandits(null);
     setMessage("");
+    setScheduledAt("");
   }
 
   function requestDiscoveryPandit(pandit: DiscoveryPandit) {
@@ -294,7 +301,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
       setMessage("Complete the guidance, Puja and address details before continuing.");
       return;
     }
-    if (requestType !== "KNOWN_PUJA" && situation.trim().length < 5) {
+    if ((requestType === "NEED_GUIDANCE" || requestType === "PANDIT_SOS") && situation.trim().length < 5) {
       setMessage("Please add a short description of what happened.");
       return;
     }
@@ -302,7 +309,12 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
     setMessage("");
     const current = coordinates ?? await locateFromAddress();
     if (!current) { setBusy(false); return; }
-    const params = new URLSearchParams({ serviceId, language, lat: String(current.latitude), lng: String(current.longitude) });
+    if (requestType === "SCHEDULED_PUJA" && !scheduledAt) {
+      setMessage("Choose the date and time for your Puja before comparing Pandits.");
+      setBusy(false);
+      return;
+    }
+    const params = new URLSearchParams({ serviceId, language, lat: String(current.latitude), lng: String(current.longitude), ...(requestType === "SCHEDULED_PUJA" ? { bookingMode: "SCHEDULED", scheduledAt: new Date(scheduledAt).toISOString() } : {}) });
     const response = await fetch(`/api/pandits/nearby?${params}`, { cache: "no-store" });
     const data = await readJson<{ error?: string; pandits?: NearbyPandit[] }>(response);
     if (!response.ok) {
@@ -336,7 +348,8 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
         panditId, serviceId, address, notes, requestType, situation, preferredLanguage: language,
-        materialsOption, latitude: confirmedLocation.latitude, longitude: confirmedLocation.longitude,
+        materialsOption, scheduledAt: requestType === "SCHEDULED_PUJA" ? new Date(scheduledAt).toISOString() : undefined,
+        latitude: confirmedLocation.latitude, longitude: confirmedLocation.longitude,
       }),
     });
     const data = await readJson<{ error?: string; matchedPandit?: { name: string; distanceKm: string; etaMinutes: number } }>(response);
@@ -474,6 +487,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
 
             <div className="customer-choice-heading" id="request-assistance"><div><span>Quick help</span><h2>Choose what you need now</h2></div><p>Nothing is submitted until you confirm.</p></div>
           <div className="customer-choice-grid">
+            <button className="customer-choice-card schedule" onClick={() => choosePath("SCHEDULED_PUJA")}><span><CalendarDays /></span><div><small>Plan ahead</small><strong>Schedule a Puja</strong><p>Choose a future date, time and nearby Pandit.</p></div><ChevronRight /></button>
             <button className="customer-choice-card urgent" onClick={() => choosePath("PANDIT_SOS")}><span><AlertTriangle /></span><div><small>Urgent help</small><strong>My Pandit cancelled</strong><p>Quickly find another approved Pandit nearby.</p></div><ChevronRight /></button>
             <button className="customer-choice-card online" id="online-guidance" onClick={() => setConsultationMode(true)}><span><BadgeHelp /></span><div><small>Online guidance</small><strong>Chat with a Pandit</strong><p>Ask a religious question privately online.</p></div><ChevronRight /></button>
           </div>
@@ -487,17 +501,17 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
           {requestType && !match && nearbyPandits === null && (
         <>
           <div className="flow-assurance"><ShieldCheck /><div><strong>You stay in control</strong><span>Nothing is sent until you review the Puja, language, materials and address.</span></div></div>
-          <div className="progress"><span className="active">1 {requestType === "KNOWN_PUJA" ? "Select Puja" : "Describe need"}</span><i /><span className={serviceId ? "active" : ""}>2 Booking details</span><i /><span>3 Choose Pandit</span></div>
+          <div className="progress"><span className="active">1 {requestType === "KNOWN_PUJA" || requestType === "SCHEDULED_PUJA" ? "Select Puja" : "Describe need"}</span><i /><span className={serviceId ? "active" : ""}>2 Booking details</span><i /><span>3 Choose Pandit</span></div>
           <button className="back-review flow-back" onClick={() => setRequestType(null)}><ArrowLeft size={16} /> Choose another path</button>
           <section className="guided-workspace" id="request-assistance">
             <div className="guided-main">
               <div className="flow-heading">
-                <span className="eyebrow">{requestType === "NEED_GUIDANCE" ? "Guided booking" : "Direct Puja booking"}</span>
-                <h2>{requestType === "NEED_GUIDANCE" ? "What happened or what is the occasion?" : "Select the Puja you want to book"}</h2>
+                <span className="eyebrow">{requestType === "NEED_GUIDANCE" ? "Guided booking" : requestType === "SCHEDULED_PUJA" ? "Scheduled booking" : "Direct Puja booking"}</span>
+                <h2>{requestType === "NEED_GUIDANCE" ? "What happened or what is the occasion?" : requestType === "SCHEDULED_PUJA" ? "Which Puja would you like to schedule?" : "Select the Puja you want to book"}</h2>
                 {requestType === "KNOWN_PUJA" && <p>Prices shown are starting prices. You will choose from Pandits who perform this Puja, speak your preferred language and serve your location.</p>}
               </div>
 
-              {requestType !== "KNOWN_PUJA" && (
+              {(requestType === "NEED_GUIDANCE" || requestType === "PANDIT_SOS") && (
                 <>
                   <label>Describe the situation
                     <textarea rows={5} value={situation} aria-invalid={Boolean(guidanceError)} onChange={(event) => { setSituation(event.target.value); setGuidanceError(""); }} placeholder={requestType === "PANDIT_SOS" ? "Example: Our Griha Pravesh is today at 11 AM and our Pandit cancelled." : "Example: We are opening a new shop and do not know which Puja is suitable."} />
@@ -534,12 +548,13 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
                   {preferredPandit && <div className="preferred-pandit-note"><BadgeCheck size={18} /><span><small>Your selected Pandit</small><strong>{preferredPandit.name}</strong><em>We will confirm this Pandit serves the selected Puja and your location.</em></span><button onClick={() => setPreferredPandit(null)}>Change</button></div>}
               <label>Preferred language<select value={language} onChange={(event) => setLanguage(event.target.value)}><option>Hindi</option><option>Marathi</option><option>Gujarati</option><option>English</option><option>Sanskrit</option></select></label>
               <label>Puja materials<select value={materialsOption} onChange={(event) => setMaterialsOption(event.target.value)}>{Object.entries(materialsLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+              {requestType === "SCHEDULED_PUJA" && <label>Puja date and time<input type="datetime-local" value={scheduledAt} min={dateTimeLocalValue(Date.now() + 2 * 60 * 60 * 1000)} max={dateTimeLocalValue(Date.now() + 180 * 24 * 60 * 60 * 1000)} onChange={(event) => setScheduledAt(event.target.value)} /><small className="field-hint">Schedule at least 2 hours ahead.</small></label>}
               <label>Full service address<textarea rows={3} value={address} onChange={(event) => { setAddress(event.target.value); if (locationSource === "POSTAL_CODE") { setCoordinates(null); setLocationSource(null); } }} placeholder="Building, street, area and PIN code" /></label>
               <button className="btn btn-ghost btn-block" onClick={detectLocation} disabled={locationBusy}>{locationBusy ? "Detecting GPS…" : <><MapPin size={16} /> Use my current GPS location</>}</button>
               <button className="btn btn-ghost btn-block" onClick={locateFromAddress} disabled={locationBusy || !address.trim()}><Compass size={16} /> Confirm using PIN code area</button>
               <p className={`location-state ${coordinates ? "ready" : ""}`}>{coordinates ? locationSource === "GPS" ? `GPS detected within about ${Math.round(coordinates.accuracy)} metres` : "PIN code area confirmed. Matching and ETA will be approximate." : "GPS gives the best ETA. If unavailable, add a PIN code and confirm the area."}</p>
               <label>Additional note <em>Optional</em><textarea rows={2} value={notes} onChange={(event) => setNotes(event.target.value)} /></label>
-                  <button className="btn btn-primary btn-block" disabled={busy || !serviceId} onClick={findNearbyPandits}>{busy ? "Checking availability…" : preferredPandit ? `Confirm and request ${preferredPandit.name}` : "Compare nearby Pandits"} <ChevronRight size={17} /></button>
+                  <button className="btn btn-primary btn-block" disabled={busy || !serviceId || (requestType === "SCHEDULED_PUJA" && !scheduledAt)} onClick={findNearbyPandits}>{busy ? "Checking availability…" : preferredPandit ? `Confirm and request ${preferredPandit.name}` : requestType === "SCHEDULED_PUJA" ? "Compare Pandits for this time" : "Compare nearby Pandits"} <ChevronRight size={17} /></button>
               <p className="privacy-note"><ShieldCheck size={15} /> Exact address is released to the matched Pandit only after acceptance.</p>
             </aside>
           </section>
@@ -565,7 +580,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
       )}
 
       {match && (
-        <section className="success-panel match-success"><CheckCircle2 size={48} /><span className="eyebrow">Request sent</span><h2>Waiting for {match.name} to accept</h2><p>Your request was sent to a Pandit {match.distanceKm} km away. This does not mean it has been accepted yet. The confirmed status will appear below.</p><button className="btn btn-primary" onClick={() => { setMatch(null); setRequestType(null); }}>View live status</button></section>
+        <section className="success-panel match-success"><CheckCircle2 size={48} /><span className="eyebrow">{requestType === "SCHEDULED_PUJA" ? "Schedule request sent" : "Request sent"}</span><h2>Waiting for {match.name} to accept</h2><p>{requestType === "SCHEDULED_PUJA" && scheduledAt ? `Your Puja request for ${new Date(scheduledAt).toLocaleString("en-IN", { dateStyle: "full", timeStyle: "short" })} was sent to a nearby Pandit.` : `Your request was sent to a Pandit ${match.distanceKm} km away.`} This does not mean it has been accepted yet. The confirmed status will appear below.</p><button className="btn btn-primary" onClick={() => { setMatch(null); setRequestType(null); }}>View live status</button></section>
       )}
 
       <section className="history tracking-history" id="live-requests">
@@ -578,7 +593,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
           const distance = hasLiveLocation ? distanceKm(booking.latitude, booking.longitude, booking.pandit_latitude!, booking.pandit_longitude!) : null;
           const statusCopy = bookingStatusCopy[booking.status];
           return <article className={`tracking-card status-${booking.status.toLowerCase()}`} key={booking.id}>
-            <div className="tracking-head"><div><span className="status">{booking.request_type === "PANDIT_SOS" ? "Urgent replacement" : "Puja booking"}</span><h3>{booking.service_name}</h3><p>with <strong>{booking.pandit_name ?? "a nearby Pandit"}</strong></p></div><div className="tracking-price"><small>Service amount</small><strong>₹{booking.amount.toLocaleString("en-IN")}</strong></div></div>
+              <div className="tracking-head"><div><span className="status">{booking.request_type === "PANDIT_SOS" ? "Urgent replacement" : booking.request_type === "SCHEDULED_PUJA" ? "Scheduled Puja" : "Puja booking"}</span><h3>{booking.service_name}</h3><p>with <strong>{booking.pandit_name ?? "a nearby Pandit"}</strong></p>{booking.scheduled_at && <p><CalendarDays size={15} /> <strong>{new Date(booking.scheduled_at).toLocaleString("en-IN", { dateStyle: "full", timeStyle: "short" })}</strong></p>}</div><div className="tracking-price"><small>Service amount</small><strong>₹{booking.amount.toLocaleString("en-IN")}</strong></div></div>
             {isDeclined ? <div className="request-unavailable">
               <AlertTriangle size={22} />
               <div><strong>This Pandit is unavailable</strong><p>{booking.pandit_name ?? "The selected Pandit"} could not accept your request. No booking has been confirmed or charged. Search now for another available nearby Pandit.</p>{rematchErrors[booking.id] && <small className="rematch-error">{rematchErrors[booking.id]}</small>}</div>

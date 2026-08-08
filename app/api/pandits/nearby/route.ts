@@ -23,6 +23,8 @@ export async function GET(request: Request) {
     const language = params.get("language")?.trim();
     const latitude = Number(params.get("lat"));
     const longitude = Number(params.get("lng"));
+    const scheduled = params.get("bookingMode") === "SCHEDULED";
+    const scheduledAt = scheduled ? new Date(params.get("scheduledAt") ?? "") : null;
     if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
         !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
       return NextResponse.json({ error: "A valid current location is required" }, { status: 400 });
@@ -30,7 +32,10 @@ export async function GET(request: Request) {
     if (!language || !["Hindi", "Marathi", "Gujarati", "English", "Sanskrit"].includes(language)) {
       return NextResponse.json({ error: "Choose a supported preferred language" }, { status: 400 });
     }
-    const cacheKey = `${serviceId}:${language.toLowerCase()}:${latitude.toFixed(3)}:${longitude.toFixed(3)}`;
+    if (scheduled && (!scheduledAt || !Number.isFinite(scheduledAt.getTime()) || scheduledAt.getTime() < Date.now() + 2 * 60 * 60 * 1000 || scheduledAt.getTime() > Date.now() + 180 * 24 * 60 * 60 * 1000)) {
+      return NextResponse.json({ error: "Choose a valid Puja time at least 2 hours ahead" }, { status: 400 });
+    }
+    const cacheKey = `${serviceId}:${language.toLowerCase()}:${latitude.toFixed(3)}:${longitude.toFixed(3)}:${scheduled ? scheduledAt!.toISOString() : "urgent"}`;
     const cached = nearbyCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       return NextResponse.json(
@@ -50,9 +55,15 @@ export async function GET(request: Request) {
          FROM pim_v2.pandit_profiles p
          JOIN pim_v2.users u ON u.id=p.user_id
          JOIN pim_v2.pandit_services ps ON ps.pandit_id=p.user_id AND ps.service_id=$1
-         WHERE p.verification_status='APPROVED' AND p.is_online=true
+         WHERE p.verification_status='APPROVED' AND ($5::boolean OR p.is_online=true)
            AND p.latitude IS NOT NULL AND p.longitude IS NOT NULL
            AND EXISTS (SELECT 1 FROM unnest(p.languages) listed_language WHERE lower(listed_language)=lower($4))
+           AND (NOT $5::boolean OR NOT EXISTS (
+             SELECT 1 FROM pim_v2.bookings busy
+             WHERE busy.pandit_id=p.user_id
+               AND busy.scheduled_at BETWEEN $6::timestamptz - interval '3 hours' AND $6::timestamptz + interval '3 hours'
+               AND busy.status IN ('REQUESTED','ACCEPTED','ON_THE_WAY','ARRIVED','IN_PROGRESS')
+           ))
        )
        SELECT id,name,experience_years,languages,rating,rating_count,completed_jobs,charge,service_radius_km,
          round(distance::numeric,1)::text AS distance_km,
@@ -60,7 +71,7 @@ export async function GET(request: Request) {
        FROM available
        WHERE distance <= service_radius_km
        ORDER BY distance,rating DESC LIMIT 50`,
-      [serviceId, latitude, longitude, language],
+      [serviceId, latitude, longitude, language, scheduled, scheduledAt?.toISOString() ?? null],
     );
     nearbyCache.set(cacheKey, { pandits: result.rows, expiresAt: Date.now() + 10_000 });
     return NextResponse.json(

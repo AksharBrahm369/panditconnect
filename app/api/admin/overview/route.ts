@@ -26,7 +26,7 @@ export async function GET() {
       (SELECT count(*)::int FROM pim_v2.bookings) AS bookings,
       COALESCE((
         SELECT json_agg(row_to_json(recent_rows)) FROM (
-          SELECT b.id,b.status,b.amount,b.created_at,s.name AS service_name,
+          SELECT b.id,b.status,b.amount,b.created_at,b.request_type,b.scheduled_at,s.name AS service_name,
             right(cu.phone,4) AS customer_phone,pu.name AS pandit_name
           FROM pim_v2.bookings b
           JOIN pim_v2.services s ON s.id=b.service_id

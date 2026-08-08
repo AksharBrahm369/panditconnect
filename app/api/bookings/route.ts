@@ -23,7 +23,7 @@ export async function GET() {
 
   if (user.role === "CUSTOMER") {
     const result = await sql(
-      `SELECT b.id,b.status,b.address,b.amount,b.arrival_otp,b.created_at,b.request_type,
+      `SELECT b.id,b.status,b.address,b.amount,b.arrival_otp,b.created_at,b.request_type,b.scheduled_at,
         b.situation,b.preferred_language,b.materials_option,b.latitude,b.longitude,
         b.customer_rating,b.rating_comment,b.rated_at,b.payment_method,b.payment_status,b.payment_confirmed_at,
         s.name AS service_name,pu.name AS pandit_name,p.latitude AS pandit_latitude,
@@ -46,7 +46,7 @@ export async function GET() {
     const result = await sql(
       `SELECT b.id,b.status,
         CASE WHEN b.status='REQUESTED' THEN 'Exact address shared after acceptance' ELSE b.address END AS address,
-        b.amount,b.created_at,b.request_type,b.situation,b.preferred_language,b.materials_option,
+        b.amount,b.created_at,b.request_type,b.scheduled_at,b.situation,b.preferred_language,b.materials_option,
         b.payment_method,b.payment_status,b.payment_confirmed_at,
         CASE WHEN b.status='REQUESTED' THEN NULL ELSE b.latitude END AS customer_latitude,
         CASE WHEN b.status='REQUESTED' THEN NULL ELSE b.longitude END AS customer_longitude,
@@ -75,7 +75,8 @@ export async function POST(request: Request) {
     notes?: string;
     latitude?: number;
     longitude?: number;
-    requestType?: "PANDIT_SOS" | "NEED_GUIDANCE" | "KNOWN_PUJA";
+    requestType?: "PANDIT_SOS" | "NEED_GUIDANCE" | "KNOWN_PUJA" | "SCHEDULED_PUJA";
+    scheduledAt?: string;
     situation?: string;
     preferredLanguage?: string;
     materialsOption?: "HAVE_MATERIALS" | "PANDIT_BRINGS" | "NEED_GUIDANCE";
@@ -94,6 +95,13 @@ export async function POST(request: Request) {
   if (!preferredLanguage || !["Hindi", "Marathi", "Gujarati", "English", "Sanskrit"].includes(preferredLanguage)) {
     return NextResponse.json({ error: "Choose a supported preferred language" }, { status: 400 });
   }
+  const isScheduled = body.requestType === "SCHEDULED_PUJA";
+  const scheduledAt = isScheduled ? new Date(body.scheduledAt ?? "") : null;
+  const minimumScheduleTime = Date.now() + 2 * 60 * 60 * 1000;
+  const maximumScheduleTime = Date.now() + 180 * 24 * 60 * 60 * 1000;
+  if (isScheduled && (!scheduledAt || !Number.isFinite(scheduledAt.getTime()) || scheduledAt.getTime() < minimumScheduleTime || scheduledAt.getTime() > maximumScheduleTime)) {
+    return NextResponse.json({ error: "Choose a Puja time at least 2 hours from now and within the next 6 months" }, { status: 400 });
+  }
 
   const match = await sql<{ id: string; charge: number; name: string; distance_km: string; eta_minutes: number }>(
     `WITH matches AS (
@@ -106,14 +114,20 @@ export async function POST(request: Request) {
        FROM pim_v2.pandit_profiles p
        JOIN pim_v2.users u ON u.id=p.user_id
        JOIN pim_v2.pandit_services ps ON ps.pandit_id=p.user_id AND ps.service_id=$1
-       WHERE u.id=$4 AND u.id<>$5 AND p.verification_status='APPROVED' AND p.is_online=true
+       WHERE u.id=$4 AND u.id<>$5 AND p.verification_status='APPROVED' AND ($7::boolean OR p.is_online=true)
          AND p.latitude IS NOT NULL AND p.longitude IS NOT NULL
          AND EXISTS (SELECT 1 FROM unnest(p.languages) listed_language WHERE lower(listed_language)=lower($6))
+         AND (NOT $7::boolean OR NOT EXISTS (
+           SELECT 1 FROM pim_v2.bookings busy
+           WHERE busy.pandit_id=p.user_id
+             AND busy.scheduled_at BETWEEN $8::timestamptz - interval '3 hours' AND $8::timestamptz + interval '3 hours'
+             AND busy.status IN ('REQUESTED','ACCEPTED','ON_THE_WAY','ARRIVED','IN_PROGRESS')
+         ))
      )
      SELECT id,name,charge,round(distance::numeric,1)::text AS distance_km,
        greatest(10,round(distance*3)::int+8) AS eta_minutes
      FROM matches WHERE distance <= service_radius_km`,
-    [body.serviceId, latitude, longitude, body.panditId, user.id, preferredLanguage],
+    [body.serviceId, latitude, longitude, body.panditId, user.id, preferredLanguage, isScheduled, scheduledAt?.toISOString() ?? null],
   );
   const pandit = match.rows[0];
   if (!pandit) {
@@ -123,7 +137,7 @@ export async function POST(request: Request) {
     );
   }
 
-  const requestType = ["PANDIT_SOS", "NEED_GUIDANCE", "KNOWN_PUJA"].includes(body.requestType ?? "")
+  const requestType = ["PANDIT_SOS", "NEED_GUIDANCE", "KNOWN_PUJA", "SCHEDULED_PUJA"].includes(body.requestType ?? "")
     ? body.requestType!
     : "NEED_GUIDANCE";
   const materialsOption = ["HAVE_MATERIALS", "PANDIT_BRINGS", "NEED_GUIDANCE"].includes(body.materialsOption ?? "")
@@ -134,15 +148,16 @@ export async function POST(request: Request) {
   await sql(
     `INSERT INTO pim_v2.bookings(
        id,customer_id,pandit_id,service_id,address,latitude,longitude,notes,amount,status,arrival_otp,
-       request_type,situation,preferred_language,materials_option
-     ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'REQUESTED',$10,$11,$12,$13,$14)`,
+       request_type,situation,preferred_language,materials_option,scheduled_at
+     ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'REQUESTED',$10,$11,$12,$13,$14,$15)`,
     [
       id, user.id, pandit.id, body.serviceId, body.address.trim().slice(0, 500), latitude, longitude,
       body.notes?.trim().slice(0, 1000) || null, pandit.charge, await encryptArrivalOtp(otp), requestType,
-      body.situation?.trim().slice(0, 1200) || null, preferredLanguage, materialsOption,
+      body.situation?.trim().slice(0, 1200) || null, preferredLanguage, materialsOption, scheduledAt?.toISOString() ?? null,
     ],
   );
-  await notifyUser(pandit.id, { title: "New urgent Puja request", body: `${body.serviceId.replaceAll("-", " ")} request is waiting for your response.`, url: "/pandit#pandit-requests", eventType: "BOOKING_REQUESTED" });
+  const scheduleCopy = scheduledAt ? ` for ${scheduledAt.toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" })}` : "";
+  await notifyUser(pandit.id, { title: isScheduled ? "New scheduled Puja request" : "New urgent Puja request", body: `${body.serviceId.replaceAll("-", " ")} request${scheduleCopy} is waiting for your response.`, url: "/pandit#pandit-requests", eventType: "BOOKING_REQUESTED" });
   await notifyAdmins({ title: "New Puja request", body: `${pandit.name} received a nearby ${body.serviceId.replaceAll("-", " ")} request.`, url: "/admin#admin-bookings", eventType: "BOOKING_REQUESTED" });
   return NextResponse.json({
     success: true,

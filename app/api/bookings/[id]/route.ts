@@ -17,8 +17,8 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (!user) return NextResponse.json({ error: "Please log in" }, { status: 401 });
   const { id } = await context.params;
   const body = await request.json() as { status?: string; arrivalOtp?: string; cancellationReason?: string };
-  const current = await sql<{ status: string; customer_id: string; pandit_id: string; arrival_otp: string; arrival_otp_attempts: number }>(
-    `SELECT status,customer_id,pandit_id,arrival_otp,arrival_otp_attempts FROM pim_v2.bookings WHERE id=$1`,
+  const current = await sql<{ status: string; customer_id: string; pandit_id: string; arrival_otp: string; arrival_otp_attempts: number; scheduled_at: string | null }>(
+    `SELECT status,customer_id,pandit_id,arrival_otp,arrival_otp_attempts,scheduled_at FROM pim_v2.bookings WHERE id=$1`,
     [id],
   );
   const booking = current.rows[0];
@@ -36,6 +36,9 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   }
   if (!body.status || !transitions[booking.status]?.includes(body.status)) {
     return NextResponse.json({ error: "This booking action is not available" }, { status: 409 });
+  }
+  if (body.status === "ON_THE_WAY" && booking.scheduled_at && new Date(booking.scheduled_at).getTime() > Date.now() + 4 * 60 * 60 * 1000) {
+    return NextResponse.json({ error: "This Puja is scheduled for later. You can start travelling up to 4 hours before the scheduled time." }, { status: 409 });
   }
   if (body.status === "IN_PROGRESS") {
     const submittedOtp = body.arrivalOtp?.replace(/\D/g, "") ?? "";

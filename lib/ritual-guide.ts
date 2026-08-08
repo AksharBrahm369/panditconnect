@@ -1,4 +1,4 @@
-export type RequestType = "PANDIT_SOS" | "NEED_GUIDANCE" | "KNOWN_PUJA";
+export type RequestType = "PANDIT_SOS" | "NEED_GUIDANCE" | "KNOWN_PUJA" | "SCHEDULED_PUJA";
 
 export type RitualRecommendation = {
   serviceId: string;

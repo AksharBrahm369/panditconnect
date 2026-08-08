@@ -28,7 +28,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
   const otp = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, "0");
   const result = await sql<RematchResult>(
     `WITH original AS (
-       SELECT id,customer_id,service_id,latitude,longitude,preferred_language,pandit_id,
+       SELECT id,customer_id,service_id,latitude,longitude,preferred_language,pandit_id,request_type,scheduled_at,
          CASE WHEN pandit_id = ANY(COALESCE(declined_pandit_ids,ARRAY[]::uuid[]))
            THEN COALESCE(declined_pandit_ids,ARRAY[]::uuid[])
            ELSE array_append(COALESCE(declined_pandit_ids,ARRAY[]::uuid[]),pandit_id)
@@ -47,7 +47,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
        FROM original o
        JOIN pim_v2.pandit_profiles p
          ON p.verification_status='APPROVED'
-        AND p.is_online=true
+        AND (o.request_type='SCHEDULED_PUJA' OR p.is_online=true)
         AND p.latitude IS NOT NULL
         AND p.longitude IS NOT NULL
         AND p.user_id<>o.customer_id
@@ -55,6 +55,12 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
         AND (o.preferred_language IS NULL OR EXISTS (
           SELECT 1 FROM unnest(p.languages) listed_language
           WHERE lower(listed_language)=lower(o.preferred_language)
+        ))
+        AND (o.scheduled_at IS NULL OR NOT EXISTS (
+          SELECT 1 FROM pim_v2.bookings busy
+          WHERE busy.pandit_id=p.user_id AND busy.id<>o.id
+            AND busy.scheduled_at BETWEEN o.scheduled_at - interval '3 hours' AND o.scheduled_at + interval '3 hours'
+            AND busy.status IN ('REQUESTED','ACCEPTED','ON_THE_WAY','ARRIVED','IN_PROGRESS')
         ))
        JOIN pim_v2.users u ON u.id=p.user_id
        JOIN pim_v2.pandit_services ps ON ps.pandit_id=p.user_id AND ps.service_id=o.service_id
@@ -77,7 +83,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
        WHERE b.id=original.id AND b.status='DECLINED'
        RETURNING matches.id,matches.name,matches.distance,b.status
      )
-     SELECT id,name,round(distance::numeric,1)::text AS distance_km,
+     SELECT id,name,round(distance::numeric,1)::text AS distance_km,status,
        greatest(10,round(distance*3)::int+8) AS eta_minutes
      FROM reassigned`,
     [id, user.id, await encryptArrivalOtp(otp)],

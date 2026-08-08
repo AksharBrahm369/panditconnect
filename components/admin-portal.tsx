@@ -5,7 +5,7 @@ import { ArrowLeft, BadgeCheck, CalendarCheck, Check, ExternalLink, Headphones, 
 import { AppShell } from "./app-shell";
 import { readJson } from "@/lib/http";
 
-type Overview = { stats: { users: number; pendingPandits: number; approvedPandits: number; bookings: number }; recent: Array<{ id: string; service_name: string; pandit_name: string; customer_phone: string; status: string; amount: number; created_at: string }>; approved: ReviewPandit[] };
+type Overview = { stats: { users: number; pendingPandits: number; approvedPandits: number; bookings: number }; recent: Array<{ id: string; service_name: string; pandit_name: string; customer_phone: string; status: string; amount: number; created_at: string; request_type: string; scheduled_at: string | null }>; approved: ReviewPandit[] };
 type ReviewPandit = {
   id: string; name: string | null; phone: string; city: string | null; experience_years: number;
   languages: string[]; specialities: string[]; bio: string | null; base_charge: number;
@@ -123,7 +123,7 @@ export function AdminPortal() {
     </section>
     <section className="workspace admin-workspace" id="admin-bookings">
       <div className="workspace-main"><div className="section-title"><div><h2>Recent bookings</h2><p>Monitor status without exposing customer contact details.</p></div></div>
-        {data?.recent.length ? <div className="table-wrap admin-bookings-table"><table><thead><tr><th>Puja</th><th>Pandit</th><th>Customer</th><th>Status</th><th>Amount</th></tr></thead><tbody>{data.recent.map((row) => <tr key={row.id}><td data-label="Puja">{row.service_name}</td><td data-label="Pandit">{row.pandit_name}</td><td data-label="Customer">••••{row.customer_phone.slice(-4)}</td><td data-label="Status"><span className="status">{row.status}</span></td><td data-label="Amount">₹{row.amount.toLocaleString("en-IN")}</td></tr>)}</tbody></table></div> : <div className="empty">No bookings yet.</div>}
+        {data?.recent.length ? <div className="table-wrap admin-bookings-table"><table><thead><tr><th>Puja</th><th>When</th><th>Pandit</th><th>Customer</th><th>Status</th><th>Amount</th></tr></thead><tbody>{data.recent.map((row) => <tr key={row.id}><td data-label="Puja">{row.service_name}</td><td data-label="When">{row.scheduled_at ? new Date(row.scheduled_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "Urgent / now"}</td><td data-label="Pandit">{row.pandit_name}</td><td data-label="Customer">••••{row.customer_phone.slice(-4)}</td><td data-label="Status"><span className="status">{row.status}</span></td><td data-label="Amount">₹{row.amount.toLocaleString("en-IN")}</td></tr>)}</tbody></table></div> : <div className="empty">No bookings yet.</div>}
       </div>
       <aside className="side-card"><h3>Review queue</h3><div className="queue-item"><span className="avatar">P</span><div><strong>{data?.stats.pendingPandits ?? 0} Pandit {(data?.stats.pendingPandits ?? 0) === 1 ? "profile" : "profiles"}</strong><small>Identity and experience review</small></div></div><button className="btn btn-primary btn-block" onClick={openQueue} disabled={queueLoading}>{queueLoading ? "Refreshing queue…" : "Open verification queue"}</button><p className="privacy-note">Review experience, languages and specialities before approval.</p></aside>
     </section>
