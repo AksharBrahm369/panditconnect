@@ -435,9 +435,8 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
               })}</div>}
             </section>
 
-            <div className="customer-choice-heading" id="request-assistance"><div><span>Other ways to begin</span><h2>Choose a Puja or ask online</h2></div><p>For a declined booking, use “Find another Pandit” inside My bookings.</p></div>
-          <div className="customer-choice-grid">
-            <button className="customer-choice-card" onClick={() => choosePath("KNOWN_PUJA")}><span><Sparkles /></span><div><small>Direct booking</small><strong>Choose a specific Puja</strong><p>Select the Puja you need, then compare eligible nearby Pandits.</p></div><ChevronRight /></button>
+            <div className="customer-choice-heading" id="request-assistance"><div><span>Need advice first?</span><h2>Speak with a Pandit online</h2></div><p>For a declined booking, use “Find another Pandit” inside My bookings.</p></div>
+          <div className="customer-choice-grid single-option">
             <button className="customer-choice-card online" id="online-guidance" onClick={() => setConsultationMode(true)}><span><BadgeHelp /></span><div><small>Online guidance</small><strong>Chat with a Pandit</strong><p>Ask a religious question privately online.</p></div><ChevronRight /></button>
           </div>
 
