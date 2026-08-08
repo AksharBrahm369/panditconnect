@@ -107,6 +107,18 @@
 
   .status-track { grid-template-columns: repeat(5,92px); overflow-x: auto; padding: 4px 0 10px; scrollbar-width: none; }
   .status-track::-webkit-scrollbar, .customer-pandit-rail::-webkit-scrollbar { display: none; }
+  .portal-customer .tracking-card { gap:16px; padding:18px 16px; }
+  .portal-customer .tracking-head { gap:10px; }
+  .portal-customer .tracking-head h3 { font-size:21px; }
+  .portal-customer .tracking-price { min-width:72px; padding:9px 10px; }
+  .portal-customer .tracking-price small { display:none; }
+  .portal-customer .booking-current-state { grid-template-columns:42px minmax(0,1fr); padding:14px; }
+  .portal-customer .booking-current-state > span { width:42px; height:42px; }
+  .portal-customer .tracking-facts { grid-template-columns:minmax(0,1fr); }
+  .portal-customer .tracking-facts > span + span { border-top:1px solid #eadfce; border-left:0; }
+  .portal-customer .tracking-actions { align-items:stretch; flex-direction:column; }
+  .portal-customer .tracking-actions .btn,.portal-customer .tracking-actions button { width:100%; justify-content:center; }
+  .portal-customer .arrival-code:not(.arrival-code-locked) { display:grid; grid-template-columns:minmax(0,1fr); }
   .request-unavailable, .customer-location-card, .request-top, .approved-head,
   .review-list-item, .review-profile-head, .onboarding-status-card {
     grid-template-columns: auto minmax(0,1fr);
