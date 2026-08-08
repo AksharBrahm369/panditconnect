@@ -2111,3 +2111,147 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   .customer-choice-card { grid-template-columns:42px minmax(0,1fr) 16px; gap:10px; padding:13px; }
   .customer-choice-card > span { width:42px; height:42px; }
 }
+
+/* Pandit workdesk v2 — purpose-built interface, not shared dashboard cards. */
+.portal-pandit .portal-main:has(> .pandit-workdesk) > .page-heading { display:none; }
+.pandit-workdesk { display:grid; gap:20px; }
+.pandit-command-centre { display:grid; grid-template-columns:minmax(0,1fr) minmax(260px,.7fr) 225px; gap:22px; align-items:center; padding:27px; color:#4b2b22; border:1px solid #e7cda7; border-radius:26px; background:linear-gradient(130deg,#fffdf8,#fff1d8); box-shadow:0 16px 42px rgba(88,42,20,.09); }
+.pandit-command-centre.is-online { color:#fff; border-color:#164e3f; background:linear-gradient(130deg,#123e34,#17654f); }
+.pandit-command-welcome { display:flex; align-items:center; gap:15px; min-width:0; }
+.pandit-command-welcome > span { display:grid; flex:0 0 58px; width:58px; height:58px; place-items:center; color:#fff8e7; border-radius:18px; background:linear-gradient(145deg,#e97322,#b93a1d); box-shadow:0 7px 18px rgba(164,54,19,.24); font-size:25px; }
+.pandit-command-welcome small,.pandit-command-status .eyebrow { display:block; color:#a64a27; font-size:9px; font-weight:850; letter-spacing:.11em; text-transform:uppercase; }
+.pandit-command-centre.is-online .pandit-command-welcome small,.pandit-command-centre.is-online .pandit-command-status .eyebrow { color:#aee4cf; }
+.pandit-command-welcome h1 { margin:2px 0 3px; color:inherit; font:700 clamp(27px,3vw,38px)/1.05 Georgia,"Times New Roman",serif; }
+.pandit-command-welcome p { margin:0; color:#80685d; font-size:11px; }
+.pandit-command-centre.is-online .pandit-command-welcome p { color:#bcd8ce; }
+.pandit-command-status { display:grid; gap:5px; padding-left:22px; border-left:1px solid #e5cba6; }
+.pandit-command-centre.is-online .pandit-command-status { border-left-color:rgba(255,255,255,.2); }
+.pandit-command-status > strong { font-size:17px; }
+.pandit-command-status > small { display:flex; align-items:center; gap:5px; color:#80695e; font-size:11px; }
+.pandit-command-centre.is-online .pandit-command-status > small { color:#bcd8ce; }
+.pandit-presence-button { display:grid; grid-template-columns:auto 1fr; gap:10px; align-items:center; min-height:68px; padding:11px 14px; color:#fff; border:0; border-radius:17px; background:#c64b1b; box-shadow:0 9px 22px rgba(174,56,16,.25); text-align:left; cursor:pointer; }
+.pandit-command-centre.is-online .pandit-presence-button { color:#164c3d; background:#fff; box-shadow:none; }
+.pandit-presence-button > svg { grid-row:1/3; }
+.pandit-presence-button span { display:grid; gap:2px; }
+.pandit-presence-button strong { font-size:14px; }
+.pandit-presence-button small { opacity:.72; font-size:9px; }
+.pandit-jobs { overflow:hidden; border:1px solid #e6d4b8; border-radius:25px; background:#fffdf9; box-shadow:0 13px 35px rgba(73,34,18,.06); }
+.pandit-jobs > header { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:24px 26px; border-bottom:1px solid #eadcc6; background:#fff9ed; }
+.pandit-jobs header h2 { margin:5px 0 4px; color:#43211e; font:700 clamp(23px,3vw,31px)/1.08 Georgia,"Times New Roman",serif; }
+.pandit-jobs header p { margin:0; color:#7d695f; font-size:12px; }
+.pandit-job-count { display:grid; grid-template-columns:auto auto; grid-template-rows:auto auto; align-items:center; gap:0 7px; min-width:92px; padding:10px 13px; color:#806d63; border:1px solid #e5d8c6; border-radius:14px; background:#fff; }
+.pandit-job-count svg { grid-row:1/3; width:19px; }
+.pandit-job-count strong { color:#412721; font-size:17px; }
+.pandit-job-count small { font-size:9px; }
+.pandit-job-count.has-new { color:#fff; border-color:#c64b1b; background:#c64b1b; }
+.pandit-job-count.has-new strong { color:#fff; }
+.pandit-job-list { display:grid; gap:14px; padding:18px; }
+.pandit-job { display:grid; gap:16px; padding:20px; border:1px solid #e7d8c3; border-radius:20px; background:#fff; }
+.pandit-job.status-requested { border-color:#e7b989; box-shadow:0 9px 24px rgba(176,70,22,.08); }
+.pandit-job-title { display:grid; grid-template-columns:48px minmax(0,1fr) auto; align-items:center; gap:12px; }
+.pandit-job-om { display:grid; width:48px; height:48px; place-items:center; color:#a73b22; border-radius:15px; background:#fbe8d8; font-size:20px; }
+.pandit-job-title small { color:#aa4b26; font-size:9px; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
+.pandit-job-title h3 { margin:2px 0; color:#38231e; font-size:19px; }
+.pandit-job-title p { margin:0; color:#806e65; font-size:11px; }
+.pandit-job-title > strong { align-self:start; padding:7px 10px; color:#42241e; border-radius:10px; background:#fff4df; font-size:14px; }
+.pandit-job-facts { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); overflow:hidden; border:1px solid #eadfce; border-radius:14px; background:#fffcf7; }
+.pandit-job-facts > span { display:grid; grid-template-columns:20px 1fr; grid-template-rows:auto auto; gap:1px 8px; padding:12px 14px; }
+.pandit-job-facts > span + span { border-left:1px solid #eadfce; }
+.pandit-job-facts svg { grid-row:1/3; width:17px; color:#a84a25; }
+.pandit-job-facts small { color:#95837a; font-size:8px; text-transform:uppercase; }
+.pandit-job-facts strong { overflow:hidden; color:#513d34; font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
+.pandit-job-note { padding:12px 14px; border-left:4px solid #df7a2c; border-radius:0 12px 12px 0; background:#fff7ea; }
+.pandit-job-note small { color:#a54825; font-size:8px; font-weight:800; text-transform:uppercase; }
+.pandit-job-note p { margin:4px 0 0; color:#5e463a; font-size:12px; line-height:1.45; }
+.pandit-job-address { display:grid; grid-template-columns:22px minmax(0,1fr) auto; gap:10px; align-items:center; padding:14px; border:1px solid #e7ddd0; border-radius:15px; background:#f8f5f0; }
+.pandit-job-address > svg { color:#8c7b70; }
+.pandit-job-address div { display:grid; gap:2px; }
+.pandit-job-address small { color:#8b7b72; font-size:8px; font-weight:800; text-transform:uppercase; }
+.pandit-job-address strong { color:#4c3b33; font-size:12px; }
+.pandit-job-address p { margin:0; color:#8a7a71; font-size:9px; }
+.pandit-job-address.is-open { border-color:#c8e2d5; background:#f0f9f5; }
+.pandit-job-address.is-open > svg { color:#177254; }
+.pandit-job-address a { display:flex; align-items:center; gap:6px; padding:9px 11px; color:#6e2627; border:1px solid #decbb8; border-radius:10px; background:#fff; font-size:10px; font-weight:800; }
+.pandit-job-address a svg { width:15px; }
+.pandit-job-next { display:grid; grid-template-columns:minmax(0,1fr) minmax(250px,.75fr); gap:14px; align-items:center; padding:15px; border-radius:16px; background:#38201c; }
+.pandit-job-next > div:first-child { display:grid; gap:3px; }
+.pandit-job-next > div:first-child small { color:#d9aa8e; font-size:8px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+.pandit-job-next > div:first-child strong { color:#fff9ed; font-size:14px; }
+.pandit-decision { display:grid!important; grid-template-columns:auto minmax(150px,1fr); gap:8px!important; }
+.pandit-decision button,.pandit-next-button,.pandit-code-step button { min-height:48px; padding:0 14px; color:#fff7eb; border:1px solid rgba(255,255,255,.24); border-radius:12px; background:transparent; font-weight:800; cursor:pointer; }
+.pandit-decision button.primary,.pandit-next-button,.pandit-code-step button { display:flex; align-items:center; justify-content:center; gap:7px; color:#fff; border-color:#e26322; background:#db5a1c; }
+.pandit-decision button svg,.pandit-next-button svg,.pandit-code-step button svg { width:17px; }
+.pandit-next-button svg:last-child { margin-left:auto; }
+.pandit-code-step { display:grid!important; gap:6px!important; }
+.pandit-code-step label { color:#f6dfd0; font-size:10px; font-weight:750; }
+.pandit-code-step > div { display:grid!important; grid-template-columns:110px minmax(170px,1fr); gap:8px!important; }
+.pandit-code-step input { min-width:0; height:48px; padding:0 10px; border:0; border-radius:11px; background:#fff; text-align:center; letter-spacing:.16em; font-size:17px; font-weight:800; }
+.pandit-rest-state { display:grid; justify-items:center; gap:8px; padding:48px 20px; text-align:center; }
+.pandit-rest-state > span { display:grid; width:58px; height:58px; place-items:center; color:#a14527; border-radius:50%; background:#f9e9d9; }
+.pandit-rest-state strong { color:#40251f; font:700 22px/1.1 Georgia,"Times New Roman",serif; }
+.pandit-rest-state p { max-width:440px; margin:0; color:#7e6a60; font-size:12px; }
+.pandit-tools { display:grid; grid-template-columns:minmax(0,1.35fr) minmax(300px,.65fr); gap:16px; }
+.pandit-chat-tool,.pandit-scorecard,.pandit-money { border:1px solid #e5d3b7; border-radius:21px; background:#fffdf8; }
+.pandit-chat-tool { display:grid; grid-template-columns:48px minmax(0,1fr) 145px auto; gap:14px; align-items:center; padding:19px; }
+.pandit-chat-tool > span { display:grid; width:48px; height:48px; place-items:center; color:#9c3927; border-radius:15px; background:#f8e4d4; }
+.pandit-chat-tool small,.pandit-money header small { color:#a64a26; font-size:8px; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
+.pandit-chat-tool h2,.pandit-money h2 { margin:3px 0; color:#44251f; font:700 20px/1.1 Georgia,"Times New Roman",serif; }
+.pandit-chat-tool p,.pandit-money p { margin:0; color:#806d63; font-size:10px; }
+.pandit-chat-tool label { display:grid; grid-template-columns:auto 1fr; align-items:center; gap:4px; color:#7c675d; font-size:9px; }
+.pandit-chat-tool label b { grid-row:2; color:#4c3027; }
+.pandit-chat-tool input { grid-column:2; grid-row:2; min-width:0; padding:9px; }
+.pandit-chat-tool button { min-height:46px; padding:0 15px; color:#fff; border:0; border-radius:12px; background:#b8421d; font-weight:800; cursor:pointer; }
+.pandit-chat-tool.is-online { border-color:#bddccc; background:#f2faf6; }
+.pandit-scorecard { display:grid; gap:11px; padding:19px; }
+.pandit-scorecard > div { display:grid; grid-template-columns:repeat(3,1fr); }
+.pandit-scorecard > div > span { display:grid; justify-items:center; gap:3px; color:#a44825; text-align:center; }
+.pandit-scorecard > div > span + span { border-left:1px solid #eadfce; }
+.pandit-scorecard svg { width:17px; }
+.pandit-scorecard strong { color:#402720; font-size:16px; }
+.pandit-scorecard small { color:#8a776d; font-size:8px; }
+.pandit-money { display:grid; gap:15px; padding:20px; }
+.pandit-money > header { display:flex; align-items:center; gap:12px; }
+.pandit-money > header > span { display:grid; width:44px; height:44px; place-items:center; color:#a33d24; border-radius:13px; background:#f8e6d5; }
+.pandit-no-money { padding:20px; border:1px dashed #dbc9b0; border-radius:13px; text-align:center; }
+
+@media(max-width:900px) {
+  .pandit-command-centre { grid-template-columns:minmax(0,1fr) 210px; }
+  .pandit-command-status { grid-column:1/-1; grid-row:2; padding:13px 0 0; border-top:1px solid #e5cba6; border-left:0; }
+  .pandit-command-centre.is-online .pandit-command-status { border-top-color:rgba(255,255,255,.2); }
+  .pandit-tools { grid-template-columns:1fr; }
+}
+@media(max-width:720px) {
+  .pandit-workdesk { gap:13px; }
+  .pandit-command-centre { grid-template-columns:1fr; gap:15px; padding:18px; border-radius:20px; }
+  .pandit-command-welcome > span { flex-basis:48px; width:48px; height:48px; border-radius:14px; font-size:20px; }
+  .pandit-command-welcome h1 { font-size:27px; }
+  .pandit-command-welcome p { font-size:10px; }
+  .pandit-command-status { grid-column:auto; grid-row:auto; padding:13px; border:1px solid rgba(128,75,43,.15); border-radius:13px; background:rgba(255,255,255,.45); }
+  .pandit-command-centre.is-online .pandit-command-status { border:1px solid rgba(255,255,255,.15); background:rgba(255,255,255,.07); }
+  .pandit-presence-button { width:100%; min-height:66px; }
+  .pandit-jobs { border-radius:20px; }
+  .pandit-jobs > header { align-items:flex-start; padding:18px; }
+  .pandit-jobs header h2 { font-size:24px; }
+  .pandit-job-count { min-width:70px; padding:8px; }
+  .pandit-job-list { padding:10px; }
+  .pandit-job { gap:13px; padding:14px; border-radius:16px; }
+  .pandit-job-title { grid-template-columns:42px minmax(0,1fr) auto; gap:9px; }
+  .pandit-job-om { width:42px; height:42px; border-radius:13px; }
+  .pandit-job-title h3 { font-size:16px; }
+  .pandit-job-title > strong { padding:6px 8px; font-size:12px; }
+  .pandit-job-facts { grid-template-columns:1fr; }
+  .pandit-job-facts > span + span { border-top:1px solid #eadfce; border-left:0; }
+  .pandit-job-address { grid-template-columns:20px minmax(0,1fr); align-items:start; }
+  .pandit-job-address a { grid-column:1/-1; justify-content:center; min-height:44px; }
+  .pandit-job-next { grid-template-columns:1fr; gap:11px; padding:14px; }
+  .pandit-decision { grid-template-columns:1fr!important; }
+  .pandit-decision button,.pandit-next-button,.pandit-code-step button { width:100%; min-height:52px; }
+  .pandit-code-step > div { grid-template-columns:1fr!important; }
+  .pandit-code-step input { width:100%; height:52px; }
+  .pandit-chat-tool { grid-template-columns:42px minmax(0,1fr); padding:15px; }
+  .pandit-chat-tool > span { width:42px; height:42px; }
+  .pandit-chat-tool label,.pandit-chat-tool button { grid-column:1/-1; width:100%; }
+  .pandit-chat-tool button { min-height:52px; }
+  .pandit-scorecard { padding:16px 10px; }
+  .pandit-money { padding:16px; }
+}

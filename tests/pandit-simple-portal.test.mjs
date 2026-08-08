@@ -12,11 +12,15 @@ test("pandit portal presents a simple task-first mobile workflow", async () => {
   assert.match(shell, /label: "Chat"/);
   assert.match(portal, /Today&apos;s work/);
   assert.match(portal, /What needs your attention/);
+  assert.match(portal, /pandit-command-centre/);
+  assert.match(portal, /pandit-job-next/);
   assert.match(portal, /I am leaving now/);
   assert.match(portal, /I have arrived/);
   assert.match(portal, /Puja is complete/);
   assert.match(portal, /Address protected/);
   assert.match(styles, /Pandit portal: calm, task-first workspace/);
-  assert.match(styles, /\.portal-pandit \.pandit-today-card/);
-  assert.match(styles, /\.portal-pandit \.request-card \.btn \{ min-height:54px/);
+  assert.match(styles, /Pandit workdesk v2/);
+  assert.match(styles, /\.pandit-command-centre/);
+  assert.match(styles, /\.pandit-job-next/);
+  assert.match(styles, /\.pandit-decision button,.pandit-next-button,.pandit-code-step button \{ width:100%; min-height:52px/);
 });
