@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { BadgeCheck, BellRing, Check, ChevronRight, Clock3, IndianRupee, KeyRound, MapPin, MessageCircle, Navigation, Power, Star } from "lucide-react";
 import { AppShell } from "./app-shell";
 import { ConsultationPanel } from "./consultation-panel";
@@ -8,6 +8,7 @@ import { readJson } from "@/lib/http";
 import { getCurrentCoordinates, type BrowserCoordinates } from "@/lib/browser-location";
 import { PanditOnboarding } from "./pandit-onboarding";
 import { SupportCenter } from "./support-center";
+import { PanditUrgentAlarm } from "./pandit-urgent-alarm";
 
 type Profile = { name: string | null; city: string | null; experience_years: number; languages: string[]; specialities: string[]; bio: string | null; verification_status: string; review_note?: string | null; is_online: boolean; rating: string; rating_count: number; completed_jobs: number; latitude: number | null; longitude: number | null; consultation_online: boolean; consultation_rate_5min: number };
 type Booking = {
@@ -27,6 +28,8 @@ export function PanditPortal({ userName }: { userName?: string | null }) {
   const [arrivalOtps, setArrivalOtps] = useState<Record<string, string>>({});
   const [actionErrors, setActionErrors] = useState<Record<string, string>>({});
   const [consultationRate, setConsultationRate] = useState(99);
+  const [urgentChatIds, setUrgentChatIds] = useState<string[]>([]);
+  const updateUrgentChats = useCallback((ids: string[]) => setUrgentChatIds(ids), []);
 
   async function loadProfile(syncForm = false) {
     const response = await fetch(`/api/pandit/profile?fresh=${Date.now()}`, { cache: "no-store" });
@@ -177,6 +180,7 @@ export function PanditPortal({ userName }: { userName?: string | null }) {
   return (
     <AppShell role="Pandit" userName={profile.name ?? userName} title={awaitingReview ? "Application under admin review" : incomplete ? "Complete your verified Pandit profile" : `Namaste, ${profile.name ?? "Pandit ji"}`} subtitle={awaitingReview ? "Your details were submitted successfully. Please check again later." : incomplete ? "A trusted profile helps customers book with confidence." : "See what needs your attention today."}>
       {notice && <div className="alert success">{notice}</div>}
+      {profile.verification_status === "APPROVED" && <PanditUrgentAlarm pujaRequests={bookings.filter((booking) => booking.status === "REQUESTED").length} chatRequests={urgentChatIds.length} />}
       {profile.verification_status === "CHANGES_REQUESTED" && <div className="alert error">Admin requested changes: {profile.review_note ?? "Please review and update your profile."}</div>}
       {profile.verification_status === "REJECTED" && <div className="alert error">Your application was not approved: {profile.review_note ?? "Review your information and contact support if you need help."}</div>}
       {awaitingReview ? <section className="review-pending-screen" aria-live="polite"><span className="review-pending-icon"><Clock3 /></span><span className="eyebrow">Submitted successfully</span><h2>Your request is pending with Admin</h2><p>The verification team will review your identity, documents, references, knowledge and payout information. Please recheck later.</p><div className="pending-status"><i /><span><strong>{profile.verification_status === "UNDER_REVIEW" ? "Admin review in progress" : "Waiting for admin review"}</strong><small>This page checks for updates automatically every few seconds.</small></span></div><div className="pending-notification-note"><BellRing /><span><strong>Approval or rejection alert</strong><small>Enable notifications from the bell icon above. You will receive an in-app message and notification sound when Admin makes a decision.</small></span></div><button className="btn btn-primary" disabled={busy} onClick={() => void loadProfile(false)}>{busy ? "Checking…" : "Check status now"}</button></section> : incomplete ? <PanditOnboarding status={profile.verification_status} reviewNote={profile.review_note} onSaved={() => void loadProfile(true)} /> : <div className="pandit-workdesk">
@@ -208,7 +212,7 @@ export function PanditPortal({ userName }: { userName?: string | null }) {
           <article className={`pandit-chat-tool ${profile.consultation_online ? "is-online" : ""}`} id="online-guidance"><span><MessageCircle /></span><div><small>Online guidance</small><h2>{profile.consultation_online ? "Chat is open" : "Answer from home"}</h2><p>Turn on chat only when you can reply.</p></div><label>5-minute rate <b>₹</b><input aria-label="Rate for 5 minutes" type="number" min="20" max="5000" value={consultationRate} onChange={(event) => setConsultationRate(Number(event.target.value))}/></label><button disabled={busy} onClick={toggleConsultation}>{profile.consultation_online ? "Stop chats" : "Start chats"}</button></article>
           <article className="pandit-scorecard"><span className="eyebrow">Your work record</span><div><span><Star /><strong>{profile.rating_count ? profile.rating : "New"}</strong><small>{profile.rating_count ? `${profile.rating_count} ratings` : "No ratings"}</small></span><span><BadgeCheck /><strong>{profile.completed_jobs}</strong><small>Pujas done</small></span><span><BellRing /><strong>{waitingRequests}</strong><small>New requests</small></span></div></article>
         </section>
-        <ConsultationPanel role="PANDIT" />
+        <ConsultationPanel role="PANDIT" onUrgentItemsChange={updateUrgentChats} />
         <section className="pandit-money" id="completed-pujas"><header><span><IndianRupee /></span><div><small>Completed work</small><h2>Customer payment choices</h2><p>This records how each customer plans to pay you.</p></div></header>{completed.length ? <div className="completed-payment-list">{completed.map((booking) => <article key={booking.id}><div><strong>{booking.service_name}</strong><span>{booking.customer_name ?? "Customer"} · ₹{booking.amount.toLocaleString("en-IN")}</span></div><span className={`status ${booking.payment_status === "CONFIRMED" ? "paid" : ""}`}>{booking.payment_status === "CONFIRMED" ? booking.payment_method === "CASH" ? "Cash selected" : "Payment arranged" : "Waiting for customer"}</span></article>)}</div> : <p className="pandit-no-money">Completed Pujas will appear here.</p>}</section>
         <SupportCenter bookings={bookings.map(({id,service_name,status})=>({id,service_name,status}))} />
       </div>}

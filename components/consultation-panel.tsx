@@ -17,7 +17,7 @@ type ChatMessage = {
   id: string; body: string; created_at: string; sender_id: string; sender_name: string | null; sender_role: string;
 };
 
-export function ConsultationPanel({ role, onBack }: { role: "CUSTOMER" | "PANDIT"; onBack?: () => void }) {
+export function ConsultationPanel({ role, onBack, onUrgentItemsChange }: { role: "CUSTOMER" | "PANDIT"; onBack?: () => void; onUrgentItemsChange?: (ids: string[]) => void }) {
   const [pandits, setPandits] = useState<ConsultationPandit[]>([]);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [selected, setSelected] = useState<Consultation | null>(null);
@@ -158,6 +158,14 @@ export function ConsultationPanel({ role, onBack }: { role: "CUSTOMER" | "PANDIT
     const seconds = Math.ceil(remaining / 1000);
     return `${String(Math.floor(seconds / 60)).padStart(2, "0")}:${String(seconds % 60).padStart(2, "0")}`;
   }, [remaining]);
+
+  useEffect(() => {
+    if (role !== "PANDIT" || !onUrgentItemsChange) return;
+    const unseenActive = consultations
+      .filter((item) => new Date(item.ends_at).getTime() > Date.now() && item.id !== selectedId)
+      .map((item) => item.id);
+    onUrgentItemsChange(unseenActive);
+  }, [consultations, onUrgentItemsChange, role, selectedId]);
 
   if (selected) return <section className="consultation-chat" id="online-guidance">
     <header>
