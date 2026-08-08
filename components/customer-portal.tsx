@@ -552,10 +552,10 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
           const activeIndex = statusOrder.indexOf(booking.status);
           const isDeclined = booking.status === "DECLINED";
           const isCancelled = booking.status === "CANCELLED";
-          const hasLiveLocation = booking.pandit_latitude != null && booking.pandit_longitude != null && !["REQUESTED", "DECLINED", "CANCELLED"].includes(booking.status);
+          const hasLiveLocation = booking.pandit_latitude != null && booking.pandit_longitude != null && ["ACCEPTED", "ON_THE_WAY", "ARRIVED"].includes(booking.status);
           const distance = hasLiveLocation ? distanceKm(booking.latitude, booking.longitude, booking.pandit_latitude!, booking.pandit_longitude!) : null;
           const statusCopy = bookingStatusCopy[booking.status];
-          return <article className="tracking-card" key={booking.id}>
+          return <article className={`tracking-card status-${booking.status.toLowerCase()}`} key={booking.id}>
             <div className="tracking-head"><div><span className="status">{booking.request_type === "PANDIT_SOS" ? "Urgent replacement" : "Puja booking"}</span><h3>{booking.service_name}</h3><p>with <strong>{booking.pandit_name ?? "a nearby Pandit"}</strong></p></div><div className="tracking-price"><small>Service amount</small><strong>₹{booking.amount.toLocaleString("en-IN")}</strong></div></div>
             {isDeclined ? <div className="request-unavailable">
               <AlertTriangle size={22} />
@@ -578,7 +578,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
               {booking.status === "ARRIVED" && <div className="arrival-code"><span><strong>Share this code with the Pandit</strong><small>Only share it after meeting the Pandit at your address.</small></span><code>{booking.arrival_otp}</code></div>}
             </>}
             {booking.status === "COMPLETED" && <div className="booking-payment">
-              <div><span className="eyebrow">Action required · Payment</span><h4>{booking.payment_status === "CONFIRMED" ? "Payment method confirmed" : "Puja completed — choose a payment method"}</h4><p>Select the method you will use. No online charge is made by the platform during beta.</p></div>
+              <div><span className="eyebrow">{booking.payment_status === "CONFIRMED" ? "Payment recorded" : "Action required · Payment"}</span><h4>{booking.payment_status === "CONFIRMED" ? "Payment method confirmed" : "Puja completed — choose a payment method"}</h4><p>{booking.payment_status === "CONFIRMED" ? "Your payment choice has been saved for this Puja." : "Select the method you will use. No online charge is made by the platform during beta."}</p></div>
               {booking.payment_status === "CONFIRMED" ? <div className="payment-confirmed"><CheckCircle2 size={20} /><span><strong>{booking.payment_method === "CASH" ? "Cash" : "Previously recorded payment"}</strong><small>Confirmed for this completed Puja</small></span></div> : <div className="payment-method-grid">
                 <button disabled={paymentBusy === booking.id} onClick={() => confirmPaymentMethod(booking.id, "CASH")}><Banknote /><span><strong>Cash</strong><small>Pay with cash after Puja</small></span></button>
                 <button disabled title="Available after secure payment setup"><Smartphone /><span><strong>UPI</strong><small>Coming soon</small></span></button>

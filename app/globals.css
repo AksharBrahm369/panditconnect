@@ -1858,6 +1858,8 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .portal-customer .tracking-list { gap:20px; }
 .portal-customer .tracking-card { display:grid; gap:20px; padding:26px; border-color:#e5d5be; border-radius:24px; background:#fffdfa; box-shadow:0 12px 36px rgba(76,39,22,.07); }
 .portal-customer .tracking-card::before { width:5px; background:linear-gradient(#e56b25,#bd3c1c); }
+.portal-customer .tracking-card.status-completed::before { background:linear-gradient(#18805f,#45aa7e); }
+.portal-customer .tracking-card.status-completed { border-color:#d2e5dc; background:linear-gradient(180deg,#fff 0%,#fbfffd 100%); }
 .portal-customer .tracking-head { align-items:flex-start; padding-bottom:18px; border-bottom:1px solid #eee1d0; }
 .portal-customer .tracking-head .status { display:inline-flex; padding:6px 9px; color:#98401f; border-radius:999px; background:#fff0df; font-size:9px; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
 .portal-customer .tracking-head h3 { margin:11px 0 4px; color:#351d18; font:700 25px/1.15 Georgia,"Times New Roman",serif; }
@@ -1877,6 +1879,10 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .portal-customer .booking-current-state.state-requested > span { background:#d88723; }
 .portal-customer .booking-current-state.state-requested small { color:#9a621d; }
 .portal-customer .booking-current-state.state-requested h4 { color:#513814; }
+.portal-customer .booking-current-state.state-completed { border-color:#bfe2d3; background:linear-gradient(135deg,#edf9f3,#f8fcfa); }
+.portal-customer .booking-current-state.state-completed > span { background:#147a59; box-shadow:0 6px 14px rgba(20,122,89,.2); }
+.portal-customer .booking-current-state.state-completed h4 { color:#154d3c; }
+.portal-customer .booking-current-state.state-completed p { color:#55736a; }
 .portal-customer .status-track { margin:2px 0 0; }
 .portal-customer .status-track span { color:#9b8d83; font-size:9px; font-weight:700; letter-spacing:.02em; text-transform:none; }
 .portal-customer .status-track span.current { color:#0b7655; font-weight:900; }
@@ -1897,6 +1903,8 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .portal-customer .arrival-code code { padding:8px 13px; color:#b9421f; font-size:20px; letter-spacing:.14em; }
 .portal-customer .arrival-code-locked { display:grid; grid-template-columns:auto 1fr; justify-content:start; gap:11px; color:#6d604f; border-style:solid; border-color:#e5dccf; background:#f8f5f0; }
 .portal-customer .arrival-code-locked svg { color:#8b7a69; }
+.portal-customer .tracking-card.status-completed .booking-payment { margin-top:0; border-color:#d4e6de; border-radius:18px; background:#f8fcfa; }
+.portal-customer .tracking-card.status-completed .payment-confirmed { border:1px solid #cce6da; border-radius:14px; background:#eaf8f1; }
 .portal-customer .portal-mobile-nav { border-top:1px solid #e4d4bd; background:rgba(255,251,243,.97); box-shadow:0 -8px 26px rgba(68,29,18,.08); }
 .portal-customer .portal-mobile-nav a { color:#76645a; }
 .portal-customer .portal-mobile-nav a.active { color:var(--customer-maroon); background:#fff2df; }
