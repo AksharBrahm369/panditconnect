@@ -34,8 +34,11 @@ test("late cancellation uses an exact preview, ledger and staged limits", async 
   assert.match(risk, /Math\.min\(99/);
   assert.match(risk, /Math\.min\(199/);
   assert.match(preview, /cancellationFee/);
+  assert.match(preview, /NO_POLICY_EVIDENCE/);
   assert.match(transition, /'CANCELLATION_FEE'/);
   assert.match(transition, /'PANDIT_COMPENSATION'/);
+  assert.match(transition, /policyEvidencePresent/);
+  assert.doesNotMatch(transition, /Cancellation policy evidence is missing\. Contact support/);
   assert.match(customer, /cancellationReview\.fee > 0/);
   assert.match(customer, /Cancel and accept ₹\$\{cancellationReview\.fee\} charge/);
   assert.match(customer, /Why are you cancelling\?/);

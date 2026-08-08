@@ -35,7 +35,6 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (body.status === "CANCELLED" && (body.cancellationReason?.trim().length ?? 0) < 5) {
     return NextResponse.json({ error: "Please select or enter a cancellation reason." }, { status: 400 });
   }
-  if (body.status === "CANCELLED" && !booking.policy_version) return NextResponse.json({ error: "Cancellation policy evidence is missing. Contact support; no automatic fee was applied." }, { status: 409 });
   if (!body.status || !transitions[booking.status]?.includes(body.status)) {
     return NextResponse.json({ error: "This booking action is not available" }, { status: 409 });
   }
@@ -62,7 +61,11 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
       );
     }
   }
-  const cancellation = body.status === "CANCELLED" ? cancellationFee(booking.status,booking.amount,booking.accepted_at) : { fee:0,stage:"NONE",free:true };
+  const cancellation = body.status === "CANCELLED"
+    ? booking.policy_version
+      ? cancellationFee(booking.status,booking.amount,booking.accepted_at)
+      : { fee:0,stage:"NO_POLICY_EVIDENCE",free:true }
+    : { fee:0,stage:"NONE",free:true };
   const updated = await sql<{ status: string }>(
     `WITH updated_booking AS (
        UPDATE pim_v2.bookings SET status=$2,
@@ -116,7 +119,7 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (!updated.rows[0]) {
     return NextResponse.json({ error: "This request changed on another screen. Please refresh and try again." }, { status: 409 });
   }
-  await recordBookingEvent({ bookingId:id,actorId:user.id,actorRole:user.role,eventType:`BOOKING_${body.status}`,fromStatus:booking.status,toStatus:body.status,metadata:{ cancellationReason:body.status==='CANCELLED'?body.cancellationReason?.trim():undefined,cancellationFee:cancellation.fee,cancellationStage:cancellation.stage,journeyLocation } });
+  await recordBookingEvent({ bookingId:id,actorId:user.id,actorRole:user.role,eventType:`BOOKING_${body.status}`,fromStatus:booking.status,toStatus:body.status,metadata:{ cancellationReason:body.status==='CANCELLED'?body.cancellationReason?.trim():undefined,cancellationFee:cancellation.fee,cancellationStage:cancellation.stage,policyEvidencePresent:Boolean(booking.policy_version),journeyLocation } });
   const recipientId = user.id === booking.pandit_id ? booking.customer_id : booking.pandit_id;
   const statusCopy: Record<string, string> = { ACCEPTED: "Your Pandit accepted the request.", DECLINED: "The Pandit is unavailable. Find another nearby Pandit.", CANCELLED: user.role === "CUSTOMER" ? `The customer cancelled this Puja request. Reason: ${body.cancellationReason?.trim()}` : "The booking request was cancelled.", ON_THE_WAY: "Your Pandit is on the way.", ARRIVED: "Your Pandit has arrived. Share the arrival OTP in person.", IN_PROGRESS: "Your Puja service has started.", COMPLETED: "Your Puja is complete. Open the completed booking to choose a payment method and leave a rating." };
   await notifyUser(recipientId, { title: body.status === "CANCELLED" && user.role === "CUSTOMER" ? "Customer cancelled the Puja" : "Booking update", body: statusCopy[body.status] ?? `Booking status: ${body.status.replaceAll("_", " ")}`, url: user.role === "PANDIT" ? "/customer#live-requests" : "/pandit#cancelled-requests", eventType: `BOOKING_${body.status}` });

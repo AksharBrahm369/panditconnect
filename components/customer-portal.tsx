@@ -128,7 +128,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
   const [discoveryBusy, setDiscoveryBusy] = useState(false);
   const [discoveryMessage, setDiscoveryMessage] = useState("");
   const [preferredPandit, setPreferredPandit] = useState<{ id: string; name: string } | null>(null);
-  const [cancellationReview, setCancellationReview] = useState<{ bookingId: string; fee: number; stage: string; free: boolean } | null>(null);
+  const [cancellationReview, setCancellationReview] = useState<{ bookingId: string; fee: number; stage: string; free: boolean; notice?: string } | null>(null);
   const [cancellationReason, setCancellationReason] = useState("");
   const [cancellationDetails, setCancellationDetails] = useState("");
   const [cancellationBusy, setCancellationBusy] = useState(false);
@@ -473,11 +473,11 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
     setMessage("");
     setCancellationError("");
     const previewResponse=await fetch(`/api/bookings/${bookingId}/cancellation-preview`,{cache:"no-store"});
-    const preview=await readJson<{error?:string;fee?:number;stage?:string;free?:boolean}>(previewResponse);
+    const preview=await readJson<{error?:string;fee?:number;stage?:string;free?:boolean;notice?:string}>(previewResponse);
     if(!previewResponse.ok){setMessage(preview.error??"Unable to check cancellation terms.");return;}
     setCancellationReason("");
     setCancellationDetails("");
-    setCancellationReview({bookingId,fee:preview.fee??0,stage:preview.stage??"",free:preview.free??(preview.fee??0)===0});
+    setCancellationReview({bookingId,fee:preview.fee??0,stage:preview.stage??"",free:preview.free??(preview.fee??0)===0,notice:preview.notice});
   }
 
   async function confirmCancellation() {
@@ -706,7 +706,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
           <header><div className="cancellation-heading-icon"><AlertTriangle /></div><div><span className="eyebrow">Review before cancelling</span><h2 id="cancellation-title">Cancel this Pandit booking?</h2></div><button className="icon-button" aria-label="Close cancellation review" disabled={cancellationBusy} onClick={() => setCancellationReview(null)}><X /></button></header>
           <div className={`cancellation-charge ${cancellationReview.fee > 0 ? "has-fee" : "is-free"}`}>
             <strong>{cancellationReview.fee > 0 ? `₹${cancellationReview.fee} cancellation charge` : "No cancellation charge"}</strong>
-            <p>{cancellationReview.fee > 0 ? "The Pandit has reserved time or started travelling. This charge will be added to your account and can be disputed if the Pandit was late, asked you to cancel, or there was a safety issue." : "You can cancel this request without a charge at its current stage."}</p>
+            <p>{cancellationReview.notice ?? (cancellationReview.fee > 0 ? "The Pandit has reserved time or started travelling. This charge will be added to your account and can be disputed if the Pandit was late, asked you to cancel, or there was a safety issue." : "You can cancel this request without a charge at its current stage.")}</p>
           </div>
           <div className="cancellation-choice-group" role="radiogroup" aria-labelledby="cancellation-reason-label"><strong id="cancellation-reason-label">Why are you cancelling?</strong><div className="cancellation-choice-list">{cancellationReasons.map((reason) => { const selected = cancellationReason === reason; return <button type="button" role="radio" aria-checked={selected} className={`cancellation-choice ${selected ? "selected" : ""}`} onClick={() => { setCancellationReason(reason); setCancellationError(""); }} key={reason}><span className="cancellation-choice-mark">{selected && <CheckCircle2 />}</span><span>{reason}</span></button>; })}</div></div>
           <label className="cancellation-details">Additional details <em>{cancellationReason === "Other reason" ? "Required" : "Optional"}</em><textarea rows={3} maxLength={500} value={cancellationDetails} onChange={(event) => setCancellationDetails(event.target.value)} placeholder="Tell us what happened so we can help if a review is needed." /></label>
