@@ -2032,12 +2032,16 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .cancellation-charge p { margin:0; color:var(--muted); line-height:1.55; }
 .cancellation-charge.has-fee { border-color:#efb5a8; background:#fff2ee; color:#992c20; }
 .cancellation-charge.is-free { border-color:#bce1d2; background:#edf9f4; color:#087b57; }
-.cancellation-reasons { display:grid; grid-template-columns:1fr; gap:8px; margin:0; padding:0; border:0; }
-.cancellation-reasons legend { grid-column:1/-1; margin-bottom:3px; font-weight:800; }
-.cancellation-reasons label { display:grid; grid-template-columns:20px minmax(0,1fr); align-items:center; gap:11px; min-height:48px; margin:0; padding:11px 13px; border:1px solid var(--line); border-radius:12px; background:white; cursor:pointer; }
-.cancellation-reasons label.selected { border-color:#cf4b2b; background:#fff5ef; box-shadow:0 0 0 1px #cf4b2b inset; }
-.cancellation-reasons input[type="radio"] { width:18px; min-width:18px; height:18px; min-height:18px; margin:0; padding:0; accent-color:#c84626; box-shadow:none; }
-.cancellation-reasons span { min-width:0; color:#2d211d; font-size:14px; font-weight:650; line-height:1.4; overflow-wrap:anywhere; }
+.cancellation-choice-group { display:grid; gap:9px; }
+.cancellation-choice-group > strong { color:#2d211d; font-size:15px; }
+.cancellation-choice-list { display:grid; grid-template-columns:1fr; gap:8px; }
+.cancellation-choice { display:grid; grid-template-columns:24px minmax(0,1fr); align-items:center; gap:11px; width:100%; min-height:50px; margin:0; padding:11px 13px; color:#2d211d; border:1px solid var(--line); border-radius:12px; background:white; text-align:left; cursor:pointer; }
+.cancellation-choice:hover { border-color:#dc927c; background:#fffaf7; }
+.cancellation-choice.selected { border-color:#cf4b2b; background:#fff5ef; box-shadow:0 0 0 1px #cf4b2b inset; }
+.cancellation-choice > span:last-child { min-width:0; font-size:14px; font-weight:650; line-height:1.4; overflow-wrap:anywhere; }
+.cancellation-choice-mark { display:grid; place-items:center; width:21px; height:21px; border:2px solid #b7aaa3; border-radius:50%; color:white; }
+.cancellation-choice.selected .cancellation-choice-mark { border-color:#c84626; background:#c84626; }
+.cancellation-choice-mark svg { width:15px; height:15px; stroke-width:3; }
 .cancellation-details { display:block; margin-top:17px; font-weight:750; }
 .cancellation-details em { margin-left:5px; color:var(--muted); font-size:12px; font-style:normal; font-weight:500; }
 .cancellation-details textarea { width:100%; margin-top:7px; resize:vertical; }

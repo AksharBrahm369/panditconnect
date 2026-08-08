@@ -122,7 +122,7 @@
   .cancellation-sheet { width:100%; max-height:92dvh; padding:18px var(--mobile-gutter) calc(18px + env(safe-area-inset-bottom)); border-radius:24px 24px 0 0; }
   .cancellation-sheet > header { position:sticky; top:-18px; z-index:2; margin:-18px calc(var(--mobile-gutter) * -1) 0; padding:16px var(--mobile-gutter); background:rgba(255,253,249,.98); }
   .cancellation-heading-icon { width:42px; height:42px; }
-  .cancellation-reasons { grid-template-columns:1fr; }
+  .cancellation-choice { min-height:52px; padding:12px; }
   .cancellation-sheet > footer { position:sticky; bottom:calc(-18px - env(safe-area-inset-bottom)); z-index:2; grid-template-columns:1fr; display:grid; margin:18px calc(var(--mobile-gutter) * -1) calc(-18px - env(safe-area-inset-bottom)); padding:12px var(--mobile-gutter) calc(12px + env(safe-area-inset-bottom)); background:rgba(255,253,249,.98); box-shadow:0 -10px 24px rgba(35,20,16,.08); }
   .cancellation-sheet > footer .btn { width:100%; }
   .portal-customer .arrival-code:not(.arrival-code-locked) { display:grid; grid-template-columns:minmax(0,1fr); }
