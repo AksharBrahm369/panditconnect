@@ -36,7 +36,10 @@ test("late cancellation uses an exact preview, ledger and staged limits", async 
   assert.match(preview, /cancellationFee/);
   assert.match(transition, /'CANCELLATION_FEE'/);
   assert.match(transition, /'PANDIT_COMPENSATION'/);
-  assert.match(customer, /A ₹\$\{fee\} cancellation charge/);
+  assert.match(customer, /cancellationReview\.fee > 0/);
+  assert.match(customer, /Cancel and accept ₹\$\{cancellationReview\.fee\} charge/);
+  assert.match(customer, /Why are you cancelling\?/);
+  assert.doesNotMatch(customer, /window\.prompt\("Tell us why you are cancelling/);
 });
 
 test("travel and no-show claims require recent GPS, proximity and waiting time", async () => {

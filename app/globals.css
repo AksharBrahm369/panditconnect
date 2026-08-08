@@ -2021,6 +2021,31 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .portal-customer .tracking-facts strong { overflow:hidden; color:#4b3931; font-size:11px; text-overflow:ellipsis; white-space:nowrap; }
 .portal-customer .tracking-actions { display:flex; align-items:center; gap:16px; }
 .portal-customer .tracking-actions:empty { display:none; }
+.cancellation-overlay { position:fixed; inset:0; z-index:110; display:grid; place-items:center; padding:20px; background:rgba(35,20,16,.58); backdrop-filter:blur(5px); }
+.cancellation-sheet { width:min(100%,620px); max-height:calc(100dvh - 40px); overflow-y:auto; padding:24px; border:1px solid #ead6c9; border-radius:24px; background:#fffdf9; box-shadow:0 26px 80px rgba(50,24,15,.28); }
+.cancellation-sheet > header { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:start; gap:13px; padding-bottom:18px; border-bottom:1px solid var(--line); }
+.cancellation-sheet > header h2 { margin:4px 0 0; font-size:clamp(23px,4vw,30px); letter-spacing:-.035em; }
+.cancellation-heading-icon { display:grid; place-items:center; width:46px; height:46px; border-radius:14px; color:#b83321; background:#fff0eb; }
+.cancellation-heading-icon svg { width:22px; }
+.cancellation-charge { margin:18px 0; padding:16px; border-radius:16px; border:1px solid; }
+.cancellation-charge strong { display:block; margin-bottom:5px; font-size:17px; }
+.cancellation-charge p { margin:0; color:var(--muted); line-height:1.55; }
+.cancellation-charge.has-fee { border-color:#efb5a8; background:#fff2ee; color:#992c20; }
+.cancellation-charge.is-free { border-color:#bce1d2; background:#edf9f4; color:#087b57; }
+.cancellation-reasons { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin:0; padding:0; border:0; }
+.cancellation-reasons legend { grid-column:1/-1; margin-bottom:3px; font-weight:800; }
+.cancellation-reasons label { display:flex; align-items:center; gap:9px; min-height:48px; padding:11px 12px; border:1px solid var(--line); border-radius:12px; background:white; cursor:pointer; }
+.cancellation-reasons label.selected { border-color:#cf4b2b; background:#fff5ef; box-shadow:0 0 0 1px #cf4b2b inset; }
+.cancellation-reasons input { flex:0 0 auto; accent-color:#c84626; }
+.cancellation-reasons span { font-size:14px; font-weight:650; line-height:1.35; }
+.cancellation-details { display:block; margin-top:17px; font-weight:750; }
+.cancellation-details em { margin-left:5px; color:var(--muted); font-size:12px; font-style:normal; font-weight:500; }
+.cancellation-details textarea { width:100%; margin-top:7px; resize:vertical; }
+.cancellation-sheet > .alert { margin:14px 0 0; }
+.cancellation-sheet > footer { display:flex; justify-content:flex-end; gap:10px; margin-top:20px; padding-top:17px; border-top:1px solid var(--line); }
+.cancellation-confirm { border-color:#b63825; background:#b63825; color:white; box-shadow:0 10px 20px rgba(182,56,37,.18); }
+.cancellation-confirm:hover { background:#982c1d; }
+.cancellation-confirm:disabled { opacity:.55; cursor:not-allowed; }
 .portal-customer .arrival-code { margin:0; padding:16px 18px; border-radius:16px; }
 .portal-customer .arrival-code > span { display:grid; gap:3px; color:#472a20; }
 .portal-customer .arrival-code > span strong { font-size:13px; }

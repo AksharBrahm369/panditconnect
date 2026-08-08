@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   AlertTriangle, ArrowLeft, BadgeCheck, BadgeHelp, CheckCircle2, ChevronRight, Clock3,
-  Banknote, CalendarDays, Compass, CreditCard, MapPin, Mic, PackageCheck, RefreshCw, ShieldCheck, Smartphone, Sparkles, Star,
+  Banknote, CalendarDays, Compass, CreditCard, MapPin, Mic, PackageCheck, RefreshCw, ShieldCheck, Smartphone, Sparkles, Star, X,
 } from "lucide-react";
 import { AppShell } from "./app-shell";
 import { ConsultationPanel } from "./consultation-panel";
@@ -65,6 +65,15 @@ const materialsLabels: Record<string, string> = {
   NEED_GUIDANCE: "Help me understand what is needed",
 };
 const cancellationPolicyVersion = "2026-08-v1";
+const cancellationReasons = [
+  "My plans changed",
+  "There is a family or medical emergency",
+  "The Pandit is late or not moving towards me",
+  "The Pandit asked me to cancel",
+  "The booking details are incorrect",
+  "I have a safety concern",
+  "Other reason",
+];
 
 function distanceKm(aLat: number, aLng: number, bLat: number, bLng: number) {
   const toRad = (value: number) => value * Math.PI / 180;
@@ -119,6 +128,11 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
   const [discoveryBusy, setDiscoveryBusy] = useState(false);
   const [discoveryMessage, setDiscoveryMessage] = useState("");
   const [preferredPandit, setPreferredPandit] = useState<{ id: string; name: string } | null>(null);
+  const [cancellationReview, setCancellationReview] = useState<{ bookingId: string; fee: number; stage: string; free: boolean } | null>(null);
+  const [cancellationReason, setCancellationReason] = useState("");
+  const [cancellationDetails, setCancellationDetails] = useState("");
+  const [cancellationBusy, setCancellationBusy] = useState(false);
+  const [cancellationError, setCancellationError] = useState("");
   const discoveryRail = useRef<HTMLDivElement>(null);
 
   const refreshBookings = useCallback(async () => {
@@ -457,18 +471,42 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
 
   async function cancelBooking(bookingId: string) {
     setMessage("");
+    setCancellationError("");
     const previewResponse=await fetch(`/api/bookings/${bookingId}/cancellation-preview`,{cache:"no-store"});
     const preview=await readJson<{error?:string;fee?:number;stage?:string;free?:boolean}>(previewResponse);
     if(!previewResponse.ok){setMessage(preview.error??"Unable to check cancellation terms.");return;}
-    const fee=preview.fee??0;
-    const accepted=window.confirm(fee>0?`Cancel this booking?\n\nA ₹${fee} cancellation charge will be added to your account because the Pandit has reserved time or started travelling. This amount must be cleared or disputed before another booking.\n\nPress OK to continue.`:"Cancel this booking? There is no cancellation charge at the current stage.");
-    if(!accepted)return;
-    const cancellationReason = window.prompt("Tell us why you are cancelling. For a late, unsafe or incorrect Pandit, describe it so support can review the charge.", "Plans changed")?.trim();
-    if (!cancellationReason) return;
-    const response = await fetch(`/api/bookings/${bookingId}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status: "CANCELLED", cancellationReason }) });
+    setCancellationReason("");
+    setCancellationDetails("");
+    setCancellationReview({bookingId,fee:preview.fee??0,stage:preview.stage??"",free:preview.free??(preview.fee??0)===0});
+  }
+
+  async function confirmCancellation() {
+    if (!cancellationReview) return;
+    if (!cancellationReason) {
+      setCancellationError("Choose a reason for cancelling.");
+      return;
+    }
+    if (cancellationReason === "Other reason" && cancellationDetails.trim().length < 5) {
+      setCancellationError("Please briefly explain the reason.");
+      return;
+    }
+    const reason = cancellationDetails.trim()
+      ? `${cancellationReason}: ${cancellationDetails.trim()}`
+      : cancellationReason;
+    setCancellationBusy(true);
+    setCancellationError("");
+    const response = await fetch(`/api/bookings/${cancellationReview.bookingId}`, { method: "PATCH", headers: { "content-type": "application/json" }, body: JSON.stringify({ status: "CANCELLED", cancellationReason: reason }) });
     const data = await readJson<{ error?:string }>(response);
-    if (!response.ok) setMessage(data.error ?? "Unable to cancel this request.");
+    if (!response.ok) {
+      setCancellationError(data.error ?? "Unable to cancel this request.");
+      setCancellationBusy(false);
+      return;
+    }
+    setCancellationReview(null);
+    setCancellationReason("");
+    setCancellationDetails("");
     await refreshBookings();
+    setCancellationBusy(false);
   }
 
   return (
@@ -663,6 +701,19 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
           </article>;
         })}</div> : <div className="empty"><Clock3 size={26} /><strong>No Puja requests yet</strong><span>Choose “Help me choose and book” whenever your family needs a Pandit.</span></div>}
       </section>
+      {cancellationReview && <div className="cancellation-overlay" role="dialog" aria-modal="true" aria-labelledby="cancellation-title" onMouseDown={(event) => { if (event.target === event.currentTarget && !cancellationBusy) setCancellationReview(null); }}>
+        <section className="cancellation-sheet">
+          <header><div className="cancellation-heading-icon"><AlertTriangle /></div><div><span className="eyebrow">Review before cancelling</span><h2 id="cancellation-title">Cancel this Pandit booking?</h2></div><button className="icon-button" aria-label="Close cancellation review" disabled={cancellationBusy} onClick={() => setCancellationReview(null)}><X /></button></header>
+          <div className={`cancellation-charge ${cancellationReview.fee > 0 ? "has-fee" : "is-free"}`}>
+            <strong>{cancellationReview.fee > 0 ? `₹${cancellationReview.fee} cancellation charge` : "No cancellation charge"}</strong>
+            <p>{cancellationReview.fee > 0 ? "The Pandit has reserved time or started travelling. This charge will be added to your account and can be disputed if the Pandit was late, asked you to cancel, or there was a safety issue." : "You can cancel this request without a charge at its current stage."}</p>
+          </div>
+          <fieldset className="cancellation-reasons"><legend>Why are you cancelling?</legend>{cancellationReasons.map((reason) => <label className={cancellationReason === reason ? "selected" : ""} key={reason}><input type="radio" name="cancellation-reason" value={reason} checked={cancellationReason === reason} onChange={(event) => { setCancellationReason(event.target.value); setCancellationError(""); }} /><span>{reason}</span></label>)}</fieldset>
+          <label className="cancellation-details">Additional details <em>{cancellationReason === "Other reason" ? "Required" : "Optional"}</em><textarea rows={3} maxLength={500} value={cancellationDetails} onChange={(event) => setCancellationDetails(event.target.value)} placeholder="Tell us what happened so we can help if a review is needed." /></label>
+          {cancellationError && <div className="alert error" role="alert">{cancellationError}</div>}
+          <footer><button className="btn btn-ghost" disabled={cancellationBusy} onClick={() => setCancellationReview(null)}>Keep this booking</button><button className="btn cancellation-confirm" disabled={cancellationBusy || !cancellationReason} onClick={() => void confirmCancellation()}>{cancellationBusy ? "Cancelling…" : cancellationReview.fee > 0 ? `Cancel and accept ₹${cancellationReview.fee} charge` : "Confirm cancellation"}</button></footer>
+        </section>
+      </div>}
     </AppShell>
   );
 }

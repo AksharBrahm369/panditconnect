@@ -118,6 +118,13 @@
   .portal-customer .tracking-facts > span + span { border-top:1px solid #eadfce; border-left:0; }
   .portal-customer .tracking-actions { align-items:stretch; flex-direction:column; }
   .portal-customer .tracking-actions .btn,.portal-customer .tracking-actions button { width:100%; justify-content:center; }
+  .cancellation-overlay { align-items:end; padding:0; }
+  .cancellation-sheet { width:100%; max-height:92dvh; padding:18px var(--mobile-gutter) calc(18px + env(safe-area-inset-bottom)); border-radius:24px 24px 0 0; }
+  .cancellation-sheet > header { position:sticky; top:-18px; z-index:2; margin:-18px calc(var(--mobile-gutter) * -1) 0; padding:16px var(--mobile-gutter); background:rgba(255,253,249,.98); }
+  .cancellation-heading-icon { width:42px; height:42px; }
+  .cancellation-reasons { grid-template-columns:1fr; }
+  .cancellation-sheet > footer { position:sticky; bottom:calc(-18px - env(safe-area-inset-bottom)); z-index:2; grid-template-columns:1fr; display:grid; margin:18px calc(var(--mobile-gutter) * -1) calc(-18px - env(safe-area-inset-bottom)); padding:12px var(--mobile-gutter) calc(12px + env(safe-area-inset-bottom)); background:rgba(255,253,249,.98); box-shadow:0 -10px 24px rgba(35,20,16,.08); }
+  .cancellation-sheet > footer .btn { width:100%; }
   .portal-customer .arrival-code:not(.arrival-code-locked) { display:grid; grid-template-columns:minmax(0,1fr); }
   .portal-customer .tracking-card.status-completed .booking-payment { grid-template-columns:minmax(0,1fr); gap:15px; }
   .request-unavailable, .customer-location-card, .request-top, .approved-head,
