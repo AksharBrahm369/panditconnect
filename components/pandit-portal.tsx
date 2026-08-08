@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { BadgeCheck, BellRing, Check, ChevronRight, Clock3, IndianRupee, KeyRound, MapPin, MessageCircle, Navigation, Power, Star } from "lucide-react";
 import { AppShell } from "./app-shell";
 import { ConsultationPanel } from "./consultation-panel";
@@ -17,6 +17,7 @@ type Booking = {
   preferred_language: string | null; materials_option: string;
   customer_latitude: number | null; customer_longitude: number | null;
   payment_method: "CASH" | "UPI" | "CARD" | "OTHER" | null; payment_status: "NOT_SELECTED" | "CONFIRMED"; payment_confirmed_at: string | null;
+  cancellation_reason: string | null; cancelled_at: string | null;
 };
 
 export function PanditPortal({ userName }: { userName?: string | null }) {
@@ -30,6 +31,7 @@ export function PanditPortal({ userName }: { userName?: string | null }) {
   const [consultationRate, setConsultationRate] = useState(99);
   const [urgentChatIds, setUrgentChatIds] = useState<string[]>([]);
   const updateUrgentChats = useCallback((ids: string[]) => setUrgentChatIds(ids), []);
+  const knownBookingStatuses = useRef<Map<string, string> | null>(null);
 
   async function loadProfile(syncForm = false) {
     const response = await fetch(`/api/pandit/profile?fresh=${Date.now()}`, { cache: "no-store" });
@@ -43,7 +45,15 @@ export function PanditPortal({ userName }: { userName?: string | null }) {
   async function loadBookings() {
     const response = await fetch(`/api/bookings?fresh=${Date.now()}`, { cache: "no-store" });
     const data = await readJson<{ bookings?: Booking[]; error?: string }>(response);
-    if (response.ok) setBookings(data.bookings ?? []);
+    if (response.ok) {
+      const nextBookings = data.bookings ?? [];
+      if (knownBookingStatuses.current) {
+        const newlyCancelled = nextBookings.find((booking) => booking.status === "CANCELLED" && knownBookingStatuses.current?.get(booking.id) !== "CANCELLED");
+        if (newlyCancelled) setNotice(`Customer cancelled ${newlyCancelled.service_name}. ${newlyCancelled.cancellation_reason ? `Reason: ${newlyCancelled.cancellation_reason}` : "The request has been removed from your active work."}`);
+      }
+      knownBookingStatuses.current = new Map(nextBookings.map((booking) => [booking.id, booking.status]));
+      setBookings(nextBookings);
+    }
   }
 
   function load(syncForm = false) {
@@ -175,6 +185,7 @@ export function PanditPortal({ userName }: { userName?: string | null }) {
   const incomplete = ["INCOMPLETE", "CHANGES_REQUESTED", "REJECTED"].includes(profile.verification_status);
   const active = bookings.filter((b) => !["COMPLETED", "DECLINED", "CANCELLED"].includes(b.status));
   const completed = bookings.filter((b) => b.status === "COMPLETED").slice(0, 6);
+  const cancelled = bookings.filter((b) => b.status === "CANCELLED").slice(0, 5);
   const waitingRequests = active.filter((booking) => booking.status === "REQUESTED").length;
 
   return (
@@ -213,6 +224,7 @@ export function PanditPortal({ userName }: { userName?: string | null }) {
           <article className="pandit-scorecard"><span className="eyebrow">Your work record</span><div><span><Star /><strong>{profile.rating_count ? profile.rating : "New"}</strong><small>{profile.rating_count ? `${profile.rating_count} ratings` : "No ratings"}</small></span><span><BadgeCheck /><strong>{profile.completed_jobs}</strong><small>Pujas done</small></span><span><BellRing /><strong>{waitingRequests}</strong><small>New requests</small></span></div></article>
         </section>
         <ConsultationPanel role="PANDIT" onUrgentItemsChange={updateUrgentChats} />
+        {cancelled.length > 0 && <section className="pandit-cancelled" id="cancelled-requests"><header><span><BellRing /></span><div><small>Customer updates</small><h2>Recently cancelled requests</h2><p>These requests were cancelled by the customer and no longer need action.</p></div></header><div>{cancelled.map((booking) => <article key={booking.id}><div><strong>{booking.service_name}</strong><span>{booking.customer_name ?? "Customer"}{booking.scheduled_at ? ` · ${new Date(booking.scheduled_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}` : ""}</span></div><p><b>Cancelled</b>{booking.cancellation_reason ? ` · ${booking.cancellation_reason}` : ""}</p></article>)}</div></section>}
         <section className="pandit-money" id="completed-pujas"><header><span><IndianRupee /></span><div><small>Completed work</small><h2>Customer payment choices</h2><p>This records how each customer plans to pay you.</p></div></header>{completed.length ? <div className="completed-payment-list">{completed.map((booking) => <article key={booking.id}><div><strong>{booking.service_name}</strong><span>{booking.customer_name ?? "Customer"} · ₹{booking.amount.toLocaleString("en-IN")}</span></div><span className={`status ${booking.payment_status === "CONFIRMED" ? "paid" : ""}`}>{booking.payment_status === "CONFIRMED" ? booking.payment_method === "CASH" ? "Cash selected" : "Payment arranged" : "Waiting for customer"}</span></article>)}</div> : <p className="pandit-no-money">Completed Pujas will appear here.</p>}</section>
         <SupportCenter bookings={bookings.map(({id,service_name,status})=>({id,service_name,status}))} />
       </div>}

@@ -2149,6 +2149,18 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .pandit-urgent-alarm.has-urgent { border-color:#ee8b54; background:#fff1e7; box-shadow:0 10px 28px rgba(197,65,25,.16); animation:pandit-alarm-pulse 1.4s ease-in-out infinite; }
 .pandit-urgent-alarm.has-urgent .pandit-alarm-icon { color:#fff; background:#d8431f; }
 @keyframes pandit-alarm-pulse { 50% { box-shadow:0 10px 34px rgba(197,65,25,.28); } }
+.pandit-cancelled { overflow:hidden; border:1px solid #ead7ce; border-radius:22px; background:#fff; }
+.pandit-cancelled > header { display:flex; align-items:center; gap:12px; padding:18px 20px; border-bottom:1px solid #f0dfd7; background:#fff7f3; }
+.pandit-cancelled > header > span { display:grid; width:42px; height:42px; place-items:center; color:#b74428; border-radius:13px; background:#fee5d9; }
+.pandit-cancelled header small { color:#ad4d31; font-size:9px; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
+.pandit-cancelled header h2 { margin:2px 0; color:#43251f; font-size:20px; }
+.pandit-cancelled header p { margin:0; color:#806d64; font-size:11px; }
+.pandit-cancelled > div { display:grid; gap:9px; padding:12px; }
+.pandit-cancelled article { display:flex; align-items:center; justify-content:space-between; gap:14px; padding:13px 15px; border:1px solid #eee1da; border-radius:13px; background:#fffdfb; }
+.pandit-cancelled article div { display:grid; gap:3px; }
+.pandit-cancelled article strong { color:#4a332d; font-size:13px; }
+.pandit-cancelled article span,.pandit-cancelled article p { margin:0; color:#8a776e; font-size:10px; }
+.pandit-cancelled article b { color:#b23f25; }
 .pandit-jobs > header { display:flex; align-items:center; justify-content:space-between; gap:18px; padding:24px 26px; border-bottom:1px solid #eadcc6; background:#fff9ed; }
 .pandit-jobs header h2 { margin:5px 0 4px; color:#43211e; font:700 clamp(23px,3vw,31px)/1.08 Georgia,"Times New Roman",serif; }
 .pandit-jobs header p { margin:0; color:#7d695f; font-size:12px; }
@@ -2237,6 +2249,7 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   .pandit-urgent-alarm { grid-template-columns:42px minmax(0,1fr); padding:13px; border-radius:16px; }
   .pandit-alarm-icon { width:42px; height:42px; border-radius:13px; }
   .pandit-urgent-alarm button,.pandit-urgent-alarm > .pandit-alarm-ready { grid-column:1/-1; width:100%; }
+  .pandit-cancelled article { align-items:flex-start; flex-direction:column; }
   .pandit-workdesk { gap:13px; }
   .pandit-command-centre { grid-template-columns:1fr; gap:15px; padding:18px; border-radius:20px; }
   .pandit-command-welcome > span { flex-basis:48px; width:48px; height:48px; border-radius:14px; font-size:20px; }

@@ -47,6 +47,7 @@ export async function GET() {
       `SELECT b.id,b.status,
         CASE WHEN b.status='REQUESTED' THEN 'Exact address shared after acceptance' ELSE b.address END AS address,
         b.amount,b.created_at,b.request_type,b.scheduled_at,b.situation,b.preferred_language,b.materials_option,
+        b.cancellation_reason,b.cancelled_at,
         b.payment_method,b.payment_status,b.payment_confirmed_at,
         CASE WHEN b.status='REQUESTED' THEN NULL ELSE b.latitude END AS customer_latitude,
         CASE WHEN b.status='REQUESTED' THEN NULL ELSE b.longitude END AS customer_longitude,
