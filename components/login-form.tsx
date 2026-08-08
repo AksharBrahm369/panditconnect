@@ -15,6 +15,33 @@ export function LoginForm({ initialRole }: { initialRole: "CUSTOMER" | "PANDIT" 
   const [resendIn, setResendIn] = useState(0);
 
   useEffect(() => {
+    let checking = false;
+    const restoreAuthenticatedPortal = async () => {
+      if (checking) return;
+      checking = true;
+      try {
+        const response = await fetch("/api/auth/session", {
+          cache: "no-store",
+          credentials: "same-origin",
+          headers: { "Cache-Control": "no-cache" },
+        });
+        const session = await response.json() as { authenticated?: boolean; role?: "CUSTOMER" | "PANDIT" | "ADMIN" };
+        if (session.authenticated && session.role) {
+          window.location.replace(session.role === "ADMIN" ? "/admin" : session.role === "PANDIT" ? "/pandit" : "/customer");
+        }
+      } catch {
+        // A network failure must never clear a valid session.
+      } finally {
+        checking = false;
+      }
+    };
+    const onPageShow = () => void restoreAuthenticatedPortal();
+    window.addEventListener("pageshow", onPageShow);
+    void restoreAuthenticatedPortal();
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
+  useEffect(() => {
     if (resendIn <= 0) return;
     const timer = window.setTimeout(() => setResendIn((seconds) => Math.max(0, seconds - 1)), 1000);
     return () => window.clearTimeout(timer);

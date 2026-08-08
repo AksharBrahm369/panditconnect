@@ -120,11 +120,12 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
       window.location.assign("/login?role=customer");
       return;
     }
-    if (!response.ok || data.customerId !== customerId) {
-      setBookings([]);
-      setMessage("Your account session changed. Please sign in again to protect your booking history.");
-      await fetch("/api/auth/logout", { method: "POST", credentials: "same-origin" });
-      window.location.assign("/login?role=customer");
+    if (!response.ok) {
+      setMessage("We could not refresh your bookings. Your sign-in is still active; please try again.");
+      return;
+    }
+    if (data.customerId !== customerId) {
+      setMessage("We could not safely refresh this page. Please reload it; your sign-in is still active.");
       return;
     }
     setBookings(data.bookings ?? []);

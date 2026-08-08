@@ -44,7 +44,7 @@ export async function POST(request: Request) {
     await rememberSession(token, adminUser);
     await recordAdminAction(request, user.id, "ADMIN_LOGIN", "SESSION");
     const response = NextResponse.json({ success: true, redirectTo: "/admin" });
-    response.cookies.set(SESSION_COOKIE, token, { httpOnly: true, sameSite: "strict", secure: new URL(request.url).protocol === "https:", path: "/", maxAge: 60 * 60 * 24 * 7 });
+    response.cookies.set(SESSION_COOKIE, token, { httpOnly: true, sameSite: "strict", secure: new URL(request.url).protocol === "https:", path: "/", maxAge: 60 * 60 * 24 * 30 });
     return response;
   } catch (error) {
     const otpResponse = otpErrorResponse(error);

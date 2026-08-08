@@ -15,6 +15,22 @@ export function AdminLoginForm() {
   const [resendIn, setResendIn] = useState(0);
 
   useEffect(() => {
+    const restoreAdminSession = async () => {
+      try {
+        const response = await fetch("/api/auth/session", { cache: "no-store", credentials: "same-origin" });
+        const session = await readJson<{ authenticated?: boolean; role?: string }>(response);
+        if (session.authenticated && session.role === "ADMIN") window.location.replace("/admin");
+      } catch {
+        // Temporary network failures must not end or replace an existing session.
+      }
+    };
+    const onPageShow = () => void restoreAdminSession();
+    window.addEventListener("pageshow", onPageShow);
+    void restoreAdminSession();
+    return () => window.removeEventListener("pageshow", onPageShow);
+  }, []);
+
+  useEffect(() => {
     if (resendIn <= 0) return;
     const timer = window.setTimeout(() => setResendIn((seconds) => Math.max(0, seconds - 1)), 1000);
     return () => window.clearTimeout(timer);

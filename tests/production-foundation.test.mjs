@@ -349,6 +349,21 @@ test("customers have a private gear menu for profile and request settings", asyn
   assert.doesNotMatch(dashboard, /SupportCenter/);
 });
 
+test("sessions survive refresh and browser back until explicit sign out", async () => {
+  const loginPage = await readFile(new URL("../app/login/page.tsx", import.meta.url), "utf8");
+  const loginForm = await readFile(new URL("../components/login-form.tsx", import.meta.url), "utf8");
+  const adminLogin = await readFile(new URL("../components/admin-login-form.tsx", import.meta.url), "utf8");
+  const customer = await readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8");
+  const sessionRoute = await readFile(new URL("../app/api/auth/session/route.ts", import.meta.url), "utf8");
+  assert.match(loginPage, /currentUser/);
+  assert.match(loginPage, /redirect\(user\.role/);
+  assert.match(loginForm, /pageshow/);
+  assert.match(loginForm, /window\.location\.replace/);
+  assert.match(adminLogin, /pageshow/);
+  assert.match(sessionRoute, /private, no-store/);
+  assert.doesNotMatch(customer, /api\/auth\/logout/);
+});
+
 test("customer portal uses the simplified devotional home experience", async () => {
   const portal = await readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8");
   const shell = await readFile(new URL("../components/app-shell.tsx", import.meta.url), "utf8");
