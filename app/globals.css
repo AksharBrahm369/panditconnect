@@ -2032,12 +2032,12 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .cancellation-charge p { margin:0; color:var(--muted); line-height:1.55; }
 .cancellation-charge.has-fee { border-color:#efb5a8; background:#fff2ee; color:#992c20; }
 .cancellation-charge.is-free { border-color:#bce1d2; background:#edf9f4; color:#087b57; }
-.cancellation-reasons { display:grid; grid-template-columns:1fr 1fr; gap:9px; margin:0; padding:0; border:0; }
+.cancellation-reasons { display:grid; grid-template-columns:1fr; gap:8px; margin:0; padding:0; border:0; }
 .cancellation-reasons legend { grid-column:1/-1; margin-bottom:3px; font-weight:800; }
-.cancellation-reasons label { display:flex; align-items:center; gap:9px; min-height:48px; padding:11px 12px; border:1px solid var(--line); border-radius:12px; background:white; cursor:pointer; }
+.cancellation-reasons label { display:grid; grid-template-columns:20px minmax(0,1fr); align-items:center; gap:11px; min-height:48px; margin:0; padding:11px 13px; border:1px solid var(--line); border-radius:12px; background:white; cursor:pointer; }
 .cancellation-reasons label.selected { border-color:#cf4b2b; background:#fff5ef; box-shadow:0 0 0 1px #cf4b2b inset; }
-.cancellation-reasons input { flex:0 0 auto; accent-color:#c84626; }
-.cancellation-reasons span { font-size:14px; font-weight:650; line-height:1.35; }
+.cancellation-reasons input[type="radio"] { width:18px; min-width:18px; height:18px; min-height:18px; margin:0; padding:0; accent-color:#c84626; box-shadow:none; }
+.cancellation-reasons span { min-width:0; color:#2d211d; font-size:14px; font-weight:650; line-height:1.4; overflow-wrap:anywhere; }
 .cancellation-details { display:block; margin-top:17px; font-weight:750; }
 .cancellation-details em { margin-left:5px; color:var(--muted); font-size:12px; font-style:normal; font-weight:500; }
 .cancellation-details textarea { width:100%; margin-top:7px; resize:vertical; }
