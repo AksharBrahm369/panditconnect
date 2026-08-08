@@ -47,6 +47,7 @@ const journeySteps = [
   { value: "ON_THE_WAY", label: "On the way" },
   { value: "ARRIVED", label: "Arrived" },
   { value: "IN_PROGRESS", label: "Puja started" },
+  { value: "COMPLETED", label: "Completed" },
 ];
 const bookingStatusCopy: Record<string, { label: string; title: string; detail: string }> = {
   REQUESTED: { label: "Awaiting response", title: "Waiting for Pandit confirmation", detail: "We sent your request. You will be notified as soon as the Pandit responds." },
@@ -54,7 +55,7 @@ const bookingStatusCopy: Record<string, { label: string; title: string; detail: 
   ON_THE_WAY: { label: "Travelling", title: "Your Pandit is on the way", detail: "Follow the latest location below and keep your phone nearby for updates." },
   ARRIVED: { label: "At your location", title: "Your Pandit has arrived", detail: "Meet the Pandit first, then share the verification code shown below." },
   IN_PROGRESS: { label: "Puja underway", title: "Your Puja has started", detail: "The arrival was verified successfully. No action is needed right now." },
-  COMPLETED: { label: "Completed", title: "Your Puja is complete", detail: "Confirm how you will pay and leave a rating for your Pandit." },
+  COMPLETED: { label: "Completed", title: "Puja completed successfully", detail: "Review the payment choice and share your experience with the Pandit." },
 };
 const materialsLabels: Record<string, string> = {
   HAVE_MATERIALS: "I have the Puja materials",
@@ -577,9 +578,9 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
               {["ACCEPTED", "ON_THE_WAY"].includes(booking.status) && <div className="arrival-code arrival-code-locked"><ShieldCheck size={18} /><span><strong>Arrival code is protected</strong><small>It will appear after the Pandit marks “Arrived”.</small></span></div>}
               {booking.status === "ARRIVED" && <div className="arrival-code"><span><strong>Share this code with the Pandit</strong><small>Only share it after meeting the Pandit at your address.</small></span><code>{booking.arrival_otp}</code></div>}
             </>}
-            {booking.status === "COMPLETED" && <div className="booking-payment">
-              <div><span className="eyebrow">{booking.payment_status === "CONFIRMED" ? "Payment recorded" : "Action required · Payment"}</span><h4>{booking.payment_status === "CONFIRMED" ? "Payment method confirmed" : "Puja completed — choose a payment method"}</h4><p>{booking.payment_status === "CONFIRMED" ? "Your payment choice has been saved for this Puja." : "Select the method you will use. No online charge is made by the platform during beta."}</p></div>
-              {booking.payment_status === "CONFIRMED" ? <div className="payment-confirmed"><CheckCircle2 size={20} /><span><strong>{booking.payment_method === "CASH" ? "Cash" : "Previously recorded payment"}</strong><small>Confirmed for this completed Puja</small></span></div> : <div className="payment-method-grid">
+            {booking.status === "COMPLETED" && <div className={`booking-payment ${booking.payment_status === "CONFIRMED" ? "is-confirmed" : "needs-selection"}`}>
+              <div><span className="eyebrow">{booking.payment_status === "CONFIRMED" ? "Payment details" : "Choose payment method"}</span><h4>{booking.payment_status === "CONFIRMED" ? "Payment preference saved" : "How would you like to pay?"}</h4><p>{booking.payment_status === "CONFIRMED" ? "This records your chosen method only; the platform has not charged you." : "Select the method you will use. No online charge is made by the platform during beta."}</p></div>
+              {booking.payment_status === "CONFIRMED" ? <div className="payment-confirmed"><Banknote size={20} /><span><small>Selected method</small><strong>{booking.payment_method === "CASH" ? "Cash payment" : "Previously recorded payment"}</strong></span><CheckCircle2 size={18} /></div> : <div className="payment-method-grid">
                 <button disabled={paymentBusy === booking.id} onClick={() => confirmPaymentMethod(booking.id, "CASH")}><Banknote /><span><strong>Cash</strong><small>Pay with cash after Puja</small></span></button>
                 <button disabled title="Available after secure payment setup"><Smartphone /><span><strong>UPI</strong><small>Coming soon</small></span></button>
                 <button disabled title="Available after secure payment setup"><CreditCard /><span><strong>Card</strong><small>Coming soon</small></span></button>

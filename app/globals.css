@@ -13,6 +13,114 @@
   --shadow: 0 18px 55px rgba(70, 48, 31, .10);
 }
 
+/* Pandit portal: calm, task-first workspace for low-confidence mobile users. */
+.portal-pandit {
+  --pandit-maroon:#6e2028;
+  --pandit-saffron:#dc671f;
+  --pandit-cream:#fff9ed;
+  --pandit-ink:#35221d;
+  background:
+    radial-gradient(circle at 8% 4%,rgba(228,127,39,.1),transparent 24rem),
+    #f8f3e9;
+}
+.portal-pandit .portal-header { border-top:4px solid var(--pandit-maroon); border-bottom-color:#ead8bd; background:rgba(255,252,244,.97); }
+.portal-pandit .portal-brand { color:#3f211e; }
+.portal-pandit .brand-mark { color:#fff8e8; border-radius:13px; background:linear-gradient(145deg,#ed8425,#c94b1d); box-shadow:0 5px 14px rgba(166,62,21,.22); }
+.portal-pandit .portal-tabs { padding:4px; border:1px solid #ead9c1; border-radius:14px; background:#f7eddd; }
+.portal-pandit .portal-tabs a { min-height:41px; padding-inline:20px; color:#745f54; border-radius:10px; }
+.portal-pandit .portal-tabs a.active,.portal-pandit .portal-tabs a:hover { color:var(--pandit-maroon); background:#fff; box-shadow:0 3px 10px rgba(74,35,21,.08); }
+.portal-pandit .portal-role-mark { color:#fff; background:var(--pandit-maroon); }
+.portal-pandit .portal-main { width:min(1120px,calc(100% - 40px)); }
+.portal-pandit .page-heading { margin-bottom:22px; padding:24px 27px; border:1px solid #ead8bd; border-radius:22px; background:linear-gradient(120deg,#fffdf8,#fff5e5); box-shadow:0 12px 32px rgba(83,43,22,.06); }
+.portal-pandit .page-heading h1 { color:#401f1e; font:700 clamp(28px,4vw,43px)/1.08 Georgia,"Times New Roman",serif; }
+.portal-pandit .page-heading .eyebrow { color:#bd4a1e; }
+.portal-pandit .heading-mark { color:#a53a24; background:#fce8d7; }
+.pandit-simple-home { display:flex; flex-direction:column; gap:18px; }
+.portal-pandit .pandit-today-card { order:1; grid-template-columns:56px minmax(0,1fr) auto; margin:0; padding:25px; color:var(--pandit-ink); border:1px solid #e6cfab; border-radius:22px; background:linear-gradient(135deg,#fff8e8,#fffdf7); box-shadow:0 13px 32px rgba(91,47,23,.07); }
+.portal-pandit .pandit-today-card.online { color:#fff; border-color:#186a51; background:linear-gradient(135deg,#17694f,#0f563f); }
+.portal-pandit .pandit-today-card .role-action-icon { width:56px; height:56px; color:#b74822; border-radius:17px; background:#fbe3cf; }
+.portal-pandit .pandit-today-card.online .role-action-icon { color:#fff; background:rgba(255,255,255,.14); }
+.portal-pandit .pandit-today-card .eyebrow { color:#b14820; }
+.portal-pandit .pandit-today-card:not(.online) h2 { color:#47241d; }
+.portal-pandit .pandit-today-card:not(.online) p { color:#795f50; }
+.portal-pandit .pandit-today-card .btn { min-width:175px; min-height:54px; font-size:15px; }
+.portal-pandit .pandit-today-card.online .btn { color:#144f3d; border-color:#fff; background:#fff; }
+.portal-pandit .stat-grid { order:2; margin:0; gap:12px; }
+.portal-pandit .stat-grid article { min-height:118px; grid-template-columns:auto minmax(0,1fr); grid-template-rows:auto auto auto; gap:2px 12px; padding:19px; border-color:#e6d8c4; border-radius:18px; background:#fffdf9; box-shadow:none; }
+.portal-pandit .stat-grid article > svg { grid-row:1/4; width:38px; height:38px; padding:9px; color:#a84924; border-radius:12px; background:#f9e8d9; }
+.portal-pandit .stat-grid article > span { color:#78645a; font-size:11px; font-weight:750; text-transform:uppercase; letter-spacing:.06em; }
+.portal-pandit .stat-grid article strong { color:#3d2720; font-size:24px; }
+.portal-pandit .stat-grid article small { color:#8a776d; }
+.portal-pandit .stat-grid article.needs-attention { border-color:#e0a877; background:#fff6e9; }
+.portal-pandit .stat-grid article.needs-attention > svg { color:#fff; background:#d75c1d; animation:pandit-gentle-ring 1.8s ease-in-out infinite; }
+@keyframes pandit-gentle-ring { 0%,100%{transform:rotate(0)} 12%{transform:rotate(-8deg)} 24%{transform:rotate(8deg)} 36%{transform:rotate(0)} }
+.portal-pandit .pandit-request-section { order:3; padding:24px; border:1px solid #e6d5bc; border-radius:22px; background:#fffdf9; box-shadow:0 12px 30px rgba(76,38,20,.055); }
+.portal-pandit .pandit-request-section .section-title { align-items:center; margin-bottom:17px; }
+.portal-pandit .pandit-request-section .section-title h2,.portal-pandit .pandit-payment-section .section-title h2 { margin:4px 0; color:#42241f; font:700 25px/1.15 Georgia,"Times New Roman",serif; }
+.portal-pandit .pandit-request-section .section-title p,.portal-pandit .pandit-payment-section .section-title p { color:#7a675d; }
+.portal-pandit .live-pill { color:#176349; background:#e8f6ee; }
+.portal-pandit .request-grid { grid-template-columns:1fr; }
+.portal-pandit .request-card { display:grid; gap:15px; padding:21px; border-color:#dfcaaa; border-radius:19px; background:#fff; box-shadow:0 8px 22px rgba(75,37,18,.06); }
+.portal-pandit .request-top { padding-bottom:14px; border-bottom:1px solid #eee1cf; }
+.portal-pandit .request-top .service-icon { width:46px; height:46px; color:#a63c21; border-radius:14px; background:#fbe8d8; }
+.portal-pandit .request-top > b { padding:8px 11px; border-radius:10px; color:#4c281f; background:#fff5e4; }
+.portal-pandit .request-tags span { color:#684d40; background:#f6eee3; }
+.portal-pandit .customer-location-card { border-radius:15px; }
+.portal-pandit .pandit-request-status { display:grid; gap:5px; padding:12px 14px; border-left:4px solid #d45e20; border-radius:0 12px 12px 0; background:#fff6e9; }
+.portal-pandit .pandit-request-status .status { justify-self:start; }
+.portal-pandit .pandit-request-status small { color:#765e50; font-size:11px; }
+.portal-pandit .request-card .button-row { display:grid; grid-template-columns:auto minmax(200px,1fr); gap:10px; margin-top:0; }
+.portal-pandit .request-card .button-row > .btn:only-child,.portal-pandit .request-card .button-row > .arrival-verification { grid-column:1/-1; }
+.portal-pandit .request-card .btn { min-height:50px; font-size:14px; }
+.portal-pandit .request-card .btn-primary { justify-content:center; color:#fff; border-color:#cf501a; background:linear-gradient(135deg,#de671f,#bf4219); box-shadow:0 7px 17px rgba(178,60,17,.17); }
+.portal-pandit .request-card .btn-primary svg:last-child { margin-left:auto; }
+.portal-pandit .consultation-availability { order:4; grid-template-columns:50px minmax(0,1fr) minmax(155px,190px) auto; margin:0; padding:21px; border-color:#e5d4ba; border-radius:20px; background:#fffaf0; }
+.portal-pandit .consultation-availability > span { color:#9b3526; background:#f7dfd2; }
+.portal-pandit .consultation-availability.online { border-color:#bcdccb; background:#f1f9f5; }
+.portal-pandit .consultation-shell { order:5; }
+.portal-pandit .pandit-payment-section { order:6; padding:22px; border:1px solid #e6d5bc; border-radius:20px; background:#fffdf9; }
+.portal-pandit .pandit-payment-section .section-title > svg { width:42px; height:42px; padding:10px; color:#a94823; border-radius:13px; background:#f9e7d7; }
+.portal-pandit .support-center { order:7; }
+.portal-pandit .completed-payment-list article { border-color:#e8dac6; background:#fff; }
+.portal-pandit .portal-mobile-nav { border-color:#e3d2b8; background:rgba(255,251,243,.98); box-shadow:0 -8px 28px rgba(77,35,18,.1); }
+.portal-pandit .portal-mobile-nav a { color:#776157; }
+.portal-pandit .portal-mobile-nav a.active { color:#76262b; background:#fff0d9; }
+
+@media (max-width:720px) {
+  .portal-pandit .portal-header { height:68px; grid-template-columns:minmax(0,1fr) auto; padding-inline:12px; }
+  .portal-pandit .portal-brand > span:last-child { display:inline; font-size:14px; }
+  .portal-pandit .portal-main { width:100%; padding:18px 12px calc(100px + env(safe-area-inset-bottom)); }
+  .portal-pandit .page-heading { margin-bottom:14px; padding:18px; border-radius:18px; }
+  .portal-pandit .page-heading h1 { font-size:29px; }
+  .portal-pandit .page-heading p { margin-top:6px; font-size:12px; }
+  .portal-pandit .heading-mark { display:none; }
+  .pandit-simple-home { gap:14px; }
+  .portal-pandit .pandit-today-card { grid-template-columns:44px minmax(0,1fr); gap:12px; padding:18px; border-radius:18px; }
+  .portal-pandit .pandit-today-card .role-action-icon { width:44px; height:44px; border-radius:13px; }
+  .portal-pandit .pandit-today-card h2 { margin-top:4px; font-size:20px; }
+  .portal-pandit .pandit-today-card .btn { grid-column:1/-1; width:100%; min-height:56px; font-size:16px; }
+  .portal-pandit .stat-grid { grid-template-columns:repeat(3,minmax(0,1fr)); gap:8px; }
+  .portal-pandit .stat-grid article { min-height:122px; display:flex; align-items:center; flex-direction:column; gap:4px; padding:13px 6px; text-align:center; }
+  .portal-pandit .stat-grid article > svg { width:34px; height:34px; padding:8px; }
+  .portal-pandit .stat-grid article > span { font-size:8px; }
+  .portal-pandit .stat-grid article strong { font-size:20px; }
+  .portal-pandit .stat-grid article small { display:block; font-size:8px; line-height:1.25; }
+  .portal-pandit .pandit-request-section,.portal-pandit .pandit-payment-section { padding:16px; border-radius:18px; }
+  .portal-pandit .pandit-request-section .section-title { align-items:flex-start; flex-direction:column; }
+  .portal-pandit .request-card { padding:15px; }
+  .portal-pandit .request-top { grid-template-columns:42px minmax(0,1fr) auto; }
+  .portal-pandit .request-top .service-icon { width:42px; height:42px; }
+  .portal-pandit .request-card .button-row { grid-template-columns:1fr; }
+  .portal-pandit .request-card .button-row > * { grid-column:1!important; width:100%; }
+  .portal-pandit .request-card .btn { min-height:54px; }
+  .portal-pandit .customer-location-card { grid-template-columns:auto minmax(0,1fr); }
+  .portal-pandit .customer-location-card .btn { grid-column:1/-1; }
+  .portal-pandit .consultation-availability { grid-template-columns:42px minmax(0,1fr); padding:16px; }
+  .portal-pandit .consultation-availability label,.portal-pandit .consultation-availability .btn { grid-column:1/-1; width:100%; }
+  .portal-pandit .consultation-availability .btn { min-height:52px; }
+  .portal-pandit .portal-mobile-nav { grid-template-columns:repeat(3,minmax(0,1fr)); }
+}
+
 /* Customer Pandit discovery and public profile */
 .customer-pandit-discovery { display:grid; gap:16px; padding:24px; border:1px solid #e8d8c0; border-radius:22px; background:#fffdf8; }
 .customer-discovery-heading { display:flex; align-items:flex-end; justify-content:space-between; gap:20px; }
@@ -254,7 +362,7 @@ input:focus, textarea:focus, select:focus { border-color: var(--saffron); box-sh
 .tracking-head { display: flex; justify-content: space-between; gap: 20px; }
 .tracking-head h3 { margin: 8px 0 3px; }
 .tracking-head p { margin: 0; color: var(--muted); }
-.status-track { display: grid; grid-template-columns: repeat(5,1fr); margin: 23px 0; }
+.status-track { display: grid; grid-template-columns: repeat(6,1fr); margin: 23px 0; }
 .status-track span { position: relative; display: grid; gap: 7px; justify-items: center; color: #a49b92; font-size: 10px; text-transform: uppercase; text-align: center; }
 .status-track span::before { content: ""; position: absolute; top: 5px; right: 50%; width: 100%; height: 2px; background: #e5ddd5; }
 .status-track span:first-child::before { display: none; }
@@ -706,7 +814,7 @@ tbody tr:hover { background: #fafcfb; }
   .intent-shell, .guided-main, .side-card, .history, .tracking-card, .workspace-main { padding: 19px; border-radius: 17px; }
   .intent-card { grid-template-columns: 40px 1fr auto; padding: 18px; }
   .service-grid { grid-template-columns: 1fr; }
-  .status-track { overflow-x: auto; grid-template-columns: repeat(5,95px); padding-bottom: 7px; }
+  .status-track { overflow-x: auto; grid-template-columns: repeat(6,95px); padding-bottom: 7px; }
   .request-unavailable { padding: 14px; }
 }
 
@@ -1858,8 +1966,8 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .portal-customer .tracking-list { gap:20px; }
 .portal-customer .tracking-card { display:grid; gap:20px; padding:26px; border-color:#e5d5be; border-radius:24px; background:#fffdfa; box-shadow:0 12px 36px rgba(76,39,22,.07); }
 .portal-customer .tracking-card::before { width:5px; background:linear-gradient(#e56b25,#bd3c1c); }
-.portal-customer .tracking-card.status-completed::before { background:linear-gradient(#18805f,#45aa7e); }
-.portal-customer .tracking-card.status-completed { border-color:#d2e5dc; background:linear-gradient(180deg,#fff 0%,#fbfffd 100%); }
+.portal-customer .tracking-card.status-completed::before { background:linear-gradient(#d76620,#8e2929); }
+.portal-customer .tracking-card.status-completed { border-color:#e7d3b8; background:linear-gradient(180deg,#fffefa 0%,#fffaf0 100%); }
 .portal-customer .tracking-head { align-items:flex-start; padding-bottom:18px; border-bottom:1px solid #eee1d0; }
 .portal-customer .tracking-head .status { display:inline-flex; padding:6px 9px; color:#98401f; border-radius:999px; background:#fff0df; font-size:9px; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
 .portal-customer .tracking-head h3 { margin:11px 0 4px; color:#351d18; font:700 25px/1.15 Georgia,"Times New Roman",serif; }
@@ -1879,16 +1987,19 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .portal-customer .booking-current-state.state-requested > span { background:#d88723; }
 .portal-customer .booking-current-state.state-requested small { color:#9a621d; }
 .portal-customer .booking-current-state.state-requested h4 { color:#513814; }
-.portal-customer .booking-current-state.state-completed { border-color:#bfe2d3; background:linear-gradient(135deg,#edf9f3,#f8fcfa); }
-.portal-customer .booking-current-state.state-completed > span { background:#147a59; box-shadow:0 6px 14px rgba(20,122,89,.2); }
-.portal-customer .booking-current-state.state-completed h4 { color:#154d3c; }
-.portal-customer .booking-current-state.state-completed p { color:#55736a; }
+.portal-customer .booking-current-state.state-completed { position:relative; overflow:hidden; border-color:#ebcea5; background:linear-gradient(135deg,#fff8e8,#fffdf7); }
+.portal-customer .booking-current-state.state-completed::after { position:absolute; right:24px; color:rgba(151,57,28,.07); content:"ॐ"; font:700 74px/1 Georgia,serif; }
+.portal-customer .booking-current-state.state-completed > span { z-index:1; background:linear-gradient(145deg,#19805e,#0f6549); box-shadow:0 7px 16px rgba(20,122,89,.18); }
+.portal-customer .booking-current-state.state-completed > div { z-index:1; }
+.portal-customer .booking-current-state.state-completed small { color:#a04522; }
+.portal-customer .booking-current-state.state-completed h4 { color:#5a2022; font-family:Georgia,"Times New Roman",serif; font-size:20px; }
+.portal-customer .booking-current-state.state-completed p { color:#785e50; }
 .portal-customer .status-track { margin:2px 0 0; }
 .portal-customer .status-track span { color:#9b8d83; font-size:9px; font-weight:700; letter-spacing:.02em; text-transform:none; }
 .portal-customer .status-track span.current { color:#0b7655; font-weight:900; }
 .portal-customer .status-track i { width:14px; height:14px; border-width:3px; }
 .portal-customer .status-track span.current i { outline:4px solid #dff3eb; }
-.portal-customer .tracking-facts { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); overflow:hidden; border:1px solid #eadfce; border-radius:16px; background:#fff; }
+.portal-customer .tracking-facts { display:grid; grid-template-columns:repeat(auto-fit,minmax(210px,1fr)); overflow:hidden; border:1px solid #eadfce; border-radius:16px; background:#fff; }
 .portal-customer .tracking-facts > span { display:grid; grid-template-columns:22px minmax(0,1fr); grid-template-rows:auto auto; gap:2px 9px; align-items:center; padding:14px 16px; }
 .portal-customer .tracking-facts > span + span { border-left:1px solid #eadfce; }
 .portal-customer .tracking-facts svg { grid-row:1/3; color:#a84c26; }
@@ -1903,8 +2014,19 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .portal-customer .arrival-code code { padding:8px 13px; color:#b9421f; font-size:20px; letter-spacing:.14em; }
 .portal-customer .arrival-code-locked { display:grid; grid-template-columns:auto 1fr; justify-content:start; gap:11px; color:#6d604f; border-style:solid; border-color:#e5dccf; background:#f8f5f0; }
 .portal-customer .arrival-code-locked svg { color:#8b7a69; }
-.portal-customer .tracking-card.status-completed .booking-payment { margin-top:0; border-color:#d4e6de; border-radius:18px; background:#f8fcfa; }
-.portal-customer .tracking-card.status-completed .payment-confirmed { border:1px solid #cce6da; border-radius:14px; background:#eaf8f1; }
+.portal-customer .tracking-card.status-completed .status-track { margin:0; padding:18px 14px 12px; border:1px solid #ead9c4; border-radius:16px; background:#fffaf1; }
+.portal-customer .tracking-card.status-completed .status-track span.done { color:#8d4a2c; }
+.portal-customer .tracking-card.status-completed .status-track span.done::before,.portal-customer .tracking-card.status-completed .status-track span.done i { border-color:#d36a31; background:#d36a31; }
+.portal-customer .tracking-card.status-completed .status-track span.current { color:#752326; }
+.portal-customer .tracking-card.status-completed .status-track span.current i { outline-color:#f5dfc4; }
+.portal-customer .tracking-card.status-completed .booking-payment { grid-template-columns:minmax(0,1fr) minmax(260px,.55fr); align-items:center; gap:24px; margin-top:0; border-color:#ead5b9; border-radius:18px; background:#fff9ee; }
+.portal-customer .tracking-card.status-completed .booking-payment .eyebrow { color:#a74322; }
+.portal-customer .tracking-card.status-completed .booking-payment h4 { color:#4e2420; font-family:Georgia,"Times New Roman",serif; }
+.portal-customer .tracking-card.status-completed .payment-confirmed { display:grid; grid-template-columns:auto minmax(0,1fr) auto; border:1px solid #e6c99f; border-radius:14px; color:#714121; background:#fff3dc; }
+.portal-customer .tracking-card.status-completed .payment-confirmed > svg:first-child { color:#b55225; }
+.portal-customer .tracking-card.status-completed .payment-confirmed > svg:last-child { color:#16805e; }
+.portal-customer .tracking-card.status-completed .payment-confirmed span { gap:1px; }
+.portal-customer .tracking-card.status-completed .payment-confirmed small { color:#94745f; text-transform:uppercase; letter-spacing:.06em; }
 .portal-customer .portal-mobile-nav { border-top:1px solid #e4d4bd; background:rgba(255,251,243,.97); box-shadow:0 -8px 26px rgba(68,29,18,.08); }
 .portal-customer .portal-mobile-nav a { color:#76645a; }
 .portal-customer .portal-mobile-nav a.active { color:var(--customer-maroon); background:#fff2df; }
@@ -1953,7 +2075,8 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   .portal-customer .tracking-price small { display:none; }
   .portal-customer .booking-current-state { grid-template-columns:42px minmax(0,1fr); padding:14px; }
   .portal-customer .booking-current-state > span { width:42px; height:42px; border-radius:13px; }
-  .portal-customer .status-track { grid-template-columns:repeat(5,82px); margin-inline:0; }
+  .portal-customer .status-track { grid-template-columns:repeat(6,82px); margin-inline:0; }
+  .portal-customer .tracking-card.status-completed .booking-payment { grid-template-columns:1fr; gap:15px; }
   .portal-customer .tracking-facts { grid-template-columns:1fr; }
   .portal-customer .tracking-facts > span + span { border-top:1px solid #eadfce; border-left:0; }
   .portal-customer .tracking-facts strong { white-space:normal; }

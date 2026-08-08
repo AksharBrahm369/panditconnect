@@ -105,7 +105,7 @@
   .preferred-pandit-note { grid-template-columns:auto minmax(0,1fr); }
   .preferred-pandit-note .btn { grid-column:1/-1; width:100%; }
 
-  .status-track { grid-template-columns: repeat(5,92px); overflow-x: auto; padding: 4px 0 10px; scrollbar-width: none; }
+  .status-track { grid-template-columns: repeat(6,92px); overflow-x: auto; padding: 4px 0 10px; scrollbar-width: none; }
   .status-track::-webkit-scrollbar, .customer-pandit-rail::-webkit-scrollbar { display: none; }
   .portal-customer .tracking-card { gap:16px; padding:18px 16px; }
   .portal-customer .tracking-head { gap:10px; }
@@ -119,6 +119,7 @@
   .portal-customer .tracking-actions { align-items:stretch; flex-direction:column; }
   .portal-customer .tracking-actions .btn,.portal-customer .tracking-actions button { width:100%; justify-content:center; }
   .portal-customer .arrival-code:not(.arrival-code-locked) { display:grid; grid-template-columns:minmax(0,1fr); }
+  .portal-customer .tracking-card.status-completed .booking-payment { grid-template-columns:minmax(0,1fr); gap:15px; }
   .request-unavailable, .customer-location-card, .request-top, .approved-head,
   .review-list-item, .review-profile-head, .onboarding-status-card {
     grid-template-columns: auto minmax(0,1fr);

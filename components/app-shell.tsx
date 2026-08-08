@@ -4,7 +4,7 @@ import Link from "next/link";
 import { useEffect, useState } from "react";
 import {
   Activity, BadgeCheck, BookOpenCheck, LayoutDashboard,
-  Headphones, LogOut, MapPinned, MessageCircle, Radio, ShieldCheck, Sparkles, UsersRound,
+  Headphones, LogOut, MapPinned, MessageCircle, ShieldCheck, Sparkles, UsersRound,
 } from "lucide-react";
 import { NotificationCenter } from "./notification-center";
 import { PanditAccountMenu } from "./pandit-account-menu";
@@ -19,10 +19,9 @@ const roleNavigation = {
     { label: "My bookings", href: "/customer#live-requests", icon: Activity },
   ],
   Pandit: [
-    { label: "Overview", href: "/pandit#portal-overview", icon: LayoutDashboard },
-    { label: "Availability", href: "/pandit#pandit-status", icon: Radio },
-    { label: "Live chats", href: "/pandit#online-guidance", icon: MessageCircle },
-    { label: "Urgent requests", href: "/pandit#pandit-requests", icon: MapPinned },
+    { label: "Today", href: "/pandit#portal-overview", icon: LayoutDashboard },
+    { label: "Requests", href: "/pandit#pandit-requests", icon: MapPinned },
+    { label: "Chat", href: "/pandit#online-guidance", icon: MessageCircle },
   ],
   Admin: [
     { label: "Overview", href: "/admin#portal-overview", icon: LayoutDashboard },
