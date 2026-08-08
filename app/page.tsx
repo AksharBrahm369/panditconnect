@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowRight, BadgeCheck, CalendarX2, CircleHelp, Clock3, House, ShieldCheck, Sparkles } from "lucide-react";
+import { ArrowRight, BadgeCheck, CircleHelp, Clock3, House, ShieldCheck, Sparkles } from "lucide-react";
 import { LiveAvailabilityCard } from "@/components/live-availability-card";
 import { FeaturedPandits } from "@/components/featured-pandits";
 
@@ -25,9 +25,8 @@ export default function Home() {
             <a href="#how-it-works" className="text-button">How it works</a>
           </div>
           <div className="hero-choices">
-            <Link href="/login?role=customer"><CalendarX2 /><span><strong>My Pandit cancelled</strong><small>Find a replacement quickly</small></span><ArrowRight /></Link>
             <Link href="/login?role=customer"><CircleHelp /><span><strong>I need guidance</strong><small>Help me choose the right Puja</small></span><ArrowRight /></Link>
-            <Link href="/login?role=customer"><House /><span><strong>I know the Puja</strong><small>Match me with a nearby Pandit</small></span><ArrowRight /></Link>
+            <Link href="/login?role=customer"><House /><span><strong>Choose a specific Puja</strong><small>Select a Puja and compare nearby Pandits</small></span><ArrowRight /></Link>
           </div>
         </div>
         <div className="hero-showcase">

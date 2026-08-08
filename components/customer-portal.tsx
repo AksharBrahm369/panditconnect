@@ -435,10 +435,9 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
               })}</div>}
             </section>
 
-            <div className="customer-choice-heading" id="request-assistance"><div><span>Quick options</span><h2>Or choose what you already know</h2></div><p>Nothing is submitted until you confirm.</p></div>
+            <div className="customer-choice-heading" id="request-assistance"><div><span>Other ways to begin</span><h2>Choose a Puja or ask online</h2></div><p>For a declined booking, use “Find another Pandit” inside My bookings.</p></div>
           <div className="customer-choice-grid">
-            <button className="customer-choice-card urgent" onClick={() => choosePath("PANDIT_SOS")}><span><AlertTriangle /></span><div><small>Urgent help</small><strong>My Pandit cancelled</strong><p>Quickly find another approved Pandit nearby.</p></div><ChevronRight /></button>
-            <button className="customer-choice-card" onClick={() => choosePath("KNOWN_PUJA")}><span><Sparkles /></span><div><small>Quick booking</small><strong>I know the Puja</strong><p>Select the ritual and compare nearby Pandits.</p></div><ChevronRight /></button>
+            <button className="customer-choice-card" onClick={() => choosePath("KNOWN_PUJA")}><span><Sparkles /></span><div><small>Direct booking</small><strong>Choose a specific Puja</strong><p>Select the Puja you need, then compare eligible nearby Pandits.</p></div><ChevronRight /></button>
             <button className="customer-choice-card online" id="online-guidance" onClick={() => setConsultationMode(true)}><span><BadgeHelp /></span><div><small>Online guidance</small><strong>Chat with a Pandit</strong><p>Ask a religious question privately online.</p></div><ChevronRight /></button>
           </div>
 
@@ -451,13 +450,14 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
           {requestType && !match && nearbyPandits === null && (
         <>
           <div className="flow-assurance"><ShieldCheck /><div><strong>You stay in control</strong><span>Nothing is sent until you review the Puja, language, materials and address.</span></div></div>
-          <div className="progress"><span className="active">1 Your need</span><i /><span className={serviceId ? "active" : ""}>2 Guidance</span><i /><span>3 Match & track</span></div>
+          <div className="progress"><span className="active">1 {requestType === "KNOWN_PUJA" ? "Select Puja" : "Describe need"}</span><i /><span className={serviceId ? "active" : ""}>2 Booking details</span><i /><span>3 Choose Pandit</span></div>
           <button className="back-review flow-back" onClick={() => setRequestType(null)}><ArrowLeft size={16} /> Choose another path</button>
           <section className="guided-workspace" id="request-assistance">
             <div className="guided-main">
               <div className="flow-heading">
-                <span className="eyebrow">{requestType === "PANDIT_SOS" ? "Urgent replacement" : requestType === "NEED_GUIDANCE" ? "Ritual guidance" : "Known Puja"}</span>
-                <h2>{requestType === "PANDIT_SOS" ? "Tell us what was planned" : requestType === "NEED_GUIDANCE" ? "What happened or what is the occasion?" : "Which Puja do you need?"}</h2>
+                <span className="eyebrow">{requestType === "NEED_GUIDANCE" ? "Guided booking" : "Direct Puja booking"}</span>
+                <h2>{requestType === "NEED_GUIDANCE" ? "What happened or what is the occasion?" : "Select the Puja you want to book"}</h2>
+                {requestType === "KNOWN_PUJA" && <p>Prices shown are starting prices. You will choose from Pandits who perform this Puja, speak your preferred language and serve your location.</p>}
               </div>
 
               {requestType !== "KNOWN_PUJA" && (
@@ -484,7 +484,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
 
               {guidance && (
                 <article className="guidance-card">
-                  <div className="guidance-head"><CheckCircle2 size={23} /><div><span>Recommended</span><h3>{guidance.title}</h3></div></div>
+                  <div className="guidance-head"><CheckCircle2 size={23} /><div><span>{requestType === "KNOWN_PUJA" ? "Selected Puja" : "Recommended"}</span><h3>{guidance.title}</h3></div></div>
                   <p>{guidance.reason}</p>
                   <div className="checklist"><strong>Preparation checklist</strong>{guidance.checklist.map((item) => <span key={item}><CheckCircle2 size={15} /> {item}</span>)}</div>
                   <small>This is practical guidance, not a substitute for advice from a qualified Pandit. The matched Pandit will confirm the ritual.</small>
@@ -502,7 +502,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
               <button className="btn btn-ghost btn-block" onClick={locateFromAddress} disabled={locationBusy || !address.trim()}><Compass size={16} /> Confirm using PIN code area</button>
               <p className={`location-state ${coordinates ? "ready" : ""}`}>{coordinates ? locationSource === "GPS" ? `GPS detected within about ${Math.round(coordinates.accuracy)} metres` : "PIN code area confirmed. Matching and ETA will be approximate." : "GPS gives the best ETA. If unavailable, add a PIN code and confirm the area."}</p>
               <label>Additional note <em>Optional</em><textarea rows={2} value={notes} onChange={(event) => setNotes(event.target.value)} /></label>
-                  <button className="btn btn-primary btn-block" disabled={busy || !serviceId} onClick={findNearbyPandits}>{busy ? "Checking availability…" : preferredPandit ? `Confirm and request ${preferredPandit.name}` : requestType === "PANDIT_SOS" ? "Find replacement now" : "Show nearby Pandits"} <ChevronRight size={17} /></button>
+                  <button className="btn btn-primary btn-block" disabled={busy || !serviceId} onClick={findNearbyPandits}>{busy ? "Checking availability…" : preferredPandit ? `Confirm and request ${preferredPandit.name}` : "Compare nearby Pandits"} <ChevronRight size={17} /></button>
               <p className="privacy-note"><ShieldCheck size={15} /> Exact address is released to the matched Pandit only after acceptance.</p>
             </aside>
           </section>
