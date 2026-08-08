@@ -16,6 +16,7 @@
     "db:audit": "node --env-file=.env scripts/audit-db.mjs",
     "db:migrate": "node --env-file=.env scripts/apply-migration.mjs",
     "db:legacy-audit": "node --env-file=.env scripts/audit-legacy-schema.mjs",
+    "notifications:audit": "node --env-file=.env scripts/audit-notifications.mjs",
     "db:generate": "drizzle-kit generate",
     "e2e:production-flow": "node --env-file=.env scripts/e2e-production-flow.mjs"
   },

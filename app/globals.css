@@ -2171,6 +2171,7 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .pandit-urgent-alarm small { color:#7b6a61; font-size:9px; font-weight:850; letter-spacing:.08em; text-transform:uppercase; }
 .pandit-urgent-alarm strong { color:#34231e; font-size:15px; }
 .pandit-urgent-alarm p { margin:0; color:#76665e; font-size:11px; }
+.pandit-urgent-alarm .pandit-alarm-setup { margin-top:5px; color:#315f50; font-size:11px; font-style:normal; font-weight:650; line-height:1.4; }
 .pandit-urgent-alarm button { display:flex; align-items:center; justify-content:center; gap:7px; min-height:44px; padding:10px 14px; color:#fff; border:0; border-radius:12px; background:#9f321d; font-weight:800; cursor:pointer; }
 .pandit-urgent-alarm button svg { width:17px; }
 .pandit-alarm-ready { display:flex; align-items:center; gap:5px; color:#137054; font-size:12px; font-weight:800; }
