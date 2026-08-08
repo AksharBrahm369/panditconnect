@@ -351,15 +351,35 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
   }
 
   async function findAnotherPandit(bookingId: string) {
+    if (rematchingId) return;
     setRematchingId(bookingId);
     setRematchErrors((current) => ({ ...current, [bookingId]: "" }));
-    const response = await fetch(`/api/bookings/${bookingId}/rematch`, { method: "POST" });
-    const data = await readJson<{ error?: string }>(response);
+    const response = await fetch(`/api/bookings/${bookingId}/rematch`, {
+      method: "POST",
+      cache: "no-store",
+      credentials: "same-origin",
+      headers: { "Cache-Control": "no-cache" },
+    });
+    const data = await readJson<{ error?: string; matchedPandit?: { id: string; name: string; distanceKm: string; etaMinutes: number; status: "REQUESTED" } }>(response);
     if (!response.ok) {
       setRematchErrors((current) => ({ ...current, [bookingId]: data.error ?? "Unable to find another Pandit right now." }));
       setRematchingId(null);
       return;
     }
+    if (!data.matchedPandit || data.matchedPandit.status !== "REQUESTED") {
+      setRematchErrors((current) => ({ ...current, [bookingId]: "The replacement could not be confirmed. Please refresh and try again." }));
+      setRematchingId(null);
+      return;
+    }
+    setBookings((current) => current.map((booking) => booking.id === bookingId ? {
+      ...booking,
+      status: "REQUESTED",
+      pandit_name: data.matchedPandit!.name,
+      pandit_latitude: null,
+      pandit_longitude: null,
+      location_updated_at: null,
+    } : booking));
+    setMatch({ name: data.matchedPandit.name, distanceKm: data.matchedPandit.distanceKm, etaMinutes: data.matchedPandit.etaMinutes });
     await refreshBookings();
     setRematchingId(null);
   }

@@ -9,25 +9,33 @@ type RematchResult = {
   name: string;
   distance_km: string;
   eta_minutes: number;
+  status: string;
 };
+
+const privateResponse = <T,>(body: T, init?: ResponseInit) =>
+  NextResponse.json(body, {
+    ...init,
+    headers: { ...init?.headers, "Cache-Control": "private, no-store, max-age=0, must-revalidate", Vary: "Cookie" },
+  });
 
 export async function POST(_request: Request, context: { params: Promise<{ id: string }> }) {
   const user = await currentUser();
   if (!user || user.role !== "CUSTOMER") {
-    return NextResponse.json({ error: "Customer login required" }, { status: 401 });
+    return privateResponse({ error: "Customer login required" }, { status: 401 });
   }
 
   const { id } = await context.params;
   const otp = String(crypto.getRandomValues(new Uint32Array(1))[0] % 1_000_000).padStart(6, "0");
   const result = await sql<RematchResult>(
     `WITH original AS (
-       SELECT id,service_id,latitude,longitude,preferred_language,pandit_id,
-         CASE WHEN pandit_id = ANY(declined_pandit_ids)
-           THEN declined_pandit_ids
-           ELSE array_append(declined_pandit_ids,pandit_id)
+       SELECT id,customer_id,service_id,latitude,longitude,preferred_language,pandit_id,
+         CASE WHEN pandit_id = ANY(COALESCE(declined_pandit_ids,ARRAY[]::uuid[]))
+           THEN COALESCE(declined_pandit_ids,ARRAY[]::uuid[])
+           ELSE array_append(COALESCE(declined_pandit_ids,ARRAY[]::uuid[]),pandit_id)
          END AS excluded_pandit_ids
        FROM pim_v2.bookings
        WHERE id=$1 AND customer_id=$2 AND status='DECLINED'
+       FOR UPDATE
      ),
      matches AS (
        SELECT u.id,u.name,ps.charge,p.rating,least(COALESCE(p.service_radius_km,25),25) AS service_radius_km,
@@ -42,6 +50,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
         AND p.is_online=true
         AND p.latitude IS NOT NULL
         AND p.longitude IS NOT NULL
+        AND p.user_id<>o.customer_id
         AND NOT (p.user_id = ANY(o.excluded_pandit_ids))
         AND (o.preferred_language IS NULL OR EXISTS (
           SELECT 1 FROM unnest(p.languages) listed_language
@@ -60,11 +69,13 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
      reassigned AS (
        UPDATE pim_v2.bookings b
        SET pandit_id=matches.id,amount=matches.charge,status='REQUESTED',
-         arrival_otp=$3,accepted_at=NULL,
+         arrival_otp=$3,arrival_otp_attempts=0,accepted_at=NULL,completed_at=NULL,
+         payment_method=NULL,payment_status='NOT_SELECTED',payment_confirmed_at=NULL,
+         cancellation_reason=NULL,cancelled_by=NULL,cancelled_at=NULL,
          declined_pandit_ids=original.excluded_pandit_ids
        FROM matches,original
-       WHERE b.id=original.id
-       RETURNING matches.id,matches.name,matches.distance
+       WHERE b.id=original.id AND b.status='DECLINED'
+       RETURNING matches.id,matches.name,matches.distance,b.status
      )
      SELECT id,name,round(distance::numeric,1)::text AS distance_km,
        greatest(10,round(distance*3)::int+8) AS eta_minutes
@@ -79,12 +90,12 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
       [id, user.id],
     );
     if (!booking.rows[0]) {
-      return NextResponse.json({ error: "Request not found" }, { status: 404 });
+      return privateResponse({ error: "Request not found" }, { status: 404 });
     }
     if (booking.rows[0].status !== "DECLINED") {
-      return NextResponse.json({ error: "This request is no longer waiting for a rematch" }, { status: 409 });
+      return privateResponse({ error: "This request is no longer waiting for a rematch" }, { status: 409 });
     }
-    return NextResponse.json(
+    return privateResponse(
       { error: "No other approved Pandit is online nearby right now. Please try again in a few minutes." },
       { status: 409 },
     );
@@ -92,12 +103,14 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
 
   await notifyUser(match.id, { title: "New urgent Puja request", body: "A nearby customer selected you as a replacement Pandit.", url: "/pandit#pandit-requests", eventType: "BOOKING_REQUESTED" });
 
-  return NextResponse.json({
+  return privateResponse({
     success: true,
     matchedPandit: {
+      id: match.id,
       name: match.name,
       distanceKm: match.distance_km,
       etaMinutes: match.eta_minutes,
+      status: match.status,
     },
   });
 }
