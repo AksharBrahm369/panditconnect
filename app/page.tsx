@@ -1,61 +1,94 @@
 import Link from "next/link";
-import { ArrowRight, BadgeCheck, CalendarX2, Clock3, ShieldCheck, Sparkles } from "lucide-react";
-import { LiveAvailabilityCard } from "@/components/live-availability-card";
+import {
+  ArrowRight, BadgeCheck, CalendarClock, CalendarX2, Check, HelpCircle,
+  MapPin, MessageCircle, ShieldCheck,
+} from "lucide-react";
 
 export default function Home() {
   return (
-    <main>
-      <nav className="topbar">
-        <Link href="/" className="brand"><span className="brand-mark">ॐ</span><span>Pandit in Minutes</span></Link>
-        <div className="public-nav"><a href="#how-it-works">How it works</a></div>
-        <div className="nav-actions">
-          <Link href="/login?role=pandit" className="btn btn-ghost">Join as Pandit</Link>
-          <Link href="/login?role=customer" className="btn btn-primary">Get Puja help</Link>
-        </div>
-      </nav>
+    <main className="easy-home">
+      <header className="easy-header">
+        <Link href="/" className="easy-brand" aria-label="Pandit in Minutes home">
+          <span>ॐ</span>
+          <strong>Pandit in Minutes</strong>
+        </Link>
+        <Link href="/login?role=customer" className="easy-header-action">Get Puja help</Link>
+      </header>
 
-      <section className="hero">
-        <div className="hero-copy">
-          <span className="eyebrow"><Sparkles size={15} /> Simple, trusted Puja assistance</span>
-          <h1>Tell us what you need. We’ll find the right Pandit.</h1>
-          <p>You don’t need to know the Puja name. Share your situation and get clear guidance, a verified nearby Pandit, and live updates.</p>
-          <div className="hero-actions">
-            <Link href="/login?role=customer" className="btn btn-primary btn-lg">Find my Pandit <ArrowRight size={18} /></Link>
-            <a href="#how-it-works" className="text-button">How it works</a>
+      <section className="easy-hero" aria-labelledby="easy-home-title">
+        <div className="easy-hero-copy">
+          <span className="easy-kicker"><HelpCircle /> Simple help for every family</span>
+          <h1 id="easy-home-title">What do you need help with?</h1>
+          <p>Choose one option. We will guide you step by step—you do not need to know the Puja name.</p>
+
+          <div className="easy-actions" aria-label="Choose the help you need">
+            <Link href="/login?role=customer" className="easy-action-primary">
+              <span className="easy-action-icon"><MapPin /></span>
+              <span><small>Most common choice</small><strong>Find a Pandit near me</strong><em>For a Puja at home, today or later</em></span>
+              <ArrowRight />
+            </Link>
+
+            <div className="easy-secondary-actions">
+              <Link href="/login?role=customer" className="easy-action-secondary">
+                <span><CalendarX2 /></span>
+                <strong>My Pandit cancelled</strong>
+                <small>Find a nearby replacement</small>
+                <ArrowRight />
+              </Link>
+              <Link href="/login?role=customer" className="easy-action-secondary">
+                <span><MessageCircle /></span>
+                <strong>Ask a Pandit online</strong>
+                <small>Get private religious guidance</small>
+                <ArrowRight />
+              </Link>
+            </div>
           </div>
-          <div className="hero-choices">
-            <Link href="/login?role=customer"><CalendarX2 /><span><strong>My Pandit cancelled</strong><small>Find a replacement quickly</small></span><ArrowRight /></Link>
-          </div>
+
+          <p className="easy-reassurance"><ShieldCheck /> Your phone number and exact address are never shown publicly.</p>
         </div>
-        <div className="hero-showcase">
-          <div className="hero-photo">
-            {/* Vinext serves public assets directly; bypass its unstable local image optimizer. */}
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src="/puja-hero.png" alt="A Pandit conducting a home Puja for an Indian couple" width="1024" height="1024" fetchPriority="high" />
-            <div className="hero-photo-badge"><BadgeCheck size={17} /><span><strong>Approved professionals</strong><small>Identity and experience reviewed</small></span></div>
-          </div>
-          <LiveAvailabilityCard />
+
+        <div className="easy-hero-visual">
+          {/* Public assets bypass the local image optimiser used by Vinext. */}
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/puja-hero.png" alt="A family welcoming a Pandit for a Puja at home" width="1024" height="1024" />
+          <div className="easy-visual-note"><BadgeCheck /><span><strong>Verified Pandits</strong><small>Identity and experience reviewed</small></span></div>
         </div>
       </section>
 
-      <section className="simple-trust" aria-label="Why customers trust the service">
-        <div><BadgeCheck /><span><strong>Verified Pandits</strong><small>Profiles reviewed before approval</small></span></div>
-        <div><Clock3 /><span><strong>Quick nearby matching</strong><small>Designed for urgent requirements</small></span></div>
-        <div><ShieldCheck /><span><strong>Private by default</strong><small>Your contact details stay protected</small></span></div>
-      </section>
-
-      <section className="how" id="how-it-works">
-        <span className="eyebrow">How it works</span>
-        <h2>Puja help in three easy steps</h2>
-        <div className="steps-grid">
-          <article><b>01</b><h3>Tell us what happened</h3><p>Type or speak naturally. It takes less than a minute and no religious terminology is required.</p></article>
-          <article><b>02</b><h3>Confirm the recommendation</h3><p>Review the suggested Puja, materials guidance, language and transparent price before requesting.</p></article>
-          <article><b>03</b><h3>Track your Pandit</h3><p>See acceptance, journey and arrival status. Share the secure OTP only when the Pandit reaches you.</p></article>
+      <section className="easy-steps" id="how-it-works" aria-labelledby="easy-steps-title">
+        <div className="easy-section-heading">
+          <span>What happens next?</span>
+          <h2 id="easy-steps-title">Three simple steps</h2>
+          <p>There are no hidden steps. Nothing is booked until you confirm.</p>
         </div>
-        <div className="how-cta"><div><strong>Need a Pandit right now?</strong><span>Start with your situation—we will guide the rest.</span></div><Link href="/login?role=customer" className="btn btn-primary">Start now <ArrowRight size={17} /></Link></div>
+        <ol>
+          <li><b>1</b><span><strong>Tell us what happened</strong><small>Type or speak in simple words.</small></span></li>
+          <li><b>2</b><span><strong>Allow your location</strong><small>We show only suitable nearby Pandits.</small></span></li>
+          <li><b>3</b><span><strong>Choose and send request</strong><small>Compare the Pandit, price and distance first.</small></span></li>
+        </ol>
+        <Link href="/login?role=customer" className="easy-start-button">Start finding a Pandit <ArrowRight /></Link>
       </section>
 
-      <footer><span>Pandit in Minutes · Trusted religious help, nearby</span><div className="footer-links"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/cancellation-policy">Cancellation</Link><Link href="/refund-policy">Refunds</Link><Link href="/login?role=pandit">Join as Pandit</Link></div></footer>
+      <section className="easy-trust" aria-label="Booking protections">
+        <article><BadgeCheck /><span><strong>Admin verified</strong><small>Every visible Pandit is reviewed</small></span></article>
+        <article><MapPin /><span><strong>Nearby Pandits only</strong><small>See suitable Pandits close to you</small></span></article>
+        <article><CalendarClock /><span><strong>Live status updates</strong><small>Follow acceptance and arrival</small></span></article>
+      </section>
+
+      <section className="easy-family-help">
+        <div>
+          <span>Not sure where to begin?</span>
+          <h2>That is completely okay.</h2>
+          <p>Describe the occasion in your own words. The app will recommend the next step before contacting any Pandit.</p>
+          <ul><li><Check /> No religious terminology needed</li><li><Check /> Review everything before sending</li><li><Check /> Cancel before acceptance without charge</li></ul>
+        </div>
+        <Link href="/login?role=customer" className="easy-help-link">Help me choose <ArrowRight /></Link>
+      </section>
+
+      <footer className="easy-footer">
+        <div><span>ॐ</span><strong>Pandit in Minutes</strong><small>Trusted religious help, nearby.</small></div>
+        <nav aria-label="Legal and partner links"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/cancellation-policy">Cancellation</Link><Link href="/login?role=pandit">Join as Pandit</Link></nav>
+      </footer>
     </main>
   );
 }
