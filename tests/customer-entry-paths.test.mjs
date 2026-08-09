@@ -28,10 +28,11 @@ test("beginner help uses distinct guided, walkthrough and app-support paths", as
     readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8"),
   ]);
 
-  assert.match(homepage, /Need help using the app\?/);
-  assert.match(homepage, /Guide me step by step/);
-  assert.match(homepage, /Show me how it works/);
-  assert.match(homepage, /Talk to app support/);
+  assert.doesNotMatch(homepage, /Need help using the app\?/);
+  assert.doesNotMatch(homepage, /Choose the kind of help you want/);
+  assert.match(helpPage, /Guide me step by step/);
+  assert.match(helpPage, /Show me how it works/);
+  assert.match(helpPage, /Talk to app support/);
   assert.match(helpPage, /Book a Pandit in three steps/);
   assert.match(helpPage, /App support is only for help using the website/);
   assert.match(loginPage, /nextPath/);

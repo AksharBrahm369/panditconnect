@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
-  ArrowRight, BadgeCheck, CalendarClock, CalendarX2, Headphones, HelpCircle,
-  MapPin, MessageCircle, PlayCircle, Route, ShieldCheck,
+  ArrowRight, BadgeCheck, CalendarClock, CalendarX2, HelpCircle,
+  MapPin, MessageCircle, ShieldCheck,
 } from "lucide-react";
 
 export default function Home() {
@@ -73,19 +73,6 @@ export default function Home() {
         <article><BadgeCheck /><span><strong>Admin verified</strong><small>Every visible Pandit is reviewed</small></span></article>
         <article><MapPin /><span><strong>Nearby Pandits only</strong><small>See suitable Pandits close to you</small></span></article>
         <article><CalendarClock /><span><strong>Live status updates</strong><small>Follow acceptance and arrival</small></span></article>
-      </section>
-
-      <section className="easy-help-hub" aria-labelledby="easy-help-title">
-        <div className="easy-help-heading">
-          <span>Need help using the app?</span>
-          <h2 id="easy-help-title">Choose the kind of help you want</h2>
-          <p>This is app assistance. Religious questions remain private with a Pandit.</p>
-        </div>
-        <div className="easy-help-options">
-          <Link href="/login?role=customer&next=%2Fcustomer%3Fstart%3Dguided"><Route /><span><strong>Guide me step by step</strong><small>One simple question at a time</small></span><ArrowRight /></Link>
-          <Link href="/help#walkthrough"><PlayCircle /><span><strong>Show me how it works</strong><small>Quick visual walkthrough</small></span><ArrowRight /></Link>
-          <Link href="/login?role=customer&next=%2Fcustomer%2Fsettings%2Fsupport"><Headphones /><span><strong>Talk to app support</strong><small>Booking or account help</small></span><ArrowRight /></Link>
-        </div>
       </section>
 
       <footer className="easy-footer">
