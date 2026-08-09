@@ -37,6 +37,7 @@ jobs:
         run: npm run backup:verify -- "$(ls -1t .backups/*.dump.enc | head -1)"
         env:
           BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          PG_RESTORE_BIN: /usr/lib/postgresql/17/bin/pg_restore
       - uses: actions/upload-artifact@v4
         with:
           name: encrypted-pim-v2-${{ github.run_id }}
