@@ -106,7 +106,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
   const [clientRequestId, setClientRequestId] = useState("");
   const [outstandingBalance, setOutstandingBalance] = useState(0);
   const [coordinates, setCoordinates] = useState<BrowserCoordinates | null>(null);
-  const [locationSource, setLocationSource] = useState<"GPS" | "POSTAL_CODE" | null>(null);
+  const [locationSource, setLocationSource] = useState<"GPS" | null>(null);
   const [recommendation, setRecommendation] = useState<RitualRecommendation | null>(null);
   const [guidanceError, setGuidanceError] = useState("");
   const [message, setMessage] = useState("");
@@ -115,6 +115,8 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
   const [listening, setListening] = useState(false);
   const [match, setMatch] = useState<{ name: string; distanceKm: string; etaMinutes: number } | null>(null);
   const [nearbyPandits, setNearbyPandits] = useState<NearbyPandit[] | null>(null);
+  const [nearbyPage, setNearbyPage] = useState(1);
+  const [nearbyHasMore, setNearbyHasMore] = useState(false);
   const [panditSort, setPanditSort] = useState<"NEAREST" | "RATING" | "EXPERIENCE">("NEAREST");
   const [rematchingId, setRematchingId] = useState<string | null>(null);
   const [rematchErrors, setRematchErrors] = useState<Record<string, string>>({});
@@ -234,6 +236,8 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
     setGuidanceError("");
     setMatch(null);
     setNearbyPandits(null);
+    setNearbyPage(1);
+    setNearbyHasMore(false);
     setMessage("");
     setScheduledAt("");
     setPolicyAccepted(false);
@@ -261,34 +265,6 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to detect your location.");
       return null;
-    } finally {
-      setLocationBusy(false);
-    }
-  }
-
-  async function locateFromAddress() {
-    const postalCode = pinCode.replace(/\D/g, "");
-    if (!/^[1-9]\d{5}$/.test(postalCode)) {
-      setMessage("Enter a valid 6-digit Indian PIN code. The first digit cannot be 0.");
-      return null;
-    }
-    setLocationBusy(true);
-    setMessage("");
-    try {
-      const response = await fetch("/api/location/geocode", {
-        method: "POST",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ postalCode }),
-      });
-      const data = await readJson<{ error?: string; latitude?: number; longitude?: number }>(response);
-      if (!response.ok || !Number.isFinite(data.latitude) || !Number.isFinite(data.longitude)) {
-        setMessage(data.error ?? "Unable to confirm the address area.");
-        return null;
-      }
-      const current = { latitude: data.latitude!, longitude: data.longitude!, accuracy: 5_000 };
-      setCoordinates(current);
-      setLocationSource("POSTAL_CODE");
-      return current;
     } finally {
       setLocationBusy(false);
     }
@@ -331,7 +307,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
     recognition.start();
   }
 
-  async function findNearbyPandits() {
+  async function findNearbyPandits(page = 1, append = false) {
     if (!requestType || !serviceId || !address.trim()) {
       setMessage("Complete the guidance, Puja and address details before continuing.");
       return;
@@ -346,22 +322,24 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
     }
     setBusy(true);
     setMessage("");
-    const current = coordinates ?? await locateFromAddress();
+    const current = locationSource === "GPS" && coordinates ? coordinates : await detectLocation();
     if (!current) { setBusy(false); return; }
     if (requestType === "SCHEDULED_PUJA" && !scheduledAt) {
       setMessage("Choose the date and time for your Puja before comparing Pandits.");
       setBusy(false);
       return;
     }
-    const params = new URLSearchParams({ serviceId, language, lat: String(current.latitude), lng: String(current.longitude), ...(requestType === "SCHEDULED_PUJA" ? { bookingMode: "SCHEDULED", scheduledAt: new Date(scheduledAt).toISOString() } : {}) });
+    const params = new URLSearchParams({ serviceId, language, lat: String(current.latitude), lng: String(current.longitude), page: String(page), limit: "8", ...(preferredPandit ? { panditId: preferredPandit.id } : {}), ...(requestType === "SCHEDULED_PUJA" ? { bookingMode: "SCHEDULED", scheduledAt: new Date(scheduledAt).toISOString() } : {}) });
     const response = await fetch(`/api/pandits/nearby?${params}`, { cache: "no-store" });
-    const data = await readJson<{ error?: string; pandits?: NearbyPandit[] }>(response);
+    const data = await readJson<{ error?: string; pandits?: NearbyPandit[]; hasMore?: boolean }>(response);
     if (!response.ok) {
       setMessage(data.error ?? "Unable to find nearby Pandits.");
       setBusy(false);
       return;
     }
     const eligible = data.pandits ?? [];
+    setNearbyPage(page);
+    setNearbyHasMore(Boolean(data.hasMore));
     if (preferredPandit) {
       const selected = eligible.find((pandit) => pandit.id === preferredPandit.id);
       if (!selected) {
@@ -374,7 +352,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
       await sendRequest(selected.id, current);
       return;
     }
-    setNearbyPandits(eligible);
+    setNearbyPandits((currentPandits) => append && currentPandits ? [...currentPandits, ...eligible] : eligible);
     setBusy(false);
   }
 
@@ -634,13 +612,13 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
               <label>Preferred language<select value={language} onChange={(event) => setLanguage(event.target.value)}><option>Hindi</option><option>Marathi</option><option>Gujarati</option><option>English</option><option>Sanskrit</option></select></label>
               <label>Puja materials<select value={materialsOption} onChange={(event) => setMaterialsOption(event.target.value)}>{Object.entries(materialsLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
               {requestType === "SCHEDULED_PUJA" && <label>Puja date and time<input type="datetime-local" value={scheduledAt} min={dateTimeLocalValue(Date.now() + 2 * 60 * 60 * 1000)} max={dateTimeLocalValue(Date.now() + 180 * 24 * 60 * 60 * 1000)} onChange={(event) => setScheduledAt(event.target.value)} /><small className="field-hint">Schedule at least 2 hours ahead.</small></label>}
-              <label>Full service address<textarea rows={3} value={address} onChange={(event) => { const nextAddress=event.target.value;setAddress(nextAddress);const detectedPin=nextAddress.match(/(?:^|\D)([1-9]\d{2}[\s-]?\d{3})(?!\d)/)?.[1]?.replace(/\D/g,"");if(detectedPin)setPinCode(detectedPin);if (locationSource === "POSTAL_CODE") { setCoordinates(null); setLocationSource(null); } }} placeholder="House or building, street and area" /></label>
-              <label>6-digit PIN code<input inputMode="numeric" autoComplete="postal-code" maxLength={6} pattern="[1-9][0-9]{5}" value={pinCode} onChange={(event)=>{setPinCode(event.target.value.replace(/\D/g,"").slice(0,6));if(locationSource==="POSTAL_CODE"){setCoordinates(null);setLocationSource(null);}}} placeholder="Example: 400075"/><small className="field-hint">Enter the PIN code for the Puja address.</small></label>
+              <label>Full service address<textarea rows={3} value={address} onChange={(event) => { const nextAddress=event.target.value;setAddress(nextAddress);const detectedPin=nextAddress.match(/(?:^|\D)([1-9]\d{2}[\s-]?\d{3})(?!\d)/)?.[1]?.replace(/\D/g,"");if(detectedPin)setPinCode(detectedPin); }} placeholder="House or building, street and area" /></label>
+              <label>6-digit PIN code<input inputMode="numeric" autoComplete="postal-code" maxLength={6} pattern="[1-9][0-9]{5}" value={pinCode} onChange={(event)=>setPinCode(event.target.value.replace(/\D/g,"").slice(0,6))} placeholder="Example: 400075"/><small className="field-hint">Enter the PIN code for the Puja address.</small></label>
               <button className="btn btn-ghost btn-block" onClick={detectLocation} disabled={locationBusy}>{locationBusy ? "Detecting GPS…" : <><MapPin size={16} /> Use my current GPS location</>}</button>
-              <p className={`location-state ${coordinates ? "ready" : ""}`}>{coordinates ? locationSource === "GPS" ? `GPS detected within about ${Math.round(coordinates.accuracy)} metres` : "PIN code area confirmed. Matching and ETA will be approximate." : "GPS gives the best ETA. If GPS is unavailable, your PIN code will be used automatically."}</p>
+              <p className={`location-state ${coordinates ? "ready" : ""}`}>{coordinates ? `GPS detected within about ${Math.round(coordinates.accuracy)} metres` : "GPS permission is required. Pandits are fetched only after your location is detected."}</p>
               <label>Additional note <em>Optional</em><textarea rows={2} value={notes} onChange={(event) => setNotes(event.target.value)} /></label>
               <div className="booking-policy-consent"><strong>Cancellation policy</strong><p>Cancellation is free before acceptance and for 5 minutes after acceptance. Later cancellation may cost ₹49, up to ₹99 while travelling, or up to ₹199 after arrival.</p><label><input type="checkbox" checked={policyAccepted} onChange={(event)=>setPolicyAccepted(event.target.checked)}/><span>I understand and agree to cancellation policy version {cancellationPolicyVersion}.</span></label><Link href="/cancellation-policy" target="_blank">Read full cancellation policy</Link></div>
-                  <button className="btn btn-primary btn-block" disabled={busy || !serviceId || !policyAccepted || (requestType === "SCHEDULED_PUJA" && !scheduledAt)} onClick={findNearbyPandits}>{busy ? "Checking availability…" : preferredPandit ? `Confirm and request ${preferredPandit.name}` : requestType === "SCHEDULED_PUJA" ? "Compare Pandits for this time" : "Compare nearby Pandits"} <ChevronRight size={17} /></button>
+                  <button className="btn btn-primary btn-block" disabled={busy || !serviceId || !policyAccepted || (requestType === "SCHEDULED_PUJA" && !scheduledAt)} onClick={() => void findNearbyPandits(1)}>{busy ? "Checking availability…" : preferredPandit ? `Confirm and request ${preferredPandit.name}` : requestType === "SCHEDULED_PUJA" ? "Compare Pandits for this time" : "Compare nearby Pandits"} <ChevronRight size={17} /></button>
               <p className="privacy-note"><ShieldCheck size={15} /> Exact address is released to the matched Pandit only after acceptance.</p>
             </aside>
           </section>
@@ -661,7 +639,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
               <div className="pandit-language-list">{pandit.languages.map((item) => <span key={item}>{item}</span>)}</div>
               <button className="btn btn-primary btn-block" disabled={busy} onClick={() => sendRequest(pandit.id)}>{busy ? "Sending request…" : `Send request to ${pandit.name}`} <ChevronRight size={17} /></button>
             </article>
-          ))}</div></> : <div className="empty"><MapPin size={26} /><strong>No approved Pandit is online nearby</strong><span>Try again in a few minutes or edit the Puja and location details.</span><button className="btn btn-ghost" onClick={() => setNearbyPandits(null)}>Edit request</button></div>}
+          ))}</div>{nearbyHasMore && <button className="btn btn-ghost btn-block" disabled={busy} onClick={() => void findNearbyPandits(nearbyPage + 1, true)}>{busy ? "Loading nearby Pandits…" : "Show more nearby Pandits"}</button>}</> : <div className="empty"><MapPin size={26} /><strong>No approved Pandit is online nearby</strong><span>Try again in a few minutes or edit the Puja and location details.</span><button className="btn btn-ghost" onClick={() => setNearbyPandits(null)}>Edit request</button></div>}
         </section>
       )}
 

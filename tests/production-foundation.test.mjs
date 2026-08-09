@@ -226,13 +226,14 @@ test("submitted Pandits see a pending screen and receive admin decision notifica
   assert.match(admin,/notifyUser\(panditId/);
 });
 
-test("customers can review every eligible nearby Pandit before sending a request", async () => {
+test("customers can review every eligible nearby Pandit in GPS-filtered pages before sending a request", async () => {
   const nearby = await readFile(new URL("../app/api/pandits/nearby/route.ts", import.meta.url), "utf8");
   const booking = await readFile(new URL("../app/api/bookings/route.ts", import.meta.url), "utf8");
   const customer = await readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8");
   assert.match(nearby, /WHERE distance <= service_radius_km/);
   assert.match(nearby, /least\(COALESCE\(p\.service_radius_km,25\),25\)/);
-  assert.match(nearby, /LIMIT 50/);
+  assert.match(nearby, /LIMIT \$8 OFFSET \$9/);
+  assert.match(nearby, /hasMore/);
   assert.match(booking, /body\.panditId/);
   assert.match(booking, /u\.id=\$4/);
   assert.doesNotMatch(booking, /ORDER BY language_rank,distance,rating DESC LIMIT 1/);
@@ -241,6 +242,7 @@ test("customers can review every eligible nearby Pandit before sending a request
   assert.match(customer, /Send request to/);
   assert.match(customer, /Highest rated/);
   assert.match(customer, /Most experienced/);
+  assert.match(customer, /Show more nearby Pandits/);
 });
 
 test("push notifications provide sound, delivery diagnostics and admin event coverage", async () => {

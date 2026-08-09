@@ -6,9 +6,10 @@ type NearbyPandit = {
   id: string; name: string; experience_years: number; languages: string[]; rating: string;
   rating_count: number; completed_jobs: number; charge: number; distance_km: string; eta_minutes: number;
   service_radius_km: number;
+  total_count: number;
 };
 
-type NearbyCacheEntry = { expiresAt: number; pandits: NearbyPandit[] };
+type NearbyCacheEntry = { expiresAt: number; pandits: NearbyPandit[]; total: number; hasMore: boolean; page: number; limit: number };
 
 declare global {
   var __pimV2NearbyCache: Map<string, NearbyCacheEntry> | undefined;
@@ -27,6 +28,10 @@ export async function GET(request: Request) {
     const longitude = Number(params.get("lng"));
     const scheduled = params.get("bookingMode") === "SCHEDULED";
     const scheduledAt = scheduled ? new Date(params.get("scheduledAt") ?? "") : null;
+    const page = Math.max(1, Number.parseInt(params.get("page") ?? "1", 10) || 1);
+    const limit = Math.min(12, Math.max(4, Number.parseInt(params.get("limit") ?? "8", 10) || 8));
+    const offset = (page - 1) * limit;
+    const requestedPanditId = /^[0-9a-f-]{36}$/i.test(params.get("panditId") ?? "") ? params.get("panditId") : null;
     if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
         !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
       return NextResponse.json({ error: "A valid current location is required" }, { status: 400 });
@@ -37,11 +42,11 @@ export async function GET(request: Request) {
     if (scheduled && (!scheduledAt || !Number.isFinite(scheduledAt.getTime()) || scheduledAt.getTime() < Date.now() + 2 * 60 * 60 * 1000 || scheduledAt.getTime() > Date.now() + 180 * 24 * 60 * 60 * 1000)) {
       return NextResponse.json({ error: "Choose a valid Puja time at least 2 hours ahead" }, { status: 400 });
     }
-    const cacheKey = `${serviceId}:${language.toLowerCase()}:${latitude.toFixed(3)}:${longitude.toFixed(3)}:${scheduled ? scheduledAt!.toISOString() : "urgent"}`;
+    const cacheKey = `${serviceId}:${language.toLowerCase()}:${latitude.toFixed(3)}:${longitude.toFixed(3)}:${scheduled ? scheduledAt!.toISOString() : "urgent"}:${requestedPanditId ?? "any"}:${page}:${limit}`;
     const cached = nearbyCache.get(cacheKey);
     if (cached && cached.expiresAt > Date.now()) {
       return NextResponse.json(
-        { pandits: cached.pandits },
+        { pandits: cached.pandits, total: cached.total, hasMore: cached.hasMore, page: cached.page, limit: cached.limit },
         { headers: { "Cache-Control": "private, max-age=5" } },
       );
     }
@@ -69,15 +74,19 @@ export async function GET(request: Request) {
        )
        SELECT id,name,experience_years,languages,rating,rating_count,completed_jobs,charge,service_radius_km,
          round(distance::numeric,1)::text AS distance_km,
-         greatest(10,round(distance*3)::int+8) AS eta_minutes
+         greatest(10,round(distance*3)::int+8) AS eta_minutes,
+         count(*) OVER()::int AS total_count
        FROM available
        WHERE distance <= service_radius_km
-       ORDER BY distance,rating DESC LIMIT 50`,
-      [serviceId, latitude, longitude, language, scheduled, scheduledAt?.toISOString() ?? null],
+       ORDER BY CASE WHEN id=$7 THEN 0 ELSE 1 END,distance,rating DESC
+       LIMIT $8 OFFSET $9`,
+      [serviceId, latitude, longitude, language, scheduled, scheduledAt?.toISOString() ?? null, requestedPanditId, limit, offset],
     );
-    nearbyCache.set(cacheKey, { pandits: result.rows, expiresAt: Date.now() + 10_000 });
+    const total = Number(result.rows[0]?.total_count ?? 0);
+    const hasMore = offset + result.rows.length < total;
+    nearbyCache.set(cacheKey, { pandits: result.rows, total, hasMore, page, limit, expiresAt: Date.now() + 10_000 });
     return NextResponse.json(
-      { pandits: result.rows },
+      { pandits: result.rows, total, hasMore, page, limit },
       { headers: { "Cache-Control": "private, max-age=5" } },
     );
   } catch (error) {

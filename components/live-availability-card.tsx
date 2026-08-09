@@ -34,6 +34,8 @@ export function LiveAvailabilityCard() {
           language: "Hindi",
           lat: String(coordinates.latitude),
           lng: String(coordinates.longitude),
+          page: "1",
+          limit: "4",
         });
         return fetch(`/api/pandits/nearby?${params}`, { cache: "no-store" });
       })

@@ -29,3 +29,23 @@ test("large Pandit directories use server pagination and incremental loading", a
   assert.doesNotMatch(pushNotifications, /SELECT id,phone FROM pim_v2\.users/);
   assert.match(pushNotifications, /right\(regexp_replace\(phone/);
 });
+
+test("customer pages never preload a global Pandit directory", async () => {
+  const [home, customerPortal, liveAvailability, retiredFeaturedApi] = await Promise.all([
+    read("app/page.tsx"),
+    read("components/customer-portal.tsx"),
+    read("components/live-availability-card.tsx"),
+    read("app/api/pandits/featured/route.ts"),
+  ]);
+
+  assert.doesNotMatch(home, /FeaturedPandits|pandits\/featured/);
+  assert.match(customerPortal, /getCurrentCoordinates\(\)/);
+  assert.match(customerPortal, /\/api\/pandits\/discover\?\$\{params\}/);
+  assert.match(customerPortal, /\/api\/pandits\/nearby\?\$\{params\}/);
+  assert.match(customerPortal, /Show more nearby Pandits/);
+  assert.match(liveAvailability, /getCurrentCoordinates\(\)/);
+  assert.match(liveAvailability, /\/api\/pandits\/nearby\?\$\{params\}/);
+  assert.match(liveAvailability, /limit: "4"/);
+  assert.doesNotMatch(retiredFeaturedApi, /pim_v2|\bsql\b/);
+  assert.match(retiredFeaturedApi, /status: 410/);
+});

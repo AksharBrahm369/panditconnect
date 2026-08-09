@@ -1,14 +1,13 @@
 import Link from "next/link";
 import { ArrowRight, BadgeCheck, CalendarX2, Clock3, ShieldCheck, Sparkles } from "lucide-react";
 import { LiveAvailabilityCard } from "@/components/live-availability-card";
-import { FeaturedPandits } from "@/components/featured-pandits";
 
 export default function Home() {
   return (
     <main>
       <nav className="topbar">
         <Link href="/" className="brand"><span className="brand-mark">ॐ</span><span>Pandit in Minutes</span></Link>
-        <div className="public-nav"><a href="#how-it-works">How it works</a><a href="#pandit-network">Our Pandits</a></div>
+        <div className="public-nav"><a href="#how-it-works">How it works</a></div>
         <div className="nav-actions">
           <Link href="/login?role=pandit" className="btn btn-ghost">Join as Pandit</Link>
           <Link href="/login?role=customer" className="btn btn-primary">Get Puja help</Link>
@@ -44,8 +43,6 @@ export default function Home() {
         <div><Clock3 /><span><strong>Quick nearby matching</strong><small>Designed for urgent requirements</small></span></div>
         <div><ShieldCheck /><span><strong>Private by default</strong><small>Your contact details stay protected</small></span></div>
       </section>
-
-      <FeaturedPandits />
 
       <section className="how" id="how-it-works">
         <span className="eyebrow">How it works</span>
