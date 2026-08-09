@@ -15,6 +15,8 @@ jobs:
         with:
           node-version: 22
           cache: npm
+      - name: Install PostgreSQL backup client
+        run: sudo apt-get update && sudo apt-get install --yes postgresql-client
       - run: npm ci
       - run: npm run backup:create
         env:
