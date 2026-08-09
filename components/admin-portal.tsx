@@ -1,13 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 import { ArrowLeft, BadgeCheck, CalendarCheck, Check, ExternalLink, Headphones, Languages, MapPin, RefreshCw, ShieldAlert, ShieldCheck, Star, UserRound, Users, X } from "lucide-react";
 import { AppShell } from "./app-shell";
 import { readJson } from "@/lib/http";
 import { AdminPrivacyRequests } from "./admin-privacy-requests";
 import { AdminFinanceOperations } from "./admin-finance-operations";
 
-type Overview = { stats: { users: number; pendingPandits: number; approvedPandits: number; bookings: number }; risk:{outstanding_balance:number;restricted_customers:number;open_disputes:number}; funnel:{requests:number;accepted:number;completed:number;cancelled:number;acceptance_rate:number;completion_rate:number;avg_match_minutes:number;push_success_rate:number}; recent: Array<{ id: string; service_name: string; pandit_name: string; customer_phone: string; status: string; amount: number; created_at: string; request_type: string; scheduled_at: string | null }>; approved: ReviewPandit[] };
+type Overview = { stats: { users: number; pendingPandits: number; approvedPandits: number; bookings: number }; risk:{outstanding_balance:number;restricted_customers:number;open_disputes:number}; funnel:{requests:number;accepted:number;completed:number;cancelled:number;acceptance_rate:number;completion_rate:number;avg_match_minutes:number;push_success_rate:number}; recent: Array<{ id: string; service_name: string; pandit_name: string; customer_phone: string; status: string; amount: number; created_at: string; request_type: string; scheduled_at: string | null }> };
 type ReviewPandit = {
   id: string; name: string | null; phone: string; city: string | null; experience_years: number;
   languages: string[]; specialities: string[]; bio: string | null; base_charge: number;
@@ -34,16 +34,23 @@ export function AdminPortal() {
   const [notice, setNotice] = useState("");
   const [busy, setBusy] = useState(false);
   const [queueLoading, setQueueLoading] = useState(false);
+  const [queuePage, setQueuePage] = useState(1);
+  const [queueHasMore, setQueueHasMore] = useState(false);
+  const [approvedLoading, setApprovedLoading] = useState(false);
+  const [approvedPage, setApprovedPage] = useState(1);
+  const [approvedHasMore, setApprovedHasMore] = useState(false);
   const [checklist, setChecklist] = useState<ReviewChecklist>(emptyChecklist);
   const [supportCases,setSupportCases]=useState<SupportCase[]>([]);
 
-  async function loadQueue() {
+  async function loadQueue(page = 1, append = false) {
     setQueueLoading(true);
     try {
-      const response = await fetch(`/api/admin/pandits?fresh=${Date.now()}`, { cache: "no-store" });
-      const result = await readJson<{ pandits?: ReviewPandit[]; error?: string }>(response);
+      const response = await fetch(`/api/admin/pandits?page=${page}&limit=12&fresh=${Date.now()}`, { cache: "no-store" });
+      const result = await readJson<{ pandits?: ReviewPandit[]; hasMore?: boolean; error?: string }>(response);
       if (!response.ok) throw new Error(result.error ?? "Unable to refresh queue");
-      setQueue(result.pandits ?? []);
+      setQueue((current) => append ? [...current, ...(result.pandits ?? [])] : (result.pandits ?? []));
+      setQueuePage(page);
+      setQueueHasMore(Boolean(result.hasMore));
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Unable to refresh queue");
     } finally {
@@ -51,24 +58,40 @@ export function AdminPortal() {
     }
   }
 
-  async function load() {
+  const loadApproved = useCallback(async (page = 1, append = false) => {
+    setApprovedLoading(true);
+    try {
+      const response = await fetch(`/api/admin/pandits?scope=approved&page=${page}&limit=12&fresh=${Date.now()}`, { cache: "no-store" });
+      const result = await readJson<{ pandits?: ReviewPandit[]; hasMore?: boolean; error?: string }>(response);
+      if (!response.ok) throw new Error(result.error ?? "Unable to load approved Pandits");
+      setApproved((current) => append ? [...current, ...(result.pandits ?? [])] : (result.pandits ?? []));
+      setApprovedPage(page);
+      setApprovedHasMore(Boolean(result.hasMore));
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Unable to load approved Pandits");
+    } finally {
+      setApprovedLoading(false);
+    }
+  }, []);
+
+  const load = useCallback(async () => {
     const [response,supportResponse] = await Promise.all([fetch(`/api/admin/overview?fresh=${Date.now()}`, { cache: "no-store" }),fetch(`/api/admin/support-cases?fresh=${Date.now()}`,{cache:"no-store"})]);
     const result = await readJson<Overview & { error?: string }>(response); const support=await readJson<{cases?:SupportCase[]}>(supportResponse);
     if (response.status === 401 || response.status === 403) { window.location.assign("/admin/login?reason=session"); return; }
     if (!response.ok) { setNotice(result.error ?? "Unable to load the admin workspace"); return; }
     setData(result);
-    setApproved(result.approved ?? []);
     if(supportResponse.ok)setSupportCases(support.cases??[]);
-  }
+    await loadApproved(1);
+  }, [loadApproved]);
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0);
     return () => window.clearTimeout(timer);
-  }, []);
+  }, [load]);
 
   async function openQueue() {
     setNotice("");
     setQueueOpen(true);
-    await loadQueue();
+    await loadQueue(1);
   }
 
   async function review(action: "APPROVE" | "REJECT" | "REQUEST_CHANGES" | "START_REVIEW" | "UPDATE_CHECKLIST") {
@@ -82,7 +105,7 @@ export function AdminPortal() {
     if (!response.ok) { setNotice(result.error ?? "Unable to save review"); setBusy(false); return; }
     setNotice(action === "APPROVE" ? `${selected.name ?? "Pandit"} approved successfully.` : action === "UPDATE_CHECKLIST" ? "Verification checklist saved." : "Review decision saved.");
     if (action !== "UPDATE_CHECKLIST") { setSelected(null); setNote(""); }
-    setBusy(false); await load(); await loadQueue();
+    setBusy(false); await load(); await loadQueue(1);
   }
 
   async function openDocument(documentId: string) {
@@ -108,7 +131,7 @@ export function AdminPortal() {
       setChecklist({ ...checklist, documentStatus: result.documentStatus ?? checklist.documentStatus });
       setNotice(status === "VERIFIED" ? "Document verified successfully." : "Document rejected and correction requested.");
     }
-    setBusy(false); await loadQueue();
+    setBusy(false); await loadQueue(1);
   }
 
   function selectPandit(pandit: ReviewPandit) { setSelected(pandit); setNote(pandit.review_note ?? pandit.review?.adminNote ?? ""); setChecklist({ ...emptyChecklist, ...(pandit.review ?? {}) }); }
@@ -134,7 +157,7 @@ export function AdminPortal() {
     {notice && <div className="alert success admin-notice">{notice}</div>}
     <section className="history admin-support" id="admin-support"><div className="section-title"><div><h2>Support and safety cases</h2><p>Urgent reports appear first and every decision is audited.</p></div><span className="live-pill"><i /> {supportCases.filter(item=>["OPEN","IN_REVIEW"].includes(item.status)).length} open</span></div>{supportCases.length?<div className="admin-support-list">{supportCases.map(item=><article key={item.id} className={item.priority==="URGENT"?"urgent":""}><span>{item.priority==="URGENT"?<ShieldAlert/>:<Headphones/>}</span><div><strong>{item.subject}</strong><small>{item.reporter_role} · ••••{item.reporter_phone} · {item.category.replaceAll("_"," ")}</small><p>{item.description}</p>{Boolean(item.cancellation_fee)&&<em>Cancellation charge: ₹{item.cancellation_fee} · {item.cancellation_fee_status}</em>}{item.resolution&&<em>Resolution: {item.resolution}</em>}</div><span className="status">{item.status.replaceAll("_"," ")}</span><div className="button-row">{item.status==="OPEN"&&<button className="btn btn-ghost" disabled={busy} onClick={()=>void updateCase(item.id,"IN_REVIEW")}>Start review</button>}{!["RESOLVED","CLOSED"].includes(item.status)&&<button className="btn btn-primary" disabled={busy} onClick={()=>void updateCase(item.id,"RESOLVED")}>Resolve</button>}</div></article>)}</div>:<div className="empty">No support cases yet.</div>}</section>
     <section className="history approved-directory" id="admin-pandits">
-      <div className="section-title"><div><h2>Approved Pandits</h2><p>All active approved profiles remain visible here after leaving the review queue.</p></div><button className="btn btn-ghost" onClick={load}><RefreshCw size={16} /> Refresh</button></div>
+      <div className="section-title"><div><h2>Approved Pandits</h2><p>Profiles load in small batches to keep this workspace fast.</p></div><button className="btn btn-ghost" onClick={() => void loadApproved(1)} disabled={approvedLoading}><RefreshCw size={16} className={approvedLoading ? "spin" : ""} /> Refresh</button></div>
       {approved.length ? <div className="approved-grid">{approved.map((pandit) => <article className="approved-card" key={pandit.id}>
         <div className="approved-head"><span className="avatar">{(pandit.name ?? "P").split(" ").map((part) => part[0]).slice(0,2).join("")}</span><div><strong>{pandit.name ?? "Pandit"}</strong><span><MapPin size={13} /> {pandit.city ?? "City not provided"}</span></div><span className={`availability-dot ${pandit.is_online ? "online" : ""}`}>{pandit.is_online ? "Online" : "Offline"}</span></div>
         <div className="approved-metrics"><span><b>{pandit.experience_years}</b> years</span><span><b>{pandit.rating_count ? <>{pandit.rating} <Star size={12} fill="currentColor" /></> : "New"}</b>{pandit.rating_count ? `${pandit.rating_count} ratings` : "not rated"}</span><span><b>{pandit.completed_jobs ?? 0}</b> visits</span></div>
@@ -142,13 +165,14 @@ export function AdminPortal() {
         <div className="approved-foot"><span>+91 ••••••{pandit.phone.slice(-4)}</span><strong>{pandit.account_status??"ACTIVE"}</strong></div>
         <button className={`btn btn-block ${pandit.account_status==="SUSPENDED"?"btn-ghost":"btn-ghost danger"}`} disabled={busy} onClick={()=>void changePanditAccess(pandit.id,pandit.account_status==="SUSPENDED"?"RESTORE":"SUSPEND")}>{pandit.account_status==="SUSPENDED"?"Restore access":"Suspend Pandit"}</button>
       </article>)}</div> : <div className="empty">No approved Pandits yet.</div>}
+      {approvedHasMore && <button className="btn btn-ghost btn-block" disabled={approvedLoading} onClick={() => void loadApproved(approvedPage + 1, true)}>{approvedLoading ? "Loading more…" : "Load more approved Pandits"}</button>}
     </section>
     <AdminPrivacyRequests />
     <AdminFinanceOperations />
 
     {queueOpen && <div className="review-overlay" role="dialog" aria-modal="true" aria-label="Pandit verification queue">
       <section className="review-drawer">
-        <header><div><span className="eyebrow">Admin review</span><h2>{selected ? "Review Pandit profile" : "Pandit verification queue"}</h2></div><div className="drawer-actions">{!selected && <button className="icon-button" onClick={loadQueue} disabled={queueLoading} aria-label="Refresh queue"><RefreshCw size={18} className={queueLoading ? "spin" : ""} /></button>}<button className="icon-button" onClick={() => { setQueueOpen(false); setSelected(null); }} aria-label="Close queue"><X size={19} /></button></div></header>
+        <header><div><span className="eyebrow">Admin review</span><h2>{selected ? "Review Pandit profile" : "Pandit verification queue"}</h2></div><div className="drawer-actions">{!selected && <button className="icon-button" onClick={() => void loadQueue(1)} disabled={queueLoading} aria-label="Refresh queue"><RefreshCw size={18} className={queueLoading ? "spin" : ""} /></button>}<button className="icon-button" onClick={() => { setQueueOpen(false); setSelected(null); }} aria-label="Close queue"><X size={19} /></button></div></header>
         {!selected ? <>
           <p className="drawer-intro">{queueLoading ? "Refreshing the latest registrations…" : queue.length ? `${queue.length} profile${queue.length === 1 ? "" : "s"} waiting for a decision.` : "No Pandit profiles are waiting for review."}</p>
           <div className="review-list">{queue.map((pandit) => <button key={pandit.id} className="review-list-item" onClick={() => selectPandit(pandit)}>
@@ -156,6 +180,7 @@ export function AdminPortal() {
             <div><strong>{pandit.name ?? "Profile not completed"}</strong><span><MapPin size={13} /> {pandit.city ?? "City missing"} · {pandit.experience_years} years</span><small>{pandit.specialities.length ? pandit.specialities.join(", ") : "Specialities not added"}</small></div>
             <span className="status">{pandit.verification_status.replaceAll("_", " ")}</span>
           </button>)}</div>
+          {queueHasMore && <button className="btn btn-ghost btn-block" disabled={queueLoading} onClick={() => void loadQueue(queuePage + 1, true)}>{queueLoading ? "Loading more…" : "Load more applications"}</button>}
         </> : <>
           <button className="back-review" onClick={() => setSelected(null)}><ArrowLeft size={16} /> Back to queue</button>
           <div className="review-profile-head"><span className="avatar large">{(selected.name ?? "P").split(" ").map((part) => part[0]).slice(0,2).join("")}</span><div><h3>{selected.name ?? "Incomplete profile"}</h3><p>+91 ••••••{selected.phone.slice(-4)} · Applied {new Date(selected.created_at).toLocaleDateString("en-IN")}</p></div><span className="status">{selected.verification_status.replaceAll("_", " ")}</span></div>

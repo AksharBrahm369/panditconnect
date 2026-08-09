@@ -16,10 +16,15 @@ export const dynamic = "force-dynamic";
 export async function GET(request: Request) {
   try {
     await requireAdmin();
-    const approvedOnly = new URL(request.url).searchParams.get("scope") === "approved";
+    const params = new URL(request.url).searchParams;
+    const approvedOnly = params.get("scope") === "approved";
+    const page = Math.max(1, Number.parseInt(params.get("page") ?? "1", 10) || 1);
+    const limit = Math.min(24, Math.max(4, Number.parseInt(params.get("limit") ?? "12", 10) || 12));
+    const offset = (page - 1) * limit;
     if (approvedOnly) {
-      const approved = await sql(`SELECT u.id,u.name,u.phone,u.city,u.created_at,p.experience_years,p.languages,p.specialities,p.bio,p.base_charge,p.verification_status,p.review_note,p.is_online,p.rating,p.rating_count,p.completed_jobs,COALESCE(array_agg(DISTINCT s.name) FILTER (WHERE s.name IS NOT NULL),'{}') AS services FROM pim_v2.pandit_profiles p JOIN pim_v2.users u ON u.id=p.user_id LEFT JOIN pim_v2.pandit_services ps ON ps.pandit_id=p.user_id LEFT JOIN pim_v2.services s ON s.id=ps.service_id WHERE p.verification_status='APPROVED' GROUP BY u.id,u.name,u.phone,u.city,u.created_at,p.experience_years,p.languages,p.specialities,p.bio,p.base_charge,p.verification_status,p.review_note,p.is_online,p.rating,p.rating_count,p.completed_jobs ORDER BY p.is_online DESC,p.rating DESC,u.name`);
-      return NextResponse.json({ pandits: approved.rows }, { headers: { "Cache-Control": "no-store" } });
+      const approved = await sql(`SELECT u.id,u.name,u.phone,u.city,u.created_at,u.account_status,p.experience_years,p.languages,p.specialities,p.bio,p.base_charge,p.verification_status,p.review_note,p.is_online,p.rating,p.rating_count,p.completed_jobs,COALESCE(array_agg(DISTINCT s.name) FILTER (WHERE s.name IS NOT NULL),'{}') AS services,count(*) OVER()::int AS total_count FROM pim_v2.pandit_profiles p JOIN pim_v2.users u ON u.id=p.user_id LEFT JOIN pim_v2.pandit_services ps ON ps.pandit_id=p.user_id LEFT JOIN pim_v2.services s ON s.id=ps.service_id WHERE p.verification_status='APPROVED' GROUP BY u.id,u.name,u.phone,u.city,u.created_at,u.account_status,p.experience_years,p.languages,p.specialities,p.bio,p.base_charge,p.verification_status,p.review_note,p.is_online,p.rating,p.rating_count,p.completed_jobs ORDER BY p.is_online DESC,p.rating DESC,u.name LIMIT $1 OFFSET $2`, [limit, offset]);
+      const total = Number(approved.rows[0]?.total_count ?? 0);
+      return NextResponse.json({ pandits: approved.rows, page, limit, total, hasMore: offset + approved.rows.length < total }, { headers: { "Cache-Control": "no-store" } });
     }
     const result = await sql(
       `SELECT u.id,u.name,u.phone,u.city,u.created_at,p.email,p.date_of_birth,p.current_address,
@@ -32,9 +37,13 @@ export async function GET(request: Request) {
        FROM pim_v2.pandit_profiles p JOIN pim_v2.users u ON u.id=p.user_id
        LEFT JOIN pim_v2.pandit_verification_reviews v ON v.pandit_id=u.id
        WHERE p.verification_status IN ('SUBMITTED','UNDER_REVIEW','PENDING','INCOMPLETE','CHANGES_REQUESTED','REJECTED')
-       ORDER BY CASE p.verification_status WHEN 'SUBMITTED' THEN 0 WHEN 'UNDER_REVIEW' THEN 1 ELSE 2 END,COALESCE(p.submitted_at,u.created_at)`,
+       ORDER BY CASE p.verification_status WHEN 'SUBMITTED' THEN 0 WHEN 'UNDER_REVIEW' THEN 1 ELSE 2 END,COALESCE(p.submitted_at,u.created_at)
+       LIMIT $1 OFFSET $2`,
+      [limit, offset],
     );
-    return NextResponse.json({ pandits: result.rows }, { headers: { "Cache-Control": "no-store" } });
+    const totalResult = await sql<{ total: number }>(`SELECT count(*)::int AS total FROM pim_v2.pandit_profiles WHERE verification_status IN ('SUBMITTED','UNDER_REVIEW','PENDING','INCOMPLETE','CHANGES_REQUESTED','REJECTED')`);
+    const total = totalResult.rows[0]?.total ?? 0;
+    return NextResponse.json({ pandits: result.rows, page, limit, total, hasMore: offset + result.rows.length < total }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
     const authResponse = authorizationResponse(error); if (authResponse) return authResponse;
     console.error("Unable to load Pandit review queue", error);

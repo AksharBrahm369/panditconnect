@@ -89,7 +89,13 @@ export async function retryQueuedPushNotifications(limit = 100) {
 export async function notifyAdmins(message: { title: string; body: string; url: string; eventType: string }) {
   const allowed = new Set([...adminPhoneAllowlist()].map((phone) => phone.replace(/\D/g, "").slice(-10)));
   if (!allowed.size) return [];
-  const users = await sql<{ id: string; phone: string }>(`SELECT id,phone FROM pim_v2.users`);
-  const adminIds = [...new Set(users.rows.filter((user) => allowed.has(user.phone.replace(/\D/g, "").slice(-10))).map((user) => user.id))];
+  const users = await sql<{ id: string }>(
+    `SELECT DISTINCT id
+     FROM pim_v2.users
+     WHERE role='ADMIN'
+       AND right(regexp_replace(phone,'[^0-9]','','g'),10)=ANY($1::text[])`,
+    [[...allowed]],
+  );
+  const adminIds = users.rows.map((user) => user.id);
   return Promise.all(adminIds.map((adminId) => notifyUser(adminId, message)));
 }

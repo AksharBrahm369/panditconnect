@@ -19,6 +19,9 @@ type ChatMessage = {
 
 export function ConsultationPanel({ role, onBack, onUrgentItemsChange }: { role: "CUSTOMER" | "PANDIT"; onBack?: () => void; onUrgentItemsChange?: (ids: string[]) => void }) {
   const [pandits, setPandits] = useState<ConsultationPandit[]>([]);
+  const [panditPage, setPanditPage] = useState(1);
+  const [panditHasMore, setPanditHasMore] = useState(false);
+  const [panditsLoading, setPanditsLoading] = useState(false);
   const [consultations, setConsultations] = useState<Consultation[]>([]);
   const [selected, setSelected] = useState<Consultation | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -59,13 +62,25 @@ export function ConsultationPanel({ role, onBack, onUrgentItemsChange }: { role:
     if (response.ok) setOtherTyping({ typing: Boolean(data.typing), name: data.participant?.name, role: data.participant?.role });
   }, []);
 
+  const loadPandits = useCallback(async (page = 1, append = false) => {
+    setPanditsLoading(true);
+    try {
+      const response = await fetch(`/api/consultation-pandits?page=${page}&limit=6`, { cache: "no-store" });
+      const data = await readJson<{ pandits?: ConsultationPandit[]; hasMore?: boolean }>(response);
+      if (!response.ok) return;
+      setPandits((current) => append ? [...current, ...(data.pandits ?? [])] : (data.pandits ?? []));
+      setPanditPage(page);
+      setPanditHasMore(Boolean(data.hasMore));
+    } finally {
+      setPanditsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     const initial = window.setTimeout(() => {
       void loadConsultations();
       if (role === "CUSTOMER") {
-        void fetch("/api/consultation-pandits", { cache: "no-store" })
-          .then((response) => readJson<{ pandits?: ConsultationPandit[] }>(response))
-          .then((data) => setPandits(data.pandits ?? []));
+        void loadPandits(1);
       }
     }, 0);
     const refresh = window.setInterval(() => {
@@ -84,7 +99,7 @@ export function ConsultationPanel({ role, onBack, onUrgentItemsChange }: { role:
       window.clearInterval(clock);
       window.clearInterval(typingRefresh);
     };
-  }, [loadConsultations, loadMessages, loadTyping, role, selectedId]);
+  }, [loadConsultations, loadMessages, loadPandits, loadTyping, role, selectedId]);
 
   async function openChat(consultation: Consultation) {
     setSelected(consultation);
@@ -227,6 +242,7 @@ export function ConsultationPanel({ role, onBack, onUrgentItemsChange }: { role:
           <button className="btn btn-primary btn-block" disabled={busy} onClick={() => { setError(""); setCheckoutPandit(pandit); }}>Continue · ₹{pandit.consultation_rate_5min * blocks}</button>
         </article>) : <div className="empty"><MessageCircle /><strong>No Pandit is available for chat right now</strong><span>Please check again in a few minutes.</span></div>}
       </div>
+      {panditHasMore && <button className="btn btn-ghost btn-block" disabled={panditsLoading} onClick={() => void loadPandits(panditPage + 1, true)}>{panditsLoading ? "Loading more…" : "Show more available Pandits"}</button>}
     </>}
 
     <div className="consultation-history">

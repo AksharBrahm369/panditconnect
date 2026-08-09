@@ -17,7 +17,6 @@ export async function GET() {
     approved_pandits: number;
     bookings: number;
     recent: unknown[];
-    approved: unknown[];
     risk: { outstanding_balance:number; restricted_customers:number; open_disputes:number };
     funnel: {requests:number;accepted:number;completed:number;cancelled:number;acceptance_rate:number;completion_rate:number;avg_match_minutes:number;push_success_rate:number};
   }>(
@@ -38,22 +37,7 @@ export async function GET() {
           LEFT JOIN pim_v2.users pu ON pu.id=b.pandit_id
           ORDER BY b.created_at DESC LIMIT 8
         ) recent_rows
-      ),'[]'::json) AS recent,
-      COALESCE((
-        SELECT json_agg(row_to_json(approved_rows)) FROM (
-          SELECT u.id,u.name,u.phone,u.city,u.created_at,u.account_status,p.experience_years,p.languages,
-            p.specialities,p.bio,p.base_charge,p.verification_status,p.is_online,p.rating,p.rating_count,
-            p.completed_jobs,COALESCE(array_agg(DISTINCT s.name) FILTER (WHERE s.name IS NOT NULL),'{}') AS services
-          FROM pim_v2.pandit_profiles p
-          JOIN pim_v2.users u ON u.id=p.user_id
-          LEFT JOIN pim_v2.pandit_services ps ON ps.pandit_id=p.user_id
-          LEFT JOIN pim_v2.services s ON s.id=ps.service_id
-          WHERE p.verification_status='APPROVED'
-          GROUP BY u.id,u.name,u.phone,u.city,u.created_at,u.account_status,p.experience_years,p.languages,
-            p.specialities,p.bio,p.base_charge,p.verification_status,p.is_online,p.rating,p.rating_count,p.completed_jobs
-          ORDER BY p.is_online DESC,p.rating DESC,u.name
-        ) approved_rows
-      ),'[]'::json) AS approved`,
+      ),'[]'::json) AS recent`,
   );
   const row = result.rows[0];
   return NextResponse.json(
@@ -65,7 +49,6 @@ export async function GET() {
         bookings: row.bookings,
       },
       recent: row.recent,
-      approved: row.approved,
       risk: row.risk,
       funnel: row.funnel,
     },

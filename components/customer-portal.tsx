@@ -128,6 +128,8 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
   const [onlinePayments,setOnlinePayments]=useState(false);
   const [discoveryPandits, setDiscoveryPandits] = useState<DiscoveryPandit[]>([]);
   const [discoveryBusy, setDiscoveryBusy] = useState(false);
+  const [discoveryPage, setDiscoveryPage] = useState(1);
+  const [discoveryHasMore, setDiscoveryHasMore] = useState(false);
   const [discoveryMessage, setDiscoveryMessage] = useState("");
   const [preferredPandit, setPreferredPandit] = useState<{ id: string; name: string } | null>(null);
   const [cancellationReview, setCancellationReview] = useState<{ bookingId: string; fee: number; stage: string; free: boolean; notice?: string } | null>(null);
@@ -177,18 +179,20 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
     };
   }, [refreshBookings]);
 
-  const loadNearbyDiscovery = useCallback(async () => {
+  const loadNearbyDiscovery = useCallback(async (page = 1, append = false) => {
     setDiscoveryBusy(true);
     setDiscoveryMessage("");
     try {
       const current = await getCurrentCoordinates();
       setCoordinates(current);
       setLocationSource("GPS");
-      const params = new URLSearchParams({ lat: String(current.latitude), lng: String(current.longitude) });
+      const params = new URLSearchParams({ lat: String(current.latitude), lng: String(current.longitude), page: String(page), limit: "6" });
       const response = await fetch(`/api/pandits/discover?${params}`, { cache: "no-store" });
-      const data = await readJson<{ pandits?: DiscoveryPandit[]; error?: string }>(response);
+      const data = await readJson<{ pandits?: DiscoveryPandit[]; hasMore?: boolean; error?: string }>(response);
       if (!response.ok) throw new Error(data.error ?? "Unable to load nearby Pandits.");
-      setDiscoveryPandits(data.pandits ?? []);
+      setDiscoveryPandits((currentPandits) => append ? [...currentPandits, ...(data.pandits ?? [])] : (data.pandits ?? []));
+      setDiscoveryPage(page);
+      setDiscoveryHasMore(Boolean(data.hasMore));
       if (!data.pandits?.length) setDiscoveryMessage("No approved Pandit is online near you right now. Please check again shortly.");
     } catch (error) {
       setDiscoveryMessage(error instanceof Error ? error.message : "Allow location access to see nearby Pandits.");
@@ -545,7 +549,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
               <div className="customer-discovery-heading">
                 <div><span>Nearby verified Pandits</span><h2 id="nearby-pandit-heading">Choose someone your family can trust</h2><p>Only approved, online Pandits inside their service area are shown.</p></div>
                 <div className="customer-discovery-controls">
-                  <button className="btn btn-ghost" onClick={loadNearbyDiscovery} disabled={discoveryBusy}><MapPin size={16} /> {discoveryBusy ? "Checking location…" : discoveryPandits.length ? "Refresh nearby" : "Show Pandits near me"}</button>
+                  <button className="btn btn-ghost" onClick={() => void loadNearbyDiscovery(1)} disabled={discoveryBusy}><MapPin size={16} /> {discoveryBusy ? "Checking location…" : discoveryPandits.length ? "Refresh nearby" : "Show Pandits near me"}</button>
                   {discoveryPandits.length > 1 && <><button className="icon-button" aria-label="Previous Pandits" onClick={() => moveDiscovery(-1)}><ArrowLeft size={18} /></button><button className="icon-button" aria-label="Next Pandits" onClick={() => moveDiscovery(1)}><ChevronRight size={18} /></button></>}
                 </div>
               </div>
@@ -563,6 +567,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
                   <Link className="customer-pandit-more" href={`/customer/pandits/${pandit.id}`}>Know more about {pandit.name} <ChevronRight size={15} /></Link>
                 </article>;
               })}</div>}
+              {discoveryHasMore && <button className="btn btn-ghost btn-block" disabled={discoveryBusy} onClick={() => void loadNearbyDiscovery(discoveryPage + 1, true)}>{discoveryBusy ? "Loading more…" : "Show more nearby Pandits"}</button>}
             </section>
 
             <div className="customer-choice-heading" id="request-assistance"><div><span>Quick help</span><h2>Choose what you need now</h2></div><p>Nothing is submitted until you confirm.</p></div>
