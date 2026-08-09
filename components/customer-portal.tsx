@@ -282,6 +282,16 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
     setMessage("");
   }
 
+  function updateSituation(nextSituation: string) {
+    setSituation(nextSituation);
+    setGuidanceError("");
+    setMessage("");
+    // A recommendation belongs to the exact description that produced it.
+    // Never keep a previously selected Puja after the customer changes their need.
+    setRecommendation(null);
+    setServiceId("");
+  }
+
   function startVoiceInput() {
     const SpeechRecognition = (window as typeof window & {
       SpeechRecognition?: new () => SpeechRecognitionLike;
@@ -300,6 +310,8 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
     recognition.onresult = (event) => {
       setSituation((current) => `${current} ${event.results[0][0].transcript}`.trim());
       setGuidanceError("");
+      setRecommendation(null);
+      setServiceId("");
     };
     recognition.onerror = () => setMessage("Voice input could not start. Check microphone permission.");
     recognition.onend = () => setListening(false);
@@ -577,7 +589,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
               {(requestType === "NEED_GUIDANCE" || requestType === "PANDIT_SOS") && (
                 <>
                   <label>Describe the situation
-                    <textarea rows={5} value={situation} aria-invalid={Boolean(guidanceError)} onChange={(event) => { setSituation(event.target.value); setGuidanceError(""); }} placeholder={requestType === "PANDIT_SOS" ? "Example: Our Griha Pravesh is today at 11 AM and our Pandit cancelled." : "Example: We are opening a new shop and do not know which Puja is suitable."} />
+                    <textarea rows={5} value={situation} aria-invalid={Boolean(guidanceError)} onChange={(event) => updateSituation(event.target.value)} placeholder={requestType === "PANDIT_SOS" ? "Example: Our Griha Pravesh is today at 11 AM and our Pandit cancelled." : "Example: We are opening a new shop and do not know which Puja is suitable."} />
                     <button type="button" className={`voice-button ${listening ? "active" : ""}`} onClick={startVoiceInput}><Mic size={16} /> {listening ? "Listening…" : "Speak instead of typing"}</button>
                   </label>
                   {guidanceError && <div className="field-error" role="alert">{guidanceError}</div>}

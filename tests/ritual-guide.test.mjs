@@ -35,3 +35,10 @@ test("Shraddha is an active, idempotently seeded service", async () => {
   assert.match(migration, /ON CONFLICT\(id\) DO UPDATE/i);
   assert.match(migration, /active=EXCLUDED\.active/i);
 });
+
+test("editing the situation clears a stale Puja before recommending again", async () => {
+  const portal = await readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8");
+  assert.match(portal, /function updateSituation\(nextSituation: string\)/);
+  assert.match(portal, /setRecommendation\(null\);\s*setServiceId\(""\);/);
+  assert.match(portal, /onChange=\{\(event\) => updateSituation\(event\.target\.value\)\}/);
+});
