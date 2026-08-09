@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, BadgeCheck, Clock3, LockKeyhole, MapPin } from "lucide-react";
 
-export function LoginForm({ initialRole }: { initialRole: "CUSTOMER" | "PANDIT" }) {
+export function LoginForm({ initialRole, nextPath }: { initialRole: "CUSTOMER" | "PANDIT"; nextPath?: string }) {
   const [role, setRole] = useState(initialRole);
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
@@ -27,7 +27,7 @@ export function LoginForm({ initialRole }: { initialRole: "CUSTOMER" | "PANDIT" 
         });
         const session = await response.json() as { authenticated?: boolean; role?: "CUSTOMER" | "PANDIT" | "ADMIN" };
         if (session.authenticated && session.role) {
-          window.location.replace(session.role === "ADMIN" ? "/admin" : session.role === "PANDIT" ? "/pandit" : "/customer");
+          window.location.replace(session.role === "ADMIN" ? "/admin" : session.role === "PANDIT" ? "/pandit" : nextPath ?? "/customer");
         }
       } catch {
         // A network failure must never clear a valid session.
@@ -39,7 +39,7 @@ export function LoginForm({ initialRole }: { initialRole: "CUSTOMER" | "PANDIT" 
     window.addEventListener("pageshow", onPageShow);
     void restoreAuthenticatedPortal();
     return () => window.removeEventListener("pageshow", onPageShow);
-  }, []);
+  }, [nextPath]);
 
   useEffect(() => {
     if (resendIn <= 0) return;
@@ -64,7 +64,7 @@ export function LoginForm({ initialRole }: { initialRole: "CUSTOMER" | "PANDIT" 
       const response = await fetch("/api/auth/verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ phone, otp, role }) });
       const data = await response.json() as { error?: string; redirectTo?: string };
       if (!response.ok || !data.redirectTo) throw new Error(data.error ?? "Unable to verify OTP");
-      window.location.assign(data.redirectTo);
+      window.location.assign(role === "CUSTOMER" && nextPath ? nextPath : data.redirectTo);
     } catch (caught) { setError(caught instanceof Error ? caught.message : "Unable to verify OTP"); setBusy(false); }
   }
 

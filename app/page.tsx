@@ -1,7 +1,7 @@
 import Link from "next/link";
 import {
-  ArrowRight, BadgeCheck, CalendarClock, CalendarX2, Check, HelpCircle,
-  MapPin, MessageCircle, ShieldCheck,
+  ArrowRight, BadgeCheck, CalendarClock, CalendarX2, Headphones, HelpCircle,
+  MapPin, MessageCircle, PlayCircle, Route, ShieldCheck,
 } from "lucide-react";
 
 export default function Home() {
@@ -75,14 +75,17 @@ export default function Home() {
         <article><CalendarClock /><span><strong>Live status updates</strong><small>Follow acceptance and arrival</small></span></article>
       </section>
 
-      <section className="easy-family-help">
-        <div>
-          <span>Not sure where to begin?</span>
-          <h2>That is completely okay.</h2>
-          <p>Describe the occasion in your own words. The app will recommend the next step before contacting any Pandit.</p>
-          <ul><li><Check /> No religious terminology needed</li><li><Check /> Review everything before sending</li><li><Check /> Cancel before acceptance without charge</li></ul>
+      <section className="easy-help-hub" aria-labelledby="easy-help-title">
+        <div className="easy-help-heading">
+          <span>Need help using the app?</span>
+          <h2 id="easy-help-title">Choose the kind of help you want</h2>
+          <p>This is app assistance. Religious questions remain private with a Pandit.</p>
         </div>
-        <Link href="/login?role=customer" className="easy-help-link">Help me choose <ArrowRight /></Link>
+        <div className="easy-help-options">
+          <Link href="/login?role=customer&next=%2Fcustomer%3Fstart%3Dguided"><Route /><span><strong>Guide me step by step</strong><small>One simple question at a time</small></span><ArrowRight /></Link>
+          <Link href="/help#walkthrough"><PlayCircle /><span><strong>Show me how it works</strong><small>Quick visual walkthrough</small></span><ArrowRight /></Link>
+          <Link href="/login?role=customer&next=%2Fcustomer%2Fsettings%2Fsupport"><Headphones /><span><strong>Talk to app support</strong><small>Booking or account help</small></span><ArrowRight /></Link>
+        </div>
       </section>
 
       <footer className="easy-footer">

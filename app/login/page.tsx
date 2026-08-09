@@ -4,9 +4,10 @@ import { redirect } from "next/navigation";
 
 export const dynamic = "force-dynamic";
 
-export default async function LoginPage({ searchParams }: { searchParams: Promise<{ role?: string }> }) {
-  const user = await currentUser();
-  if (user) redirect(user.role === "ADMIN" ? "/admin" : user.role === "PANDIT" ? "/pandit" : "/customer");
+export default async function LoginPage({ searchParams }: { searchParams: Promise<{ role?: string; next?: string }> }) {
   const params = await searchParams;
-  return <LoginForm initialRole={params.role === "pandit" ? "PANDIT" : "CUSTOMER"} />;
+  const nextPath = params.next?.startsWith("/customer") && !params.next.startsWith("//") ? params.next : undefined;
+  const user = await currentUser();
+  if (user) redirect(user.role === "ADMIN" ? "/admin" : user.role === "PANDIT" ? "/pandit" : nextPath ?? "/customer");
+  return <LoginForm initialRole={params.role === "pandit" ? "PANDIT" : "CUSTOMER"} nextPath={nextPath} />;
 }

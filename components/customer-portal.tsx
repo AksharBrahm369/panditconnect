@@ -5,7 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   AlertTriangle, ArrowLeft, BadgeCheck, BadgeHelp, CheckCircle2, ChevronRight, Clock3,
-  Banknote, CalendarDays, Compass, CreditCard, MapPin, Mic, PackageCheck, RefreshCw, ShieldCheck, Smartphone, Sparkles, Star, X,
+  Banknote, CalendarDays, Compass, CreditCard, HelpCircle, MapPin, Mic, PackageCheck, RefreshCw, ShieldCheck, Smartphone, Sparkles, Star, X,
 } from "lucide-react";
 import { AppShell } from "./app-shell";
 import { ConsultationPanel } from "./consultation-panel";
@@ -90,10 +90,10 @@ function dateTimeLocalValue(timestamp: number) {
   return new Date(timestamp - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 }
 
-export function CustomerPortal({ customerId, customerName }: { customerId: string; customerName?: string | null }) {
+export function CustomerPortal({ customerId, customerName, initialStart }: { customerId: string; customerName?: string | null; initialStart?: "guided" }) {
   const [services, setServices] = useState<Service[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [requestType, setRequestType] = useState<RequestType | null>(null);
+  const [requestType, setRequestType] = useState<RequestType | null>(initialStart === "guided" ? "NEED_GUIDANCE" : null);
   const [serviceId, setServiceId] = useState("");
   const [situation, setSituation] = useState("");
   const [language, setLanguage] = useState("Hindi");
@@ -103,7 +103,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
   const [notes, setNotes] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
   const [policyAccepted, setPolicyAccepted] = useState(false);
-  const [clientRequestId, setClientRequestId] = useState("");
+  const [clientRequestId, setClientRequestId] = useState(() => initialStart === "guided" ? crypto.randomUUID() : "");
   const [outstandingBalance, setOutstandingBalance] = useState(0);
   const [coordinates, setCoordinates] = useState<BrowserCoordinates | null>(null);
   const [locationSource, setLocationSource] = useState<"GPS" | null>(null);
@@ -698,6 +698,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
           </article>;
         })}</div> : <div className="empty"><Clock3 size={26} /><strong>No Puja requests yet</strong><span>Choose “Help me choose and book” whenever your family needs a Pandit.</span></div>}
       </section>
+      <Link href="/help" className="customer-help-fab" aria-label="Get help using the app"><HelpCircle /><span>Need help?</span></Link>
       {cancellationReview && <div className="cancellation-overlay" role="dialog" aria-modal="true" aria-labelledby="cancellation-title" onMouseDown={(event) => { if (event.target === event.currentTarget && !cancellationBusy) setCancellationReview(null); }}>
         <section className="cancellation-sheet">
           <header><div className="cancellation-heading-icon"><AlertTriangle /></div><div><span className="eyebrow">Review before cancelling</span><h2 id="cancellation-title">Cancel this Pandit booking?</h2></div><button className="icon-button" aria-label="Close cancellation review" disabled={cancellationBusy} onClick={() => setCancellationReview(null)}><X /></button></header>

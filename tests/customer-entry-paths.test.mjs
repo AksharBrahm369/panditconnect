@@ -17,3 +17,26 @@ test("customer home keeps urgent replacement but removes the duplicate direct-bo
   assert.match(portal, /Find another Pandit/);
   assert.match(portal, /requestType === "KNOWN_PUJA" \? "Selected Puja" : "Recommended"/);
 });
+
+test("beginner help uses distinct guided, walkthrough and app-support paths", async () => {
+  const [homepage, helpPage, loginPage, loginForm, customerPage, portal] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/help/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/login/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/login-form.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/customer/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(homepage, /Need help using the app\?/);
+  assert.match(homepage, /Guide me step by step/);
+  assert.match(homepage, /Show me how it works/);
+  assert.match(homepage, /Talk to app support/);
+  assert.match(helpPage, /Book a Pandit in three steps/);
+  assert.match(helpPage, /App support is only for help using the website/);
+  assert.match(loginPage, /nextPath/);
+  assert.match(loginForm, /role === "CUSTOMER" && nextPath/);
+  assert.match(customerPage, /initialStart=/);
+  assert.match(portal, /initialStart === "guided" \? "NEED_GUIDANCE"/);
+  assert.match(portal, /customer-help-fab/);
+});
