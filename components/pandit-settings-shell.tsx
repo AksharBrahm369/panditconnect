@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Bell, CreditCard, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowLeft, Bell, CreditCard, ShieldCheck, UserRound, Database } from "lucide-react";
 import { AppShell } from "./app-shell";
 
 const links = [
@@ -7,6 +7,7 @@ const links = [
   { key: "payments", href: "/pandit/settings/payments", label: "Payout", icon: CreditCard },
   { key: "notifications", href: "/pandit/settings/notifications", label: "Notifications", icon: Bell },
   { key: "security", href: "/pandit/settings/security", label: "Security", icon: ShieldCheck },
+  { key: "privacy", href: "/pandit/settings/privacy", label: "My data", icon: Database },
 ] as const;
 
 export function PanditSettingsShell({ userName, active, title, subtitle, children }: { userName?: string | null; active: typeof links[number]["key"]; title: string; subtitle: string; children: React.ReactNode }) {

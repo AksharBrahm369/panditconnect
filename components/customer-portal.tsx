@@ -15,6 +15,7 @@ import { getCurrentCoordinates, type BrowserCoordinates } from "@/lib/browser-lo
 import { recommendRitual, ritualForService, type RequestType, type RitualRecommendation } from "@/lib/ritual-guide";
 
 type Service = { id: string; name: string; description: string; base_price: number; duration_minutes: number };
+declare global { interface Window { Razorpay?:new(options:Record<string,unknown>)=>{open:()=>void;on:(event:string,handler:(response:unknown)=>void)=>void}; } }
 type NearbyPandit = {
   id: string; name: string; experience_years: number; languages: string[]; rating: string;
   rating_count: number; completed_jobs: number; charge: number; distance_km: string; eta_minutes: number;
@@ -124,6 +125,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
   const [ratingMessages, setRatingMessages] = useState<Record<string, string>>({});
   const [paymentBusy, setPaymentBusy] = useState<string | null>(null);
   const [paymentMessages, setPaymentMessages] = useState<Record<string, string>>({});
+  const [onlinePayments,setOnlinePayments]=useState(false);
   const [discoveryPandits, setDiscoveryPandits] = useState<DiscoveryPandit[]>([]);
   const [discoveryBusy, setDiscoveryBusy] = useState(false);
   const [discoveryMessage, setDiscoveryMessage] = useState("");
@@ -162,11 +164,16 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
   useEffect(() => {
     fetch("/api/services").then((response) => readJson<{ services: Service[] }>(response))
       .then((data) => setServices(data.services ?? []));
+    void fetch("/api/payments/orders",{cache:"no-store"}).then(r=>readJson<{enabled?:boolean}>(r)).then(d=>setOnlinePayments(Boolean(d.enabled)));
     const initialLoad = window.setTimeout(() => void refreshBookings(), 0);
-    const timer = window.setInterval(refreshBookings, 10_000);
+    const refresh=()=>{if(document.visibilityState==="visible")void refreshBookings();};
+    const timer = window.setInterval(refresh, 15_000);
+    const onVisibility=()=>{if(document.visibilityState==="visible")void refreshBookings();};
+    window.addEventListener("focus",refresh);document.addEventListener("visibilitychange",onVisibility);
     return () => {
       window.clearTimeout(initialLoad);
       window.clearInterval(timer);
+      window.removeEventListener("focus",refresh);document.removeEventListener("visibilitychange",onVisibility);
     };
   }, [refreshBookings]);
 
@@ -466,6 +473,13 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
     }
     setPaymentBusy(null);
   }
+  async function startOnlinePayment(bookingId:string,purpose:"SERVICE_PAYMENT"|"CANCELLATION_FEE"="SERVICE_PAYMENT"){
+    setPaymentBusy(bookingId);setPaymentMessages(current=>({...current,[bookingId]:""}));
+    const idempotencyKey=`${purpose}:${bookingId}:${crypto.randomUUID()}`;
+    const response=await fetch("/api/payments/orders",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({bookingId,purpose,idempotencyKey})});const data=await readJson<{error?:string;orderId?:string;amount?:number;keyId?:string}>(response);if(!response.ok||!data.orderId||!data.keyId){setPaymentMessages(current=>({...current,[bookingId]:data.error??"Unable to start secure payment."}));setPaymentBusy(null);return;}
+    if(!window.Razorpay){await new Promise<void>((resolve,reject)=>{const script=document.createElement("script");script.src="https://checkout.razorpay.com/v1/checkout.js";script.onload=()=>resolve();script.onerror=()=>reject(new Error("Payment checkout could not load"));document.head.appendChild(script);}).catch(error=>setPaymentMessages(current=>({...current,[bookingId]:error instanceof Error?error.message:"Payment checkout could not load"})));}
+    if(!window.Razorpay){setPaymentBusy(null);return;}const checkout=new window.Razorpay({key:data.keyId,amount:(data.amount??0)*100,currency:"INR",name:"Pandit in Minutes",description:purpose==="CANCELLATION_FEE"?"Cancellation balance":"Completed Puja payment",order_id:data.orderId,handler:()=>{setPaymentMessages(current=>({...current,[bookingId]:"Payment submitted securely. Waiting for provider confirmation…"}));setPaymentBusy(null);window.setTimeout(()=>void refreshBookings(),2500);},modal:{ondismiss:()=>setPaymentBusy(null)},theme:{color:"#c54824"}});checkout.on("payment.failed",()=>{setPaymentMessages(current=>({...current,[bookingId]:"Payment failed or was cancelled. No success was recorded."}));setPaymentBusy(null);});checkout.open();
+  }
   async function disputeCashPayment(bookingId:string){if(!window.confirm("Report a cash-payment disagreement? Please also create a support case with the facts."))return;setPaymentBusy(bookingId);const response=await fetch(`/api/bookings/${bookingId}/payment`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"DISPUTE"})});const data=await readJson<{error?:string}>(response);setPaymentMessages(current=>({...current,[bookingId]:response.ok?"Payment marked disputed. Open Help and safety to submit evidence.":data.error??"Unable to report payment issue."}));await refreshBookings();setPaymentBusy(null);}
   async function decidePriceChange(bookingId:string,decision:"APPROVE"|"REJECT"){if(!window.confirm(decision==="APPROVE"?"Approve this revised total? The new amount will replace the original booking amount.":"Reject this change? The previously agreed amount and scope will remain."))return;const response=await fetch(`/api/bookings/${bookingId}/price-change`,{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({decision})});const data=await readJson<{error?:string}>(response);if(!response.ok)setMessage(data.error??"Unable to update the price request.");await refreshBookings();}
 
@@ -512,7 +526,7 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
   return (
     <AppShell role="Customer" userName={customerName} title="Puja help for your family" subtitle="Book a verified nearby Pandit in a few simple steps.">
       {message && <div className="alert error">{message}</div>}
-      {outstandingBalance>0&&<div className="alert error"><strong>Outstanding cancellation balance: ₹{outstandingBalance.toLocaleString("en-IN")}</strong> New bookings are paused. Open Help and safety to pay later or dispute an incorrect charge.</div>}
+      {outstandingBalance>0&&<div className="alert error"><strong>Outstanding cancellation balance: ₹{outstandingBalance.toLocaleString("en-IN")}</strong> New bookings are paused. You can dispute an incorrect charge through Help and safety.{onlinePayments&&bookings.find(item=>item.cancellation_fee_status==="OUTSTANDING")&&<button className="btn btn-primary" disabled={Boolean(paymentBusy)} onClick={()=>void startOnlinePayment(bookings.find(item=>item.cancellation_fee_status==="OUTSTANDING")!.id,"CANCELLATION_FEE")}>Pay balance securely</button>}</div>}
 
       {!requestType && !match && !consultationMode && (
         <section className="customer-home" id="customer-home">
@@ -683,11 +697,11 @@ export function CustomerPortal({ customerId, customerName }: { customerId: strin
               {booking.status === "ARRIVED" && <div className="arrival-code"><span><strong>Share this code with the Pandit</strong><small>Only share it after meeting the Pandit at your address.</small></span><code>{booking.arrival_otp}</code></div>}
             </>}
             {booking.status === "COMPLETED" && <div className={`booking-payment ${booking.payment_status === "CONFIRMED" ? "is-confirmed" : "needs-selection"}`}>
-              <div><span className="eyebrow">{booking.payment_status === "CONFIRMED" ? "Payment settled" : booking.payment_status === "AWAITING_PANDIT" ? "Waiting for Pandit confirmation" : booking.payment_status === "DISPUTED" ? "Payment disputed" : "Choose payment method"}</span><h4>{booking.payment_status === "CONFIRMED" ? "Cash confirmed by both sides" : booking.payment_status === "AWAITING_PANDIT" ? "You selected cash payment" : booking.payment_status === "DISPUTED" ? "Support review needed" : "How would you like to pay?"}</h4><p>{booking.payment_status === "AWAITING_PANDIT" ? "The Pandit must confirm only after receiving the cash." : booking.payment_status === "DISPUTED" ? "Create a support case and describe what happened." : "No online charge is made by the platform during beta."}</p></div>
-              {booking.payment_status !== "NOT_SELECTED" ? <div className="payment-confirmed"><Banknote size={20} /><span><small>Cash status</small><strong>{booking.payment_status === "CONFIRMED" ? "Confirmed by both" : booking.payment_status === "DISPUTED" ? "Disputed" : "Awaiting Pandit"}</strong></span>{booking.payment_status === "CONFIRMED" ? <CheckCircle2 size={18} /> : <button className="text-button danger" disabled={paymentBusy===booking.id} onClick={()=>void disputeCashPayment(booking.id)}>Report issue</button>}</div> : <div className="payment-method-grid">
+              <div><span className="eyebrow">{booking.payment_status === "CONFIRMED" ? "Payment settled" : booking.payment_status === "AWAITING_PANDIT" ? "Waiting for Pandit confirmation" : booking.payment_status === "DISPUTED" ? "Payment disputed" : "Choose payment method"}</span><h4>{booking.payment_status === "CONFIRMED" ? booking.payment_method==="CASH"?"Cash confirmed by both sides":"Online payment confirmed" : booking.payment_status === "AWAITING_PANDIT" ? "You selected cash payment" : booking.payment_status === "DISPUTED" ? "Support review needed" : "How would you like to pay?"}</h4><p>{booking.payment_status === "AWAITING_PANDIT" ? "The Pandit must confirm only after receiving the cash." : booking.payment_status === "DISPUTED" ? "Create a support case and describe what happened." : onlinePayments?"Online payments are confirmed only by the secure provider.":"Online payment is not active yet; cash remains available."}</p></div>
+              {booking.payment_status !== "NOT_SELECTED" ? <div className="payment-confirmed">{booking.payment_method==="CASH"?<Banknote size={20}/>:<CreditCard size={20}/>}<span><small>{booking.payment_method==="CASH"?"Cash status":"Online payment"}</small><strong>{booking.payment_status === "CONFIRMED" ? "Confirmed" : booking.payment_status === "DISPUTED" ? "Disputed" : "Awaiting Pandit"}</strong></span>{booking.payment_status === "CONFIRMED" ? <CheckCircle2 size={18} /> : booking.payment_method==="CASH"?<button className="text-button danger" disabled={paymentBusy===booking.id} onClick={()=>void disputeCashPayment(booking.id)}>Report issue</button>:null}</div> : <div className="payment-method-grid">
                 <button disabled={paymentBusy === booking.id} onClick={() => confirmPaymentMethod(booking.id, "CASH")}><Banknote /><span><strong>Cash</strong><small>Pay with cash after Puja</small></span></button>
-                <button disabled title="Available after secure payment setup"><Smartphone /><span><strong>UPI</strong><small>Coming soon</small></span></button>
-                <button disabled title="Available after secure payment setup"><CreditCard /><span><strong>Card</strong><small>Coming soon</small></span></button>
+                <button disabled={!onlinePayments||paymentBusy===booking.id} title={onlinePayments?"Pay securely using the configured provider":"Available after secure payment setup"} onClick={()=>void startOnlinePayment(booking.id)}><Smartphone /><span><strong>UPI</strong><small>{onlinePayments?"Secure online payment":"Coming soon"}</small></span></button>
+                <button disabled={!onlinePayments||paymentBusy===booking.id} title={onlinePayments?"Pay securely using the configured provider":"Available after secure payment setup"} onClick={()=>void startOnlinePayment(booking.id)}><CreditCard /><span><strong>Card</strong><small>{onlinePayments?"Secure online payment":"Coming soon"}</small></span></button>
               </div>}
               {paymentMessages[booking.id] && <small className="payment-error">{paymentMessages[booking.id]}</small>}
             </div>}

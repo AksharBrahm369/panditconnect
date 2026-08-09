@@ -15,6 +15,12 @@ if (environment === "production") {
   if (provider === "msg91" && !process.env.SMS_PROVIDER_API_KEY?.trim()) problems.push("SMS_PROVIDER_API_KEY is required for MSG91");
   if (provider === "msg91" && !process.env.SMS_PROVIDER_TEMPLATE_ID?.trim()) problems.push("SMS_PROVIDER_TEMPLATE_ID is required for MSG91");
 }
+if (process.env.COMMERCIAL_LAUNCH === "true") {
+  for (const name of ["LEGAL_BUSINESS_NAME","LEGAL_BUSINESS_ADDRESS","SUPPORT_EMAIL","SUPPORT_PHONE","GRIEVANCE_OFFICER_NAME","GRIEVANCE_EMAIL","JURISDICTION"]) if (!process.env[name]?.trim()) problems.push(`${name} is required for commercial launch`);
+  const payment = process.env.PAYMENT_PROVIDER?.trim().toLowerCase();
+  if (!payment || payment === "development") problems.push("PAYMENT_PROVIDER must be configured for commercial launch");
+  for (const name of ["PAYMENT_PROVIDER_KEY_ID","PAYMENT_PROVIDER_KEY_SECRET","PAYMENT_PROVIDER_WEBHOOK_SECRET"]) if (!process.env[name]?.trim()) problems.push(`${name} is required for commercial launch`);
+}
 if (problems.length) {
   console.error(`Environment validation failed:\n- ${problems.join("\n- ")}`);
   process.exitCode = 1;

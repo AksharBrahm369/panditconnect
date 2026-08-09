@@ -1,0 +1,33 @@
+name: Encrypted database backup
+on:
+  schedule:
+    - cron: "40 1 * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run backup:create
+        env:
+          DIRECT_URL: ${{ secrets.BACKUP_DATABASE_URL }}
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+      - name: Verify encrypted backup
+        shell: bash
+        run: npm run backup:verify -- "$(ls -1t .backups/*.dump.enc | head -1)"
+        env:
+          BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: encrypted-pim-v2-${{ github.run_id }}
+          path: .backups/*.dump.enc
+          retention-days: 14
+          if-no-files-found: error

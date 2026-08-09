@@ -11,6 +11,8 @@ export function PanditAvatar({ panditId, name, className }: { panditId: string; 
 
   return <span className={`${className} pandit-photo`} aria-label={`${name}'s verified profile photograph`}>
     <span className="pandit-photo-fallback" aria-hidden="true">{initials(name)}</span>
+    {/* This authenticated endpoint intentionally bypasses framework image optimisation. */}
+    {/* eslint-disable-next-line @next/next/no-img-element */}
     {!failed && <img
       src={`/api/pandits/${encodeURIComponent(panditId)}/photo`}
       alt={`${name}, verified Pandit`}

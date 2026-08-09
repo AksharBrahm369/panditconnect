@@ -20,7 +20,8 @@ export async function GET() {
     const user = await requirePandit();
     const result = await sql(`SELECT p.payout_method,p.upi_id,p.bank_account_name,p.bank_ifsc,(p.bank_account_number IS NOT NULL) AS has_bank_account,COALESCE(v.bank_status,'PENDING') AS bank_status FROM pim_v2.pandit_profiles p LEFT JOIN pim_v2.pandit_verification_reviews v ON v.pandit_id=p.user_id WHERE p.user_id=$1`, [user.id]);
     if (!result.rows[0]) return NextResponse.json({ error: "Complete Pandit onboarding first" }, { status: 409 });
-    return NextResponse.json({ payout: result.rows[0] }, { headers: { "Cache-Control": "private, no-store" } });
+    const history=await sql(`SELECT i.id,i.gross_amount,i.commission_amount,i.net_amount,i.status,i.reconciliation_reference,i.failure_reason,i.paid_at,s.name AS service_name,b.completed_at FROM pim_v2.payout_items i LEFT JOIN pim_v2.bookings b ON b.id=i.booking_id LEFT JOIN pim_v2.services s ON s.id=b.service_id WHERE i.pandit_id=$1 ORDER BY COALESCE(i.paid_at,b.completed_at) DESC LIMIT 50`,[user.id]);
+    return NextResponse.json({ payout: result.rows[0],history:history.rows }, { headers: { "Cache-Control": "private, no-store" } });
   } catch (error) { return authorizationResponse(error) ?? NextResponse.json({ error: "Unable to load payout settings" }, { status: 500 }); }
 }
 

@@ -1,0 +1,15 @@
+import { NextResponse } from "next/server";
+import { requireCustomer } from "@/lib/auth";
+import { authorizationResponse } from "@/lib/api-auth";
+import { sql } from "@/lib/db";
+import { createProviderOrder, paymentPublicConfig } from "@/lib/payment-provider";
+import { enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+
+export async function GET(){return NextResponse.json(paymentPublicConfig(),{headers:{"Cache-Control":"no-store"}});}
+
+export async function POST(request:Request){try{const user=await requireCustomer();await enforceRateLimit(request,"payment:order",user.id,10,3_600,900);const body=await request.json() as {purpose?:"SERVICE_PAYMENT"|"CANCELLATION_FEE";bookingId?:string;idempotencyKey?:string};if(!body.bookingId||!body.idempotencyKey||body.idempotencyKey.length>100||!["SERVICE_PAYMENT","CANCELLATION_FEE"].includes(body.purpose??""))return NextResponse.json({error:"Invalid payment request"},{status:400});
+  const booking=await sql<{id:string;amount:number;status:string;cancellation_fee:number;cancellation_fee_status:string;payment_status:string}>(`SELECT id,amount,status,cancellation_fee,cancellation_fee_status,payment_status FROM pim_v2.bookings WHERE id=$1 AND customer_id=$2`,[body.bookingId,user.id]);const b=booking.rows[0];if(!b)return NextResponse.json({error:"Booking not found"},{status:404});
+  const amount=body.purpose==="CANCELLATION_FEE"?b.cancellation_fee:b.amount;if(body.purpose==="CANCELLATION_FEE"&&!['OUTSTANDING','DISPUTED'].includes(b.cancellation_fee_status))return NextResponse.json({error:"No payable cancellation balance exists"},{status:409});if(body.purpose==="SERVICE_PAYMENT"&&b.status!=="COMPLETED")return NextResponse.json({error:"Service payment is available after Puja completion"},{status:409});if(amount<=0)return NextResponse.json({error:"No amount is due"},{status:409});
+  const existing=await sql<{id:string;provider_order_id:string;status:string}>(`SELECT id,provider_order_id,status FROM pim_v2.payment_transactions WHERE user_id=$1 AND idempotency_key=$2`,[user.id,body.idempotencyKey]);if(existing.rows[0])return NextResponse.json({transactionId:existing.rows[0].id,orderId:existing.rows[0].provider_order_id,status:existing.rows[0].status,...paymentPublicConfig()});
+  const transactionId=crypto.randomUUID();const providerOrder=await createProviderOrder({amountRupees:amount,receipt:transactionId,notes:{transactionId,bookingId:b.id,purpose:body.purpose!}});await sql(`INSERT INTO pim_v2.payment_transactions(id,user_id,booking_id,purpose,amount,provider,provider_order_id,status,idempotency_key) VALUES($1,$2,$3,$4,$5,'razorpay',$6,'PENDING',$7)`,[transactionId,user.id,b.id,body.purpose,amount,providerOrder.id,body.idempotencyKey]);return NextResponse.json({transactionId,orderId:providerOrder.id,amount,currency:"INR",...paymentPublicConfig()},{status:201});
+ }catch(error){return authorizationResponse(error)??rateLimitResponse(error)??NextResponse.json({error:error instanceof Error&&error.message.includes("configured")?error.message:"Unable to start payment"},{status:503});}}

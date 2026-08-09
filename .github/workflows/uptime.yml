@@ -1,0 +1,14 @@
+name: Production liveness
+on:
+  schedule:
+    - cron: "*/15 * * * *"
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check production liveness
+        run: curl --fail --show-error --silent --max-time 20 https://panditconnect-weld.vercel.app/api/health/live

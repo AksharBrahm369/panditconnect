@@ -69,11 +69,13 @@ export function ConsultationPanel({ role, onBack, onUrgentItemsChange }: { role:
       }
     }, 0);
     const refresh = window.setInterval(() => {
+      if(document.visibilityState!=="visible")return;
       void loadConsultations();
       if (selectedId) void loadMessages(selectedId);
     }, 3_000);
     const clock = window.setInterval(() => setNow(Date.now()), 1_000);
     const typingRefresh = window.setInterval(() => {
+      if(document.visibilityState!=="visible")return;
       if (selectedId) void loadTyping(selectedId);
     }, 1_000);
     return () => {

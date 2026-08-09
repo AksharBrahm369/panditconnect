@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { sql } from "@/lib/db";
+import { enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 type NearbyPandit = {
   id: string; name: string; experience_years: number; languages: string[]; rating: string;
@@ -18,6 +19,7 @@ globalThis.__pimV2NearbyCache = nearbyCache;
 
 export async function GET(request: Request) {
   try {
+    await enforceRateLimit(request,"pandits:nearby",undefined,120,3_600,600);
     const params = new URL(request.url).searchParams;
     const serviceId = params.get("serviceId") ?? "ganesh-puja";
     const language = params.get("language")?.trim();
@@ -79,6 +81,7 @@ export async function GET(request: Request) {
       { headers: { "Cache-Control": "private, max-age=5" } },
     );
   } catch (error) {
+    const limited=rateLimitResponse(error);if(limited)return limited;
     console.error("Nearby Pandit lookup failed", error);
     return NextResponse.json({ error: "Unable to load nearby Pandits" }, { status: 500 });
   }

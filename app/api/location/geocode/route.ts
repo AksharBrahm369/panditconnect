@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { requireCustomer } from "@/lib/auth";
 import { authorizationResponse } from "@/lib/api-auth";
 import { applicationUrl } from "@/lib/env";
+import { enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -16,7 +17,8 @@ globalThis.__pimV2PostcodeCache = cache;
 
 export async function POST(request: Request) {
   try {
-    await requireCustomer();
+    const user=await requireCustomer();
+    await enforceRateLimit(request,"location:geocode",user.id,30,3_600,600);
     const body = await request.json() as { postalCode?: string };
     const postalCode = body.postalCode?.replace(/\D/g, "") ?? "";
     if (!/^[1-9]\d{5}$/.test(postalCode)) {
@@ -55,6 +57,7 @@ export async function POST(request: Request) {
   } catch (error) {
     const authResponse = authorizationResponse(error);
     if (authResponse) return authResponse;
+    const limited=rateLimitResponse(error);if(limited)return limited;
     return NextResponse.json({ error: "Address location is temporarily unavailable. Try GPS or retry shortly." }, { status: 503 });
   }
 }

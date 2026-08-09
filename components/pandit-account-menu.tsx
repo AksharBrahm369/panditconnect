@@ -2,13 +2,14 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Bell, ChevronRight, CreditCard, LogOut, Settings, ShieldCheck, UserRound } from "lucide-react";
+import { Bell, ChevronRight, CreditCard, Database, LogOut, Settings, ShieldCheck, UserRound } from "lucide-react";
 
 const items = [
   { href: "/pandit/settings/profile", label: "Edit profile", detail: "Professional and service details", icon: UserRound },
   { href: "/pandit/settings/payments", label: "Manage payout", detail: "UPI or bank account", icon: CreditCard },
   { href: "/pandit/settings/notifications", label: "Notifications", detail: "Choose the alerts you receive", icon: Bell },
   { href: "/pandit/settings/security", label: "Privacy & security", detail: "Verified account and session", icon: ShieldCheck },
+  { href: "/pandit/settings/privacy", label: "My data", detail: "Export, consent and deletion", icon: Database },
 ] as const;
 
 export function PanditAccountMenu({ onLogout }: { onLogout: () => void | Promise<void> }) {

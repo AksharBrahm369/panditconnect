@@ -4,6 +4,7 @@ import { sql } from "@/lib/db";
 import { notifyAdmins, notifyUser } from "@/lib/push-notifications";
 import { decryptArrivalOtp, encryptArrivalOtp } from "@/lib/arrival-otp";
 import { CANCELLATION_POLICY_SNAPSHOT, CANCELLATION_POLICY_VERSION, recordBookingEvent } from "@/lib/booking-risk";
+import { enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -72,6 +73,7 @@ export async function POST(request: Request) {
   if (!user || user.role !== "CUSTOMER") {
     return NextResponse.json({ error: "Customer login required" }, { status: 401 });
   }
+  try { await enforceRateLimit(request,"booking:create",user.id,10,3_600,900); } catch(error) { return rateLimitResponse(error)!; }
 
   const body = await request.json() as {
     serviceId?: string;
@@ -182,9 +184,9 @@ export async function POST(request: Request) {
     created=await sql<{id:string}>(
       `INSERT INTO pim_v2.bookings(
        id,customer_id,pandit_id,service_id,address,latitude,longitude,notes,amount,status,arrival_otp,
-       request_type,situation,preferred_language,materials_option,scheduled_at,
+       request_type,situation,preferred_language,materials_option,scheduled_at,request_expires_at,
        policy_version,policy_accepted_at,policy_snapshot,policy_ip_hash,policy_device_hash,client_request_id
-     ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'REQUESTED',$10,$11,$12,$13,$14,$15,$16,now(),$17::jsonb,$18,$19,$20)
+     ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'REQUESTED',$10,$11,$12,$13,$14,$15,now()+CASE WHEN $11='SCHEDULED_PUJA' THEN interval '24 hours' ELSE interval '5 minutes' END,$16,now(),$17::jsonb,$18,$19,$20)
      ON CONFLICT(customer_id,client_request_id) WHERE client_request_id IS NOT NULL DO NOTHING RETURNING id`,
     [
       id, user.id, pandit.id, body.serviceId, `${body.address.trim().replace(/,?\s*PIN\s*[-:]?\s*[1-9]\d{5}\s*$/i, "")}, PIN ${postalCode}`.slice(0, 500), latitude, longitude,

@@ -3,6 +3,7 @@ import { currentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { paymentsEnabled } from "@/lib/payments";
 import { notifyUser } from "@/lib/push-notifications";
+import { enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -34,6 +35,7 @@ export async function POST(request: Request) {
   if (!user || user.role !== "CUSTOMER") {
     return NextResponse.json({ error: "Customer login required" }, { status: 401 });
   }
+  try { await enforceRateLimit(request,"consultation:create",user.id,10,3_600,900); } catch(error) { return rateLimitResponse(error)!; }
   const body = await request.json() as { panditId?: string; topic?: string; blocks?: number; paymentMethod?: string };
   const topic = body.topic?.trim().slice(0, 500) || "General Puja and religious guidance";
   const blocks = Math.min(6, Math.max(1, Math.floor(Number(body.blocks) || 1)));

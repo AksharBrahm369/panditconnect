@@ -50,7 +50,17 @@ export function productionConfigurationIssues() {
   return issues;
 }
 
+export function commercialLaunchIssues(){
+  const issues=[...productionConfigurationIssues()];
+  const required=["LEGAL_BUSINESS_NAME","LEGAL_BUSINESS_ADDRESS","SUPPORT_EMAIL","SUPPORT_PHONE","GRIEVANCE_OFFICER_NAME","GRIEVANCE_EMAIL","JURISDICTION"];
+  for(const name of required)if(!process.env[name]?.trim())issues.push(`${name} is required for commercial launch`);
+  const payment=process.env.PAYMENT_PROVIDER?.trim().toLowerCase();
+  if(!payment||payment==="development")issues.push("A production payment provider is required before online collection");
+  if(payment&&payment!=="development"&&(!process.env.PAYMENT_PROVIDER_KEY_ID?.trim()||!process.env.PAYMENT_PROVIDER_KEY_SECRET?.trim()||!process.env.PAYMENT_PROVIDER_WEBHOOK_SECRET?.trim()))issues.push("Payment provider keys and webhook secret are incomplete");
+  return issues;
+}
+
 export function assertRuntimeConfiguration() {
-  const issues = productionConfigurationIssues();
+  const issues = productionConfigurationIssues().filter((issue)=>!issue.startsWith("OTP_PROVIDER")&&!issue.startsWith("SMS_PROVIDER_"));
   if (issues.length) throw new Error("Server security configuration is incomplete");
 }

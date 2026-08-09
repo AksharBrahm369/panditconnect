@@ -1,0 +1,3 @@
+import { legalConfig } from "@/lib/legal-config";
+
+export function LegalContact(){const c=legalConfig();return <section><h2>Business, support and grievance contact</h2>{c.complete?<><p><strong>{c.businessName}</strong><br/>{c.address}</p><p>Support: <a href={`mailto:${c.supportEmail}`}>{c.supportEmail}</a> · <a href={`tel:${c.supportPhone}`}>{c.supportPhone}</a><br/>Hours: {c.supportHours}</p><p>Grievance officer: {c.grievanceOfficer} · <a href={`mailto:${c.grievanceEmail}`}>{c.grievanceEmail}</a><br/>Jurisdiction: {c.jurisdiction}</p></>:<div className="alert error">Commercial contact details have not yet been activated. Do not accept real payments until the verified business identity, support contact and grievance officer are configured.</div>}</section>;}

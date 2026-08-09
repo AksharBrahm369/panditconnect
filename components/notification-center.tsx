@@ -110,7 +110,7 @@ export function NotificationCenter({ role }: { role: PortalRole }) {
     }, 0);
     if ("serviceWorker" in navigator) void navigator.serviceWorker.register("/sw.js").then((registration) => registration.update());
     navigator.serviceWorker?.addEventListener("message", onPush);
-    const timer = window.setInterval(() => void load(), 10_000);
+    const timer = window.setInterval(() => {if(document.visibilityState==="visible")void load();}, 30_000);
     return () => {
       window.clearTimeout(initial);
       window.clearInterval(timer);

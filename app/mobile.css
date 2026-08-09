@@ -69,6 +69,9 @@
   .document-grid, .payout-box, .approved-grid, .review-facts, .support-form {
     grid-template-columns: minmax(0,1fr);
   }
+  .admin-privacy-list article { grid-template-columns:1fr; align-items:start; }
+  .admin-finance-summary,.admin-payout-batches header,.admin-payout-items > div { align-items:stretch; flex-direction:column; }
+  .admin-funnel header { align-items:start; flex-direction:column; }.admin-funnel > div { grid-template-columns:repeat(2,1fr); }
   .intent-shell, .guided-main, .workspace-main, .side-card, .history, .tracking-card,
   .onboarding-card, .consultation-center, .consultation-chat, .profile-editor,
   .private-settings-card, .booking-payment { padding: 16px; border-radius: 17px; }

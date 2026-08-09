@@ -7,12 +7,14 @@ if (!connectionString) throw new Error("DATABASE_URL is not configured");
 const expectedTables = [
   "users", "otp_challenges", "sessions", "services", "pandit_profiles", "pandit_services",
   "bookings", "consultations", "consultation_messages", "consultation_typing", "admin_audit_logs", "support_cases", "notification_preferences",
+  "pandit_documents", "pandit_references", "pandit_service_pricing", "pandit_verification_reviews", "push_subscriptions", "push_delivery_queue", "operation_runs", "system_events", "data_rights_requests", "user_consents", "api_rate_limits", "security_incidents", "payment_transactions", "payment_webhook_events", "refunds", "payout_batches", "payout_items", "account_ledger", "booking_events",
 ];
 const expectedIndexes = [
   "otp_phone_created_idx", "otp_ip_created_idx", "session_expiry_idx", "booking_customer_idx",
   "booking_pandit_idx", "booking_status_created_idx", "booking_scheduled_at_idx", "pandit_verification_idx", "pandit_available_idx",
   "consultation_customer_idx", "consultation_pandit_idx", "consultation_message_idx",
   "consultation_typing_expiry_idx", "admin_audit_created_idx", "admin_audit_admin_idx", "otp_challenge_active_lookup_idx", "support_reporter_idx", "support_status_idx",
+  "pandit_documents_owner_idx", "push_retry_due_idx", "operation_runs_recent_idx", "data_rights_status_idx", "api_rate_limit_cleanup_idx", "security_incident_status_idx", "payment_transaction_status_idx", "refund_status_idx", "payout_item_pandit_idx", "booking_events_timeline_idx",
 ];
 
 const client = new pg.Client({ connectionString, connectionTimeoutMillis: 15_000 });

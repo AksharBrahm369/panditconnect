@@ -1,11 +1,12 @@
 import Link from "next/link";
-import { ArrowLeft, Bell, Headphones, ShieldCheck, UserRound } from "lucide-react";
+import { ArrowLeft, Bell, Headphones, ShieldCheck, UserRound, Database } from "lucide-react";
 import { AppShell } from "./app-shell";
 
 const links = [
   { key: "profile", href: "/customer/settings/profile", label: "Profile", icon: UserRound },
   { key: "notifications", href: "/customer/settings/notifications", label: "Notifications", icon: Bell },
   { key: "security", href: "/customer/settings/security", label: "Security", icon: ShieldCheck },
+  { key: "privacy", href: "/customer/settings/privacy", label: "My data", icon: Database },
   { key: "support", href: "/customer/settings/support", label: "Help & support", icon: Headphones },
 ] as const;
 

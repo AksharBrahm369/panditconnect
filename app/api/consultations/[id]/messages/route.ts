@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { notifyUser } from "@/lib/push-notifications";
+import { enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ export async function GET(_: Request, { params }: { params: Promise<{ id: string
 export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
   const user = await currentUser();
   if (!user) return NextResponse.json({ error: "Login required" }, { status: 401 });
+  try { await enforceRateLimit(request,"chat:message",user.id,60,60,300); } catch(error) { return rateLimitResponse(error)!; }
   const { id } = await params;
   const consultation = await authorized(id, user.id);
   if (!consultation) return NextResponse.json({ error: "Consultation not found" }, { status: 404 });

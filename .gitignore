@@ -31,6 +31,7 @@ yarn-error.log*
 # environment files (the placeholder example is intentionally committed)
 .env*
 !.env.example
+!.env.staging.example
 .credentials/
 *.credentials.json
 *.secret
@@ -42,9 +43,11 @@ yarn-error.log*
 next-env.d.ts
 *.tsbuildinfo
 /dist/
+/dist.stale-*/
 /build/*
 !/build/sites-vite-plugin.ts
 /.wrangler/
 /.logs/
 /outputs/
 /work/
+/.backups/

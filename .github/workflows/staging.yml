@@ -1,0 +1,30 @@
+name: Staging validation and migration
+on:
+  workflow_dispatch:
+  push:
+    branches: [staging]
+permissions:
+  contents: read
+jobs:
+  validate-staging:
+    runs-on: ubuntu-latest
+    environment: staging
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run typecheck
+      - run: npm run lint
+      - run: npm run db:validate-migrations
+      - name: Apply migrations to isolated staging database
+        run: |
+          for migration in db/migrations/*.sql; do npm run db:migrate -- "$(basename "$migration")"; done
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}
+      - run: npm run db:audit
+        env:
+          DATABASE_URL: ${{ secrets.STAGING_DATABASE_URL }}

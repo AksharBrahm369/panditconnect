@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
-import { Bell, ChevronRight, Headphones, LogOut, Settings, ShieldCheck, UserRound } from "lucide-react";
+import { Bell, ChevronRight, Database, Headphones, LogOut, Settings, ShieldCheck, UserRound } from "lucide-react";
 
 const items = [
   { href: "/customer/settings/profile", label: "Edit profile", detail: "Name, address and personal details", icon: UserRound },
   { href: "/customer/settings/notifications", label: "Notifications", detail: "Choose the alerts you receive", icon: Bell },
   { href: "/customer/settings/security", label: "Privacy & security", detail: "Verified account and session", icon: ShieldCheck },
+  { href: "/customer/settings/privacy", label: "My data", detail: "Export, consent and deletion", icon: Database },
   { href: "/customer/settings/support", label: "Help & support", detail: "Booking, account or safety help", icon: Headphones },
 ] as const;
 
