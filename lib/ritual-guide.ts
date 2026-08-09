@@ -33,6 +33,11 @@ const recommendations: Record<string, Omit<RitualRecommendation, "serviceId">> =
     reason: "A fire ritual commonly requested for purification, peace and a spiritually focused atmosphere.",
     checklist: ["Choose a ventilated safe space", "Keep water nearby", "Confirm whether a havan kund is available", "Ask if the Pandit should bring samagri"],
   },
+  "shraddha-puja": {
+    title: "Shraddha / Ancestor Ritual",
+    reason: "For a recent bereavement or remembrance ceremony. The correct rite and date depend on the tithi, time since passing and your family tradition, so the Pandit will confirm these details before booking.",
+    checklist: ["Keep the date of passing ready", "Share your relationship to the departed", "Mention your family tradition or native place", "Wait for the Pandit to confirm the tithi and materials"],
+  },
 };
 
 export function ritualForService(serviceId: string): RitualRecommendation {
@@ -42,6 +47,18 @@ export function ritualForService(serviceId: string): RitualRecommendation {
 
 export function recommendRitual(situation: string): RitualRecommendation {
   const value = situation.toLowerCase();
+  const isBereavement = /\b(die|died|death|dead|passed away|passing away|expired|demise|funeral|bereavement|mourning|shraddh?a?|shraadh|pind\s?daan|pitru|pitra|barsi|terahvi|tervi|antim sanskar|asthi)\b/.test(value);
+  if (isBereavement) {
+    const isRecent = /\b(last month|one month|1 month|recent|recently|few weeks?|this month|monthly|masik|maasik)\b/.test(value);
+    const recommendation = ritualForService("shraddha-puja");
+    return isRecent
+      ? {
+          ...recommendation,
+          title: "Masik Shraddha / Ancestor Ritual",
+          reason: "Because you mentioned a death last month, your family may need Masik Shraddha or a related ancestor ritual. The exact ceremony and date depend on the date of passing, tithi and family tradition; the matched Pandit will confirm them before you book.",
+        }
+      : recommendation;
+  }
   if (/(new home|new house|griha|house warming|shift|moving|vastu)/.test(value)) {
     return ritualForService("griha-pravesh");
   }
