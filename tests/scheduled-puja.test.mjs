@@ -22,6 +22,9 @@ test("customers can schedule a future Puja with a nearby available Pandit", asyn
 
 test("scheduled bookings cannot begin travelling too early", async () => {
   const transition = await readFile(new URL("../app/api/bookings/[id]/route.ts", import.meta.url), "utf8");
-  assert.match(transition, /scheduled for later/);
+  assert.match(transition, /The customer scheduled this Puja for/);
+  assert.match(transition, /Asia\/Kolkata/);
+  assert.match(transition, /weekday: "long"/);
+  assert.match(transition, /scheduledAt: booking\.scheduled_at/);
   assert.match(transition, /4 \* 60 \* 60 \* 1000/);
 });

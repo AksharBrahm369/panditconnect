@@ -39,7 +39,21 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
     return NextResponse.json({ error: "This booking action is not available" }, { status: 409 });
   }
   if (body.status === "ON_THE_WAY" && booking.scheduled_at && new Date(booking.scheduled_at).getTime() > Date.now() + 4 * 60 * 60 * 1000) {
-    return NextResponse.json({ error: "This Puja is scheduled for later. You can start travelling up to 4 hours before the scheduled time." }, { status: 409 });
+    const scheduledDateTime = new Intl.DateTimeFormat("en-IN", {
+      timeZone: "Asia/Kolkata",
+      weekday: "long",
+      day: "numeric",
+      month: "long",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      hour12: true,
+      timeZoneName: "short",
+    }).format(new Date(booking.scheduled_at));
+    return NextResponse.json({
+      error: `The customer scheduled this Puja for ${scheduledDateTime}. You can start travelling up to 4 hours before this time.`,
+      scheduledAt: booking.scheduled_at,
+    }, { status: 409 });
   }
   let journeyLocation:{latitude:number;longitude:number;distanceMetres?:number}|null=null;
   if(body.status==="ON_THE_WAY"||body.status==="ARRIVED"){
