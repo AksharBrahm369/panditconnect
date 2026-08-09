@@ -43,4 +43,5 @@ jobs:
           name: encrypted-pim-v2-${{ github.run_id }}
           path: .backups/*.dump.enc
           retention-days: 14
+          include-hidden-files: true
           if-no-files-found: error
