@@ -1,0 +1,72 @@
+/* Kept as a separate bundle so immutable deployment caches cannot pair new help markup with old homepage CSS. */
+.easy-help-hub {
+  display:grid;
+  grid-template-columns:minmax(240px,.72fr) minmax(520px,1.28fr);
+  gap:42px;
+  align-items:center;
+  width:min(1080px,calc(100% - 48px));
+  margin:0 auto 72px;
+  padding:38px 42px;
+  border:1px solid #dfc9a7;
+  border-radius:26px;
+  background:linear-gradient(135deg,#fffef9,#fff8eb);
+  box-shadow:0 18px 44px rgba(77,37,20,.08);
+}
+.easy-help-heading > span {
+  color:#b34625;
+  font-size:10px;
+  font-weight:850;
+  letter-spacing:.09em;
+  text-transform:uppercase;
+}
+.easy-help-heading h2 {
+  margin:8px 0 10px;
+  color:#4a2021;
+  font:700 clamp(29px,3vw,40px)/1.05 Georgia,"Times New Roman",serif;
+  letter-spacing:-.035em;
+}
+.easy-help-heading p { margin:0; color:#78665d; font-size:12px; line-height:1.55; }
+.easy-help-options { display:grid; gap:9px; }
+.easy-help-options > a {
+  display:grid;
+  grid-template-columns:43px minmax(0,1fr) 18px;
+  align-items:center;
+  gap:12px;
+  min-height:72px;
+  padding:12px 14px;
+  color:#472923;
+  border:1px solid #e5d6c1;
+  border-radius:15px;
+  background:#fff;
+  box-shadow:0 5px 16px rgba(77,37,20,.05);
+  text-decoration:none;
+}
+.easy-help-options > a:hover { border-color:#c9683d; background:#fff9ef; transform:translateX(2px); }
+.easy-help-options > a > svg:first-child {
+  width:43px;
+  height:43px;
+  padding:11px;
+  color:#9d3524;
+  border-radius:13px;
+  background:#fae9dd;
+}
+.easy-help-options > a > svg:last-child { width:16px; color:#9d877a; }
+.easy-help-options > a span { display:grid; gap:3px; }
+.easy-help-options strong { font-size:13px; }
+.easy-help-options small { color:#88746a; font-size:10px; }
+
+@media(max-width:900px) {
+  .easy-help-hub { grid-template-columns:1fr; gap:25px; }
+}
+
+@media(max-width:600px) {
+  .easy-help-hub {
+    width:calc(100% - 24px);
+    gap:20px;
+    margin-bottom:35px;
+    padding:24px 17px;
+    border-radius:21px;
+  }
+  .easy-help-heading h2 { font-size:30px; }
+  .easy-help-options > a { min-height:74px; }
+}
