@@ -18,8 +18,8 @@
     "db:validate-migrations": "node scripts/validate-migrations.mjs",
     "db:legacy-audit": "node --env-file=.env scripts/audit-legacy-schema.mjs",
     "notifications:audit": "node --env-file=.env scripts/audit-notifications.mjs",
-    "backup:create": "node --env-file=.env scripts/backup-db.mjs",
-    "backup:verify": "node --env-file=.env scripts/verify-backup.mjs",
+    "backup:create": "node --env-file-if-exists=.env scripts/backup-db.mjs",
+    "backup:verify": "node --env-file-if-exists=.env scripts/verify-backup.mjs",
     "load:test": "node --env-file-if-exists=.env scripts/load-test.mjs",
     "db:generate": "drizzle-kit generate",
     "e2e:production-flow": "node --env-file=.env scripts/e2e-production-flow.mjs"
