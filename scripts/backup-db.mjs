@@ -1,5 +1,6 @@
 import { createCipheriv, randomBytes } from "node:crypto";
-import { mkdir, open } from "node:fs/promises";
+import { appendFile, mkdir, writeFile } from "node:fs/promises";
+import { createWriteStream } from "node:fs";
 import { spawn } from "node:child_process";
 import { pipeline } from "node:stream/promises";
 import path from "node:path";
@@ -16,11 +17,12 @@ const stamp=new Date().toISOString().replaceAll(":","-").replaceAll(".","-");
 const output=path.join(directory,`panditconnect-${stamp}.dump.enc`);
 const iv=randomBytes(12);
 const cipher=createCipheriv("aes-256-gcm",key,iv);
-const file=await open(output,"w",0o600);
-await file.write(Buffer.concat([Buffer.from("PIMBACKUP1"),iv]));
+await writeFile(output,Buffer.concat([Buffer.from("PIMBACKUP1"),iv]),{mode:0o600});
 const dump=spawn("pg_dump",["--format=custom","--no-owner","--no-privileges","--schema=pim_v2",connection],{stdio:["ignore","pipe","pipe"]});
 let stderr="";dump.stderr.on("data",chunk=>stderr+=chunk.toString());
 const completion=new Promise((resolve,reject)=>{dump.once("error",reject);dump.once("close",resolve);});
-try{await pipeline(dump.stdout,cipher,file.createWriteStream({start:22,autoClose:false}));const exit=await completion;if(exit!==0)throw new Error(`pg_dump failed: ${stderr.slice(0,500)}`);const size=(await file.stat()).size;await file.write(cipher.getAuthTag(),0,16,size);}
-finally{await file.close().catch(()=>undefined);}
+const encryptedOutput=createWriteStream(output,{flags:"a",mode:0o600});
+const [,exit]=await Promise.all([pipeline(dump.stdout,cipher,encryptedOutput),completion]);
+if(exit!==0)throw new Error(`pg_dump failed: ${stderr.slice(0,500)}`);
+await appendFile(output,cipher.getAuthTag());
 console.log(JSON.stringify({success:true,file:output,encrypted:true,schema:"pim_v2"}));
