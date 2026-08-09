@@ -18,7 +18,7 @@ const output=path.join(directory,`panditconnect-${stamp}.dump.enc`);
 const iv=randomBytes(12);
 const cipher=createCipheriv("aes-256-gcm",key,iv);
 await writeFile(output,Buffer.concat([Buffer.from("PIMBACKUP1"),iv]),{mode:0o600});
-const dump=spawn("pg_dump",["--format=custom","--no-owner","--no-privileges","--schema=pim_v2",connection],{stdio:["ignore","pipe","pipe"]});
+const dump=spawn(process.env.PG_DUMP_BIN||"pg_dump",["--format=custom","--no-owner","--no-privileges","--schema=pim_v2",connection],{stdio:["ignore","pipe","pipe"]});
 let stderr="";dump.stderr.on("data",chunk=>stderr+=chunk.toString());
 const completion=new Promise((resolve,reject)=>{dump.once("error",reject);dump.once("close",resolve);});
 const encryptedOutput=createWriteStream(output,{flags:"a",mode:0o600});

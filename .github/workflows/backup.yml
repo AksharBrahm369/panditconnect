@@ -31,6 +31,7 @@ jobs:
         env:
           DIRECT_URL: ${{ secrets.BACKUP_DATABASE_URL }}
           BACKUP_ENCRYPTION_KEY: ${{ secrets.BACKUP_ENCRYPTION_KEY }}
+          PG_DUMP_BIN: /usr/lib/postgresql/17/bin/pg_dump
       - name: Verify encrypted backup
         shell: bash
         run: npm run backup:verify -- "$(ls -1t .backups/*.dump.enc | head -1)"
