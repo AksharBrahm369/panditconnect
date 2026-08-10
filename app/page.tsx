@@ -68,7 +68,7 @@ export default function Home() {
           <p>You do not need to know religious terminology. Choose the situation that feels closest.</p>
         </div>
         <div className="home-service-grid">
-          <Link href="/login?role=customer" className="home-service-card home-service-main">
+          <Link href="/login?role=customer" className="home-service-card">
             <span className="home-service-icon"><CalendarDays /></span>
             <div><small>Most requested</small><strong>Book a Puja at home</strong><p>For today or a future date. We will help you choose the appropriate Puja.</p></div>
             <span className="home-card-action">Start booking <ArrowRight /></span>
