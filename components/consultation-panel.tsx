@@ -35,7 +35,10 @@ export function ConsultationPanel({ role, onBack, onUrgentItemsChange }: { role:
   const [otherTyping, setOtherTyping] = useState<{ typing: boolean; name?: string | null; role?: string }>({ typing: false });
   const [checkoutPandit, setCheckoutPandit] = useState<ConsultationPandit | null>(null);
   const lastTypingSentAt = useRef(0);
+  const messageListRef = useRef<HTMLDivElement | null>(null);
+  const previousChatIdRef = useRef<string | null>(null);
   const selectedId = selected?.id;
+  const newestMessageId = messages.at(-1)?.id;
 
   const loadConsultations = useCallback(async () => {
     const response = await fetch(`/api/consultations?fresh=${Date.now()}`, { cache: "no-store" });
@@ -184,6 +187,22 @@ export function ConsultationPanel({ role, onBack, onUrgentItemsChange }: { role:
     onUrgentItemsChange(unseenActive);
   }, [consultations, onUrgentItemsChange, role, selectedId]);
 
+  useEffect(() => {
+    const messageList = messageListRef.current;
+    if (!messageList || !selectedId) return;
+
+    const isCurrentChat = previousChatIdRef.current === selectedId;
+    const animationFrame = window.requestAnimationFrame(() => {
+      messageList.scrollTo({
+        top: messageList.scrollHeight,
+        behavior: isCurrentChat ? "smooth" : "auto",
+      });
+    });
+    previousChatIdRef.current = selectedId;
+
+    return () => window.cancelAnimationFrame(animationFrame);
+  }, [newestMessageId, selectedId]);
+
   if (selected) return <section className="consultation-chat" id="online-guidance">
     <header>
       <button className="icon-button" onClick={() => setSelected(null)} aria-label="Back to consultations"><ArrowLeft size={18} /></button>
@@ -192,7 +211,7 @@ export function ConsultationPanel({ role, onBack, onUrgentItemsChange }: { role:
       <span className={`chat-timer ${remaining === 0 ? "ended" : ""}`}><Clock3 size={14} /> {remaining ? timer : "Ended"}</span>
     </header>
     <div className="consultation-topic"><strong>Your question</strong><span>{selected.topic}</span><b>₹{selected.amount} · {selected.payment_method ?? "Payment"} · {selected.blocks * 5} minutes</b></div>
-    <div className="chat-messages">
+    <div className="chat-messages" ref={messageListRef} aria-live="polite" aria-label="Live chat messages">
       {messages.length ? messages.map((message) => <div className={`chat-bubble ${message.sender_id === userId ? "mine" : ""}`} key={message.id}>
         <small>{message.sender_id === userId ? "You" : message.sender_name ?? message.sender_role}</small>
         <p>{message.body}</p><time>{new Date(message.created_at).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}</time>
