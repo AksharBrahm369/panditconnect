@@ -32,7 +32,7 @@
 .home-header-cta:hover,.home-primary-button:hover,.home-process-link:hover { background:var(--home-red-dark); box-shadow:0 11px 25px rgba(95,32,39,.22); transform:translateY(-1px); }
 .home-header-cta svg,.home-primary-button svg,.home-process-link svg { width:17px; }
 
-.home-hero { display:grid; grid-template-columns:minmax(0,.94fr) minmax(430px,.82fr); gap:72px; align-items:center; width:min(1200px,calc(100% - 48px)); margin:0 auto; padding:72px 0 84px; }
+.home-hero { display:grid; grid-template-columns:minmax(0,.85fr) minmax(500px,1.05fr); gap:58px; align-items:center; width:min(1200px,calc(100% - 48px)); margin:0 auto; padding:72px 0 84px; }
 .home-hero-copy { max-width:650px; }
 .home-eyebrow { display:inline-flex; align-items:center; gap:8px; margin-bottom:22px; color:var(--home-green); font-size:12px; font-weight:700; }
 .home-eyebrow svg { width:18px; }
@@ -48,9 +48,9 @@
 .home-assurances { display:flex; flex-wrap:wrap; gap:9px 21px; margin:28px 0 0; padding:22px 0 0; border-top:1px solid var(--home-line); list-style:none; }
 .home-assurances li { display:flex; align-items:center; gap:6px; color:#62544d; font-size:11px; font-weight:600; }
 .home-assurances svg { width:16px; height:16px; padding:3px; color:#fff; border-radius:50%; background:var(--home-green); stroke-width:3; }
-.home-hero-media { position:relative; min-height:590px; overflow:hidden; border-radius:4px 44px 4px 44px; background:#d9c7aa; box-shadow:0 30px 75px rgba(66,45,30,.18); }
+.home-hero-media { position:relative; min-height:0; aspect-ratio:16/10; overflow:hidden; border-radius:4px 36px 4px 36px; background:#d9c7aa; box-shadow:0 30px 75px rgba(66,45,30,.18); }
 .home-hero-media::after { position:absolute; inset:0; content:""; background:linear-gradient(180deg,transparent 55%,rgba(31,25,21,.32)); pointer-events:none; }
-.home-hero-media img { width:100%; height:590px; object-fit:cover; object-position:center; }
+.home-hero-media img { display:block; width:100%; height:100%; object-fit:cover; object-position:center 52%; }
 .home-photo-status { position:absolute; z-index:2; top:22px; left:22px; display:grid; gap:4px; padding:13px 16px; border:1px solid rgba(255,255,255,.7); border-radius:10px; background:rgba(255,253,248,.92); box-shadow:0 10px 24px rgba(42,31,24,.13); backdrop-filter:blur(12px); }
 .home-photo-status span { display:flex; align-items:center; gap:8px; color:#304b40; font-size:12px; font-weight:700; }
 .home-photo-status i { width:8px; height:8px; border-radius:50%; background:#32a778; box-shadow:0 0 0 4px rgba(50,167,120,.14); }
@@ -119,8 +119,7 @@
   .home-header-inner { grid-template-columns:1fr auto; }
   .home-hero { grid-template-columns:1fr; gap:45px; padding-top:56px; }
   .home-hero-copy { max-width:760px; }
-  .home-hero-media { min-height:500px; }
-  .home-hero-media img { height:500px; }
+  .home-hero-media { min-height:0; aspect-ratio:16/9; }
   .home-service-grid { grid-template-columns:1fr 1fr; }
   .home-process { grid-template-columns:1fr; gap:45px; }
   .home-trust { grid-template-columns:1fr; gap:35px; }
@@ -145,8 +144,7 @@
   .home-text-link { justify-content:center; }
   .home-assurances { display:grid; gap:10px; margin-top:23px; padding-top:18px; }
   .home-assurances li { font-size:10px; }
-  .home-hero-media { min-height:330px; border-radius:3px 28px 3px 28px; }
-  .home-hero-media img { height:330px; }
+  .home-hero-media { min-height:0; aspect-ratio:16/10; border-radius:3px 24px 3px 24px; }
   .home-photo-status { top:13px; left:13px; padding:10px 12px; }
   .home-photo-status small { display:none; }
   .home-photo-trust { right:13px; bottom:13px; left:13px; padding:12px; }
