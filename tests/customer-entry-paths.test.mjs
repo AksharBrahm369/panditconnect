@@ -41,3 +41,22 @@ test("beginner help uses distinct guided, walkthrough and app-support paths", as
   assert.match(portal, /initialStart === "guided" \? "NEED_GUIDANCE"/);
   assert.match(portal, /customer-help-fab/);
 });
+
+test("public homepage uses the professional human-centred service design", async () => {
+  const [homepage, layout, styles] = await Promise.all([
+    readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/public-home.css", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(homepage, /DM_Sans, Lora/);
+  assert.match(homepage, /A trusted Pandit, when your family needs one\./);
+  assert.match(homepage, /Book a Puja at home/);
+  assert.match(homepage, /My Pandit cancelled/);
+  assert.match(homepage, /Ask a Pandit online/);
+  assert.match(homepage, /Book with clarity, not guesswork\./);
+  assert.match(layout, /import "\.\/public-home\.css"/);
+  assert.match(styles, /--font-home-sans/);
+  assert.match(styles, /--font-home-serif/);
+  assert.match(styles, /@media\(max-width:620px\)/);
+});
