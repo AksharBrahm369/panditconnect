@@ -5,11 +5,12 @@ import Image from "next/image";
 import Link from "next/link";
 import {
   AlertTriangle, ArrowLeft, BadgeCheck, BadgeHelp, CheckCircle2, ChevronRight, Clock3,
-  Banknote, CalendarDays, Compass, CreditCard, HelpCircle, MapPin, Mic, PackageCheck, RefreshCw, ShieldCheck, Smartphone, Sparkles, Star, X,
+  Banknote, CalendarDays, Compass, CreditCard, HelpCircle, MapPin, Mic, PackageCheck, RefreshCw, Search, ShieldCheck, Smartphone, Sparkles, Star, X,
 } from "lucide-react";
 import { AppShell } from "./app-shell";
 import { ConsultationPanel } from "./consultation-panel";
 import { PanditAvatar } from "./pandit-avatar";
+import { AvailabilityFallback, type FallbackPlan } from "./availability-fallback";
 import { readJson } from "@/lib/http";
 import { getCurrentCoordinates, type BrowserCoordinates } from "@/lib/browser-location";
 import { recommendRitual, ritualForService, type RequestType, type RitualRecommendation } from "@/lib/ritual-guide";
@@ -34,6 +35,7 @@ type Booking = {
   cancellation_fee:number;cancellation_fee_status:string;cancellation_reason:string|null;cancelled_at:string|null;
   proposed_amount:number|null;price_change_reason:string|null;price_change_status:"NONE"|"PENDING"|"APPROVED"|"REJECTED";
   payment_method: "CASH" | "UPI" | "CARD" | "OTHER" | null; payment_status: "NOT_SELECTED" | "AWAITING_PANDIT" | "CONFIRMED" | "DISPUTED"; payment_confirmed_at: string | null;
+  service_id:string;dispatch_status:"NONE"|"SEARCHING"|"ASSIGNED"|"EXHAUSTED";search_radius_km:number;max_search_radius_km:number;travel_surcharge:number;next_expansion_at:string|null;active_offer_count:number;
 };
 type SpeechRecognitionLike = {
   lang: string; interimResults: boolean; continuous: boolean;
@@ -113,7 +115,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
   const [busy, setBusy] = useState(false);
   const [locationBusy, setLocationBusy] = useState(false);
   const [listening, setListening] = useState(false);
-  const [match, setMatch] = useState<{ name: string; distanceKm: string; etaMinutes: number } | null>(null);
+  const [match, setMatch] = useState<{ name: string; distanceKm: string; etaMinutes: number; broadcast?:boolean } | null>(null);
   const [nearbyPandits, setNearbyPandits] = useState<NearbyPandit[] | null>(null);
   const [nearbyPage, setNearbyPage] = useState(1);
   const [nearbyHasMore, setNearbyHasMore] = useState(false);
@@ -139,6 +141,11 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
   const [cancellationDetails, setCancellationDetails] = useState("");
   const [cancellationBusy, setCancellationBusy] = useState(false);
   const [cancellationError, setCancellationError] = useState("");
+  const [fallbackPlan, setFallbackPlan] = useState<FallbackPlan|null>(null);
+  const [fallbackBookingId, setFallbackBookingId] = useState<string|null>(null);
+  const [fallbackRadius, setFallbackRadius] = useState(20);
+  const [fallbackBusy, setFallbackBusy] = useState(false);
+  const [fallbackError, setFallbackError] = useState("");
   const discoveryRail = useRef<HTMLDivElement>(null);
 
   const refreshBookings = useCallback(async () => {
@@ -242,6 +249,9 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
     setScheduledAt("");
     setPolicyAccepted(false);
     setClientRequestId(crypto.randomUUID());
+    setFallbackPlan(null);
+    setFallbackBookingId(null);
+    setFallbackError("");
   }
 
   function requestDiscoveryPandit(pandit: DiscoveryPandit) {
@@ -319,6 +329,56 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
     recognition.start();
   }
 
+  async function loadFallbackOptions(confirmedLocation = coordinates, bookingId?:string) {
+    if(!confirmedLocation&&!bookingId)return null;
+    setFallbackBusy(true);setFallbackError("");
+    const params=bookingId
+      ? new URLSearchParams({bookingId})
+      : new URLSearchParams({serviceId,language,lat:String(confirmedLocation!.latitude),lng:String(confirmedLocation!.longitude)});
+    const response=await fetch(`/api/bookings/fallback?${params}`,{cache:"no-store"});
+    const data=await readJson<FallbackPlan&{error?:string}>(response);
+    setFallbackBusy(false);
+    if(!response.ok){setFallbackError(data.error??"Unable to prepare fallback options.");return null;}
+    const plan={stages:data.stages??[],earliestAvailableAt:data.earliestAvailableAt??null};
+    setFallbackPlan(plan);setFallbackBookingId(bookingId??null);
+    const usefulStage=plan.stages.find((stage)=>stage.eligibleCount>0&&stage.radiusKm>5)??plan.stages.at(-1);
+    if(usefulStage)setFallbackRadius(usefulStage.radiusKm);
+    return plan;
+  }
+
+  function openOnlineGuidance(){
+    setRequestType(null);setMatch(null);setNearbyPandits(null);setConsultationMode(true);
+    window.setTimeout(()=>document.getElementById("online-guidance")?.scrollIntoView({behavior:"smooth",block:"start"}),0);
+  }
+
+  async function startWiderSearch(maxRadiusKm:number,visitAt?:string){
+    if(!coordinates||!requestType)return;
+    setFallbackBusy(true);setFallbackError("");setMessage("");
+    const scheduledVisit=Boolean(visitAt);
+    const response=await fetch("/api/bookings",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
+      dispatchMode:"BROADCAST",dispatchMaxRadiusKm:maxRadiusKm,serviceId,address,postalCode:pinCode,notes,
+      requestType:scheduledVisit?"SCHEDULED_PUJA":requestType,situation,preferredLanguage:language,materialsOption,
+      scheduledAt:visitAt,policyAccepted,policyVersion:cancellationPolicyVersion,clientRequestId,
+      latitude:coordinates.latitude,longitude:coordinates.longitude,
+    })});
+    const data=await readJson<{error?:string;dispatch?:{status:string;radiusKm:number;offeredCount:number}}>(response);
+    setFallbackBusy(false);
+    if(!response.ok){setFallbackError(data.error??"Unable to start the wider search.");return;}
+    if(scheduledVisit){setRequestType("SCHEDULED_PUJA");setScheduledAt(dateTimeLocalValue(new Date(visitAt!).getTime()));}
+    setMatch({name:"nearby approved Pandits",distanceKm:`up to ${maxRadiusKm}`,etaMinutes:0,broadcast:true});
+    setNearbyPandits(null);setFallbackPlan(null);setClientRequestId(crypto.randomUUID());
+    await refreshBookings();
+  }
+
+  async function reserveEarliestForBooking(bookingId:string){
+    if(!fallbackPlan?.earliestAvailableAt||fallbackBookingId!==bookingId){await loadFallbackOptions(null,bookingId);return;}
+    setFallbackBusy(true);setFallbackError("");
+    const response=await fetch("/api/bookings/fallback",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({bookingId,action:"RESERVE_EARLIEST"})});
+    const data=await readJson<{error?:string;scheduledAt?:string}>(response);setFallbackBusy(false);
+    if(!response.ok){setFallbackError(data.error??"Unable to reserve the earliest visit.");return;}
+    setFallbackPlan(null);setFallbackBookingId(null);await refreshBookings();
+  }
+
   async function findNearbyPandits(page = 1, append = false) {
     if (!requestType || !serviceId || !address.trim()) {
       setMessage("Complete the guidance, Puja and address details before continuing.");
@@ -365,6 +425,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
       return;
     }
     setNearbyPandits((currentPandits) => append && currentPandits ? [...currentPandits, ...eligible] : eligible);
+    if(!append&&eligible.length===0)await loadFallbackOptions(current);
     setBusy(false);
   }
 
@@ -652,11 +713,13 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
               <button className="btn btn-primary btn-block" disabled={busy} onClick={() => sendRequest(pandit.id)}>{busy ? "Sending request…" : `Send request to ${pandit.name}`} <ChevronRight size={17} /></button>
             </article>
           ))}</div>{nearbyHasMore && <button className="btn btn-ghost btn-block" disabled={busy} onClick={() => void findNearbyPandits(nearbyPage + 1, true)}>{busy ? "Loading nearby Pandits…" : "Show more nearby Pandits"}</button>}</> : <div className="empty"><MapPin size={26} /><strong>No approved Pandit is online nearby</strong><span>Try again in a few minutes or edit the Puja and location details.</span><button className="btn btn-ghost" onClick={() => setNearbyPandits(null)}>Edit request</button></div>}
+          {!nearbyPandits.length&&fallbackPlan&&!fallbackBookingId&&<AvailabilityFallback plan={fallbackPlan} selectedRadius={fallbackRadius} onRadiusChange={setFallbackRadius} onStartSearch={()=>void startWiderSearch(fallbackRadius)} onOnlineGuidance={openOnlineGuidance} onReserveEarliest={()=>fallbackPlan.earliestAvailableAt&&void startWiderSearch(40,fallbackPlan.earliestAvailableAt)} busy={fallbackBusy}/>}
+          {fallbackError&&<div className="alert error">{fallbackError}</div>}
         </section>
       )}
 
       {match && (
-        <section className="success-panel match-success"><CheckCircle2 size={48} /><span className="eyebrow">{requestType === "SCHEDULED_PUJA" ? "Schedule request sent" : "Request sent"}</span><h2>Waiting for {match.name} to accept</h2><p>{requestType === "SCHEDULED_PUJA" && scheduledAt ? `Your Puja request for ${new Date(scheduledAt).toLocaleString("en-IN", { dateStyle: "full", timeStyle: "short" })} was sent to a nearby Pandit.` : `Your request was sent to a Pandit ${match.distanceKm} km away.`} This does not mean it has been accepted yet. The confirmed status will appear below.</p><button className="btn btn-primary" onClick={() => { setMatch(null); setRequestType(null); }}>View live status</button></section>
+        <section className="success-panel match-success"><CheckCircle2 size={48}/><span className="eyebrow">{requestType==="SCHEDULED_PUJA"?"Schedule request sent":match.broadcast?"Automatic search started":"Request sent"}</span><h2>{match.broadcast?"We are contacting matching nearby Pandits":`Waiting for ${match.name} to accept`}</h2><p>{match.broadcast?`The search starts at 5 km and expands automatically up to ${match.distanceKm} km every 3 minutes. The first eligible Pandit to accept will be confirmed.`:requestType==="SCHEDULED_PUJA"&&scheduledAt?`Your Puja request for ${new Date(scheduledAt).toLocaleString("en-IN",{dateStyle:"full",timeStyle:"short"})} was sent to a nearby Pandit.`:`Your request was sent to a Pandit ${match.distanceKm} km away.`} The confirmed status will appear below.</p>{match.broadcast&&<button className="btn btn-ghost" onClick={openOnlineGuidance}>Talk to a Pandit online while we search</button>}<button className="btn btn-primary" onClick={()=>{setMatch(null);setRequestType(null);}}>View live status</button></section>
       )}
 
       <section className="history tracking-history" id="live-requests">
@@ -671,13 +734,16 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
           return <article className={`tracking-card status-${booking.status.toLowerCase()}`} key={booking.id}>
               <div className="tracking-head"><div><span className="status">{booking.request_type === "PANDIT_SOS" ? "Urgent replacement" : booking.request_type === "SCHEDULED_PUJA" ? "Scheduled Puja" : "Puja booking"}</span><h3>{booking.service_name}</h3><p>with <strong>{booking.pandit_name ?? "a nearby Pandit"}</strong></p>{booking.scheduled_at && <p><CalendarDays size={15} /> <strong>{new Date(booking.scheduled_at).toLocaleString("en-IN", { dateStyle: "full", timeStyle: "short" })}</strong></p>}</div><div className="tracking-price"><small>Service amount</small><strong>₹{booking.amount.toLocaleString("en-IN")}</strong></div></div>
               {booking.price_change_status==="PENDING"&&<div className="price-change-review"><div><small>Approval required</small><strong>Revised total: ₹{booking.proposed_amount?.toLocaleString("en-IN")}</strong><p>{booking.price_change_reason}</p></div><button onClick={()=>void decidePriceChange(booking.id,"REJECT")}>Keep original</button><button className="approve" onClick={()=>void decidePriceChange(booking.id,"APPROVE")}>Approve ₹{booking.proposed_amount?.toLocaleString("en-IN")}</button></div>}
-            {isDeclined ? <div className="request-unavailable">
+            {isDeclined&&booking.dispatch_status==="EXHAUSTED" ? <div className="exhausted-search">
+              {fallbackBookingId===booking.id&&fallbackPlan?<AvailabilityFallback compact plan={fallbackPlan} selectedRadius={40} onRadiusChange={()=>undefined} onStartSearch={()=>void reserveEarliestForBooking(booking.id)} onOnlineGuidance={openOnlineGuidance} onReserveEarliest={()=>void reserveEarliestForBooking(booking.id)} busy={fallbackBusy}/>:<><AlertTriangle size={24}/><div><strong>Nearby Pandits are currently busy</strong><p>We completed the approved search up to {booking.max_search_radius_km} km. No booking was confirmed or charged.</p><div className="fallback-inline-actions"><button className="btn btn-primary" disabled={fallbackBusy} onClick={()=>void loadFallbackOptions(null,booking.id)}>See earliest available visit</button><button className="btn btn-ghost" onClick={openOnlineGuidance}>Talk to a Pandit online</button></div></div></>}
+              {fallbackError&&fallbackBookingId===booking.id&&<div className="alert error">{fallbackError}</div>}
+            </div> : isDeclined ? <div className="request-unavailable">
               <AlertTriangle size={22} />
               <div><strong>This Pandit is unavailable</strong><p>{booking.pandit_name ?? "The selected Pandit"} could not accept your request. No booking has been confirmed or charged. Search now for another available nearby Pandit.</p>{rematchErrors[booking.id] && <small className="rematch-error">{rematchErrors[booking.id]}</small>}</div>
               <button className="btn btn-primary" disabled={rematchingId === booking.id} onClick={() => findAnotherPandit(booking.id)}>{rematchingId === booking.id ? "Searching nearby…" : "Find another Pandit"}</button>
             </div> : isCancelled ? <div className="request-cancelled"><strong>Request cancelled</strong><p>{booking.cancellation_reason??"This request is closed and no booking is active."}</p>{booking.cancellation_fee>0&&<p><b>Cancellation charge: ₹{booking.cancellation_fee} · {booking.cancellation_fee_status.replaceAll("_"," ")}</b></p>}</div> :
             <>
-              <div className={`booking-current-state state-${booking.status.toLowerCase()}`}><span>{booking.status === "REQUESTED" ? <Clock3 /> : <CheckCircle2 />}</span><div><small>{statusCopy?.label ?? booking.status.replaceAll("_", " ")}</small><h4>{statusCopy?.title}</h4><p>{statusCopy?.detail}</p></div></div>
+              {booking.status==="REQUESTED"&&booking.dispatch_status==="SEARCHING"?<div className="dispatch-searching"><span><Search/></span><div><small>Automatic nearby search</small><h4>We are contacting matching Pandits</h4><p>Searching within {booking.search_radius_km} km now. {booking.active_offer_count?`${booking.active_offer_count} approved Pandit${booking.active_offer_count===1?" has":"s have"} 3 minutes to respond.`:"The next approved distance band will be checked automatically."}</p><div className="dispatch-radius-progress">{[5,10,20,40].filter((radius)=>radius<=booking.max_search_radius_km).map((radius)=><i className={radius<=booking.search_radius_km?"done":""} key={radius}>{radius} km</i>)}</div><button className="btn btn-ghost" onClick={openOnlineGuidance}>Talk to a Pandit online while we search</button></div></div>:<div className={`booking-current-state state-${booking.status.toLowerCase()}`}><span>{booking.status === "REQUESTED" ? <Clock3 /> : <CheckCircle2 />}</span><div><small>{statusCopy?.label ?? booking.status.replaceAll("_", " ")}</small><h4>{statusCopy?.title}</h4><p>{statusCopy?.detail}</p></div></div>}
               <div className="status-track">{journeySteps.map((step, index) => <span className={`${index <= activeIndex ? "done" : ""} ${index === Math.min(activeIndex, journeySteps.length - 1) ? "current" : ""}`} key={step.value}><i />{step.label}</span>)}</div>
               <div className="tracking-facts">
                 <span><PackageCheck size={17} /><small>Materials</small><strong>{materialsLabels[booking.materials_option] ?? "Guidance requested"}</strong></span>

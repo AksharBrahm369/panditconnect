@@ -18,13 +18,55 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   if (!user) return NextResponse.json({ error: "Please log in" }, { status: 401 });
   const { id } = await context.params;
   const body = await request.json() as { status?: string; arrivalOtp?: string; cancellationReason?: string };
-  const current = await sql<{ status: string; customer_id: string; pandit_id: string; arrival_otp: string; arrival_otp_attempts: number; scheduled_at: string | null; accepted_at: string | null; amount: number; policy_version: string | null }>(
-    `SELECT status,customer_id,pandit_id,arrival_otp,arrival_otp_attempts,scheduled_at,accepted_at,amount,policy_version FROM pim_v2.bookings WHERE id=$1`,
-    [id],
+  const current = await sql<{ status: string; customer_id: string; pandit_id: string | null; arrival_otp: string; arrival_otp_attempts: number; scheduled_at: string | null; accepted_at: string | null; amount: number; policy_version: string | null; has_active_offer: boolean }>(
+    `SELECT b.status,b.customer_id,b.pandit_id,b.arrival_otp,b.arrival_otp_attempts,b.scheduled_at,b.accepted_at,b.amount,b.policy_version,
+       EXISTS(SELECT 1 FROM pim_v2.booking_offers offer WHERE offer.booking_id=b.id AND offer.pandit_id=$2 AND offer.status='OFFERED' AND offer.expires_at>now()) AS has_active_offer
+     FROM pim_v2.bookings b WHERE b.id=$1`,
+    [id,user.id],
   );
   const booking = current.rows[0];
   if (!booking) return NextResponse.json({ error: "Booking not found" }, { status: 404 });
-  if (user.id !== booking.customer_id && user.id !== booking.pandit_id) return NextResponse.json({ error: "Not allowed" }, { status: 403 });
+  if (user.id !== booking.customer_id && user.id !== booking.pandit_id && !booking.has_active_offer) return NextResponse.json({ error: "Not allowed" }, { status: 403 });
+  if (user.role === "PANDIT" && booking.status === "REQUESTED" && booking.pandit_id !== user.id && booking.has_active_offer) {
+    if (!['ACCEPTED','DECLINED'].includes(body.status ?? '')) return NextResponse.json({ error: "Accept or decline this offer first" }, { status: 409 });
+    if (body.status === "DECLINED") {
+      const declined = await sql(
+        `WITH declined AS (
+           UPDATE pim_v2.booking_offers SET status='DECLINED',responded_at=now()
+           WHERE booking_id=$1 AND pandit_id=$2 AND status='OFFERED' AND expires_at>now() RETURNING booking_id
+         ) UPDATE pim_v2.bookings b SET next_expansion_at=CASE WHEN NOT EXISTS(
+           SELECT 1 FROM pim_v2.booking_offers active_offer WHERE active_offer.booking_id=b.id AND active_offer.status='OFFERED' AND active_offer.expires_at>now()
+         ) THEN now() ELSE b.next_expansion_at END
+         FROM declined WHERE b.id=declined.booking_id RETURNING b.id`,
+        [id,user.id],
+      );
+      if (!declined.rows[0]) return NextResponse.json({ error: "This offer is no longer available" }, { status: 409 });
+      await recordBookingEvent({ bookingId:id,actorId:user.id,actorRole:user.role,eventType:"BOOKING_OFFER_DECLINED",fromStatus:"REQUESTED",toStatus:"REQUESTED" });
+      return NextResponse.json({ success:true,status:"DECLINED" });
+    }
+    const accepted = await sql<{ customer_id:string; amount:number }>(
+      `WITH winning_offer AS (
+         SELECT booking_id,pandit_id,service_amount,travel_surcharge FROM pim_v2.booking_offers
+         WHERE booking_id=$1 AND pandit_id=$2 AND status='OFFERED' AND expires_at>now()
+       ), won AS (
+         UPDATE pim_v2.bookings b SET pandit_id=$2,status='ACCEPTED',accepted_at=now(),dispatch_status='ASSIGNED',
+           next_expansion_at=NULL,travel_surcharge=o.travel_surcharge,amount=o.service_amount+o.travel_surcharge
+         FROM winning_offer o WHERE b.id=$1 AND b.status='REQUESTED' AND b.pandit_id IS NULL
+         RETURNING b.customer_id,b.amount
+       ), accept_winner AS (
+         UPDATE pim_v2.booking_offers SET status='ACCEPTED',responded_at=now()
+         WHERE booking_id=$1 AND pandit_id=$2 AND EXISTS(SELECT 1 FROM won)
+       ), close_others AS (
+         UPDATE pim_v2.booking_offers SET status='WITHDRAWN',responded_at=now()
+         WHERE booking_id=$1 AND pandit_id<>$2 AND status='OFFERED' AND EXISTS(SELECT 1 FROM won)
+       ) SELECT customer_id,amount FROM won`,
+      [id,user.id],
+    );
+    if (!accepted.rows[0]) return NextResponse.json({ error: "Another Pandit already accepted this request" }, { status: 409 });
+    await recordBookingEvent({ bookingId:id,actorId:user.id,actorRole:user.role,eventType:"BOOKING_ACCEPTED",fromStatus:"REQUESTED",toStatus:"ACCEPTED",metadata:{dispatch:"BROADCAST",amount:accepted.rows[0].amount} });
+    await notifyUser(accepted.rows[0].customer_id,{title:"A Pandit accepted your request",body:"Your nearby Pandit is confirmed. Open the booking to see the latest status.",url:"/customer#live-requests",eventType:"BOOKING_ACCEPTED"});
+    return NextResponse.json({ success:true,status:"ACCEPTED" });
+  }
   const isPanditAction = ["ACCEPTED", "DECLINED", "ON_THE_WAY", "ARRIVED", "IN_PROGRESS", "COMPLETED"].includes(body.status ?? "");
   if (isPanditAction && (user.role !== "PANDIT" || user.id !== booking.pandit_id)) {
     return NextResponse.json({ error: "Only the assigned Pandit can perform this action" }, { status: 403 });
@@ -136,6 +178,6 @@ export async function PATCH(request: Request, context: { params: Promise<{ id: s
   await recordBookingEvent({ bookingId:id,actorId:user.id,actorRole:user.role,eventType:`BOOKING_${body.status}`,fromStatus:booking.status,toStatus:body.status,metadata:{ cancellationReason:body.status==='CANCELLED'?body.cancellationReason?.trim():undefined,cancellationFee:cancellation.fee,cancellationStage:cancellation.stage,policyEvidencePresent:Boolean(booking.policy_version),journeyLocation } });
   const recipientId = user.id === booking.pandit_id ? booking.customer_id : booking.pandit_id;
   const statusCopy: Record<string, string> = { ACCEPTED: "Your Pandit accepted the request.", DECLINED: "The Pandit is unavailable. Find another nearby Pandit.", CANCELLED: user.role === "CUSTOMER" ? `The customer cancelled this Puja request. Reason: ${body.cancellationReason?.trim()}` : "The booking request was cancelled.", ON_THE_WAY: "Your Pandit is on the way.", ARRIVED: "Your Pandit has arrived. Share the arrival OTP in person.", IN_PROGRESS: "Your Puja service has started.", COMPLETED: "Your Puja is complete. Open the completed booking to choose a payment method and leave a rating." };
-  await notifyUser(recipientId, { title: body.status === "CANCELLED" && user.role === "CUSTOMER" ? "Customer cancelled the Puja" : "Booking update", body: statusCopy[body.status] ?? `Booking status: ${body.status.replaceAll("_", " ")}`, url: user.role === "PANDIT" ? "/customer#live-requests" : "/pandit#cancelled-requests", eventType: `BOOKING_${body.status}` });
+  if (recipientId) await notifyUser(recipientId, { title: body.status === "CANCELLED" && user.role === "CUSTOMER" ? "Customer cancelled the Puja" : "Booking update", body: statusCopy[body.status] ?? `Booking status: ${body.status.replaceAll("_", " ")}`, url: user.role === "PANDIT" ? "/customer#live-requests" : "/pandit#cancelled-requests", eventType: `BOOKING_${body.status}` });
   return NextResponse.json({ success: true, status: updated.rows[0].status });
 }

@@ -5,6 +5,7 @@ import { notifyAdmins, notifyUser } from "@/lib/push-notifications";
 import { decryptArrivalOtp, encryptArrivalOtp } from "@/lib/arrival-otp";
 import { CANCELLATION_POLICY_SNAPSHOT, CANCELLATION_POLICY_VERSION, recordBookingEvent } from "@/lib/booking-risk";
 import { enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
+import { advanceDueBookingDispatches, startBookingDispatch } from "@/lib/booking-dispatch";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -24,9 +25,12 @@ export async function GET() {
   if (!user) return privateResponse({ error: "Please log in" }, { status: 401 });
 
   if (user.role === "CUSTOMER") {
+    await advanceDueBookingDispatches(user.id);
     const result = await sql(
       `SELECT b.id,b.status,b.address,b.amount,b.arrival_otp,b.created_at,b.request_type,b.scheduled_at,
         b.situation,b.preferred_language,b.materials_option,b.latitude,b.longitude,
+        b.service_id,b.dispatch_status,b.search_radius_km,b.max_search_radius_km,b.travel_surcharge,b.next_expansion_at,
+        (SELECT count(*)::int FROM pim_v2.booking_offers active_offer WHERE active_offer.booking_id=b.id AND active_offer.status='OFFERED' AND active_offer.expires_at>now()) AS active_offer_count,
         b.customer_rating,b.rating_comment,b.rated_at,b.payment_method,b.payment_status,b.payment_confirmed_at,
         b.cancellation_fee,b.cancellation_fee_status,b.cancellation_reason,b.cancelled_at,b.proposed_amount,b.price_change_reason,b.price_change_status,
         s.name AS service_name,pu.name AS pandit_name,p.latitude AS pandit_latitude,
@@ -47,10 +51,12 @@ export async function GET() {
   }
 
   if (user.role === "PANDIT") {
+    await advanceDueBookingDispatches();
     const result = await sql(
       `SELECT b.id,b.status,
         CASE WHEN b.status='REQUESTED' THEN 'Exact address shared after acceptance' ELSE b.address END AS address,
-        b.amount,b.created_at,b.request_type,b.scheduled_at,b.situation,b.preferred_language,b.materials_option,
+        CASE WHEN b.status='REQUESTED' AND offered.pandit_id=$1 THEN offered.service_amount+offered.travel_surcharge ELSE b.amount END AS amount,
+        b.created_at,b.request_type,b.scheduled_at,b.situation,b.preferred_language,b.materials_option,
         b.cancellation_reason,b.cancelled_at,b.arrived_at,b.cancellation_fee,b.cancellation_fee_status,b.proposed_amount,b.price_change_reason,b.price_change_status,
         b.payment_method,b.payment_status,b.payment_confirmed_at,b.customer_cash_confirmed_at,b.pandit_cash_confirmed_at,
         CASE WHEN b.status='REQUESTED' THEN NULL ELSE b.latitude END AS customer_latitude,
@@ -59,7 +65,9 @@ export async function GET() {
        FROM pim_v2.bookings b
        JOIN pim_v2.services s ON s.id=b.service_id
        JOIN pim_v2.users cu ON cu.id=b.customer_id
-       WHERE b.pandit_id=$1 ORDER BY b.created_at DESC LIMIT 20`,
+       LEFT JOIN pim_v2.booking_offers offered ON offered.booking_id=b.id AND offered.pandit_id=$1 AND offered.status='OFFERED' AND offered.expires_at>now()
+       WHERE b.pandit_id=$1 OR (b.status='REQUESTED' AND offered.pandit_id=$1)
+       ORDER BY b.created_at DESC LIMIT 20`,
       [user.id],
     );
     return privateResponse({ panditId: user.id, bookings: result.rows });
@@ -88,6 +96,8 @@ export async function POST(request: Request) {
     preferredLanguage?: string;
     materialsOption?: "HAVE_MATERIALS" | "PANDIT_BRINGS" | "NEED_GUIDANCE";
     panditId?: string;
+    dispatchMode?: "BROADCAST";
+    dispatchMaxRadiusKm?: 5 | 10 | 20 | 40;
     policyAccepted?: boolean;
     policyVersion?: string;
     clientRequestId?: string;
@@ -101,8 +111,12 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Review and accept the cancellation policy before booking" }, { status: 400 });
   }
   if(!body.clientRequestId||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.clientRequestId))return NextResponse.json({error:"Booking confirmation expired. Go back and start the request again."},{status:400});
-  if (!body.serviceId || !body.address?.trim() || !body.panditId) {
-    return NextResponse.json({ error: "Choose a nearby Pandit and enter the service address" }, { status: 400 });
+  const isBroadcast = body.dispatchMode === "BROADCAST";
+  if (isBroadcast && ![5,10,20,40].includes(Number(body.dispatchMaxRadiusKm))) {
+    return NextResponse.json({ error: "Choose a maximum search distance of 5, 10, 20 or 40 km" }, { status: 400 });
+  }
+  if (!body.serviceId || !body.address?.trim() || (!body.panditId && !isBroadcast)) {
+    return NextResponse.json({ error: "Choose a nearby Pandit or start the wider search, then enter the service address" }, { status: 400 });
   }
   if (!/^[1-9]\d{5}$/.test(postalCode)) return NextResponse.json({ error: "Enter a valid 6-digit Indian PIN code for the service address" }, { status: 400 });
   if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90 ||
@@ -137,7 +151,11 @@ export async function POST(request: Request) {
   );
   if (overlap.rows[0]) return NextResponse.json({ error: "You already have an active or overlapping Puja booking. Complete or cancel it before creating another request.", code: "OVERLAPPING_BOOKING" }, { status: 409 });
 
-  const match = await sql<{ id: string; charge: number; name: string; distance_km: string; eta_minutes: number }>(
+  const match = isBroadcast ? await sql<{ id: string | null; charge: number; name: string; distance_km: string; eta_minutes: number }>(
+    `SELECT NULL::uuid AS id,base_price AS charge,'Nearby approved Pandits'::text AS name,'0'::text AS distance_km,10 AS eta_minutes
+     FROM pim_v2.services WHERE id=$1`,
+    [body.serviceId],
+  ) : await sql<{ id: string; charge: number; name: string; distance_km: string; eta_minutes: number }>(
     `WITH matches AS (
        SELECT u.id,u.name,ps.charge,least(COALESCE(p.service_radius_km,25),25) AS service_radius_km,
          6371 * acos(least(1, greatest(-1,
@@ -166,7 +184,7 @@ export async function POST(request: Request) {
   const pandit = match.rows[0];
   if (!pandit) {
     return NextResponse.json(
-      { error: `This Pandit is unavailable for the selected Puja, ${preferredLanguage} language, or your current location. Choose another matching Pandit.` },
+      { error: isBroadcast ? "This Puja service is unavailable." : `This Pandit is unavailable for the selected Puja, ${preferredLanguage} language, or your current location. Choose another matching Pandit.` },
       { status: 409 },
     );
   }
@@ -185,8 +203,11 @@ export async function POST(request: Request) {
       `INSERT INTO pim_v2.bookings(
        id,customer_id,pandit_id,service_id,address,latitude,longitude,notes,amount,status,arrival_otp,
        request_type,situation,preferred_language,materials_option,scheduled_at,request_expires_at,
-       policy_version,policy_accepted_at,policy_snapshot,policy_ip_hash,policy_device_hash,client_request_id
-     ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'REQUESTED',$10,$11,$12,$13,$14,$15,now()+CASE WHEN $11='SCHEDULED_PUJA' THEN interval '24 hours' ELSE interval '5 minutes' END,$16,now(),$17::jsonb,$18,$19,$20)
+       policy_version,policy_accepted_at,policy_snapshot,policy_ip_hash,policy_device_hash,client_request_id,
+       dispatch_status,search_radius_km,max_search_radius_km,next_expansion_at
+     ) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'REQUESTED',$10,$11,$12,$13,$14,$15,
+       CASE WHEN $21='SEARCHING' THEN NULL ELSE now()+CASE WHEN $11='SCHEDULED_PUJA' THEN interval '24 hours' ELSE interval '5 minutes' END END,
+       $16,now(),$17::jsonb,$18,$19,$20,$21,0,$22,CASE WHEN $21='SEARCHING' THEN now() ELSE NULL END)
      ON CONFLICT(customer_id,client_request_id) WHERE client_request_id IS NOT NULL DO NOTHING RETURNING id`,
     [
       id, user.id, pandit.id, body.serviceId, `${body.address.trim().replace(/,?\s*PIN\s*[-:]?\s*[1-9]\d{5}\s*$/i, "")}, PIN ${postalCode}`.slice(0, 500), latitude, longitude,
@@ -196,6 +217,8 @@ export async function POST(request: Request) {
       await digest(request.headers.get("x-forwarded-for")?.split(",")[0]?.trim() || "unknown"),
       await digest(request.headers.get("user-agent") || "unknown"),
       body.clientRequestId,
+      isBroadcast ? "SEARCHING" : "NONE",
+      isBroadcast && [5,10,20,40].includes(Number(body.dispatchMaxRadiusKm)) ? Number(body.dispatchMaxRadiusKm) : 0,
       ],
     );
   } catch (error) {
@@ -203,14 +226,16 @@ export async function POST(request: Request) {
     throw error;
   }
   if(!created.rows[0])return NextResponse.json({error:"This booking request was already submitted. Check My bookings before trying again.",code:"DUPLICATE_REQUEST"},{status:409});
-  await recordBookingEvent({ bookingId:id,actorId:user.id,actorRole:user.role,eventType:"BOOKING_CREATED",toStatus:"REQUESTED",metadata:{ requestType,scheduledAt:scheduledAt?.toISOString() ?? null,policyVersion:CANCELLATION_POLICY_VERSION,panditId:pandit.id,amount:pandit.charge } });
+  await recordBookingEvent({ bookingId:id,actorId:user.id,actorRole:user.role,eventType:isBroadcast?"BOOKING_BROADCAST_STARTED":"BOOKING_CREATED",toStatus:"REQUESTED",metadata:{ requestType,scheduledAt:scheduledAt?.toISOString() ?? null,policyVersion:CANCELLATION_POLICY_VERSION,panditId:pandit.id,amount:pandit.charge,maxRadiusKm:body.dispatchMaxRadiusKm } });
   const scheduleCopy = scheduledAt ? ` for ${scheduledAt.toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" })}` : "";
-  await notifyUser(pandit.id, { title: isScheduled ? "New scheduled Puja request" : "New urgent Puja request", body: `${body.serviceId.replaceAll("-", " ")} request${scheduleCopy} is waiting for your response.`, url: "/pandit#pandit-requests", eventType: "BOOKING_REQUESTED" });
-  await notifyAdmins({ title: "New Puja request", body: `${pandit.name} received a nearby ${body.serviceId.replaceAll("-", " ")} request.`, url: "/admin#admin-bookings", eventType: "BOOKING_REQUESTED" });
+  const dispatch = isBroadcast ? await startBookingDispatch(id) : null;
+  if (!isBroadcast && pandit.id) await notifyUser(pandit.id, { title: isScheduled ? "New scheduled Puja request" : "New urgent Puja request", body: `${body.serviceId.replaceAll("-", " ")} request${scheduleCopy} is waiting for your response.`, url: "/pandit#pandit-requests", eventType: "BOOKING_REQUESTED" });
+  await notifyAdmins({ title: isBroadcast ? "Wider Pandit search started" : "New Puja request", body: isBroadcast ? `A customer approved an automatic nearby search up to ${body.dispatchMaxRadiusKm} km.` : `${pandit.name} received a nearby ${body.serviceId.replaceAll("-", " ")} request.`, url: "/admin#admin-bookings", eventType: "BOOKING_REQUESTED" });
   return NextResponse.json({
     success: true,
     bookingId: id,
     arrivalOtp: otp,
-    matchedPandit: { name: pandit.name, distanceKm: pandit.distance_km, etaMinutes: pandit.eta_minutes },
+    matchedPandit: isBroadcast ? undefined : { name: pandit.name, distanceKm: pandit.distance_km, etaMinutes: pandit.eta_minutes },
+    dispatch,
   });
 }

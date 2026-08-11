@@ -1,6 +1,7 @@
 import { encryptArrivalOtp } from "./arrival-otp";
 import { sql } from "./db";
 import { notifyAdmins, notifyUser, retryQueuedPushNotifications } from "./push-notifications";
+import { advanceDueBookingDispatches } from "./booking-dispatch";
 
 type ExpiredRequest = { id:string;customer_id:string;pandit_id:string;service_id:string;request_type:string;preferred_language:string|null;latitude:number;longitude:number;scheduled_at:string|null;amount:number;auto_rematch_count:number };
 type Match = { id:string;name:string;charge:number };
@@ -48,6 +49,7 @@ async function rematchExpiredRequest(booking: ExpiredRequest) {
 }
 
 export async function runScheduledOperations(){
+  await advanceDueBookingDispatches();
   const cleanup=await sql<{sessions:string;otps:string;typing:string;limits:string}>(`WITH sessions AS (DELETE FROM pim_v2.sessions WHERE expires_at<now()-interval '7 days' RETURNING 1),otps AS (DELETE FROM pim_v2.otp_challenges WHERE created_at<now()-interval '2 days' RETURNING 1),typing AS (DELETE FROM pim_v2.consultation_typing WHERE expires_at<now()-interval '1 hour' RETURNING 1),limits AS (DELETE FROM pim_v2.api_rate_limits WHERE updated_at<now()-interval '2 days' RETURNING 1) SELECT (SELECT count(*) FROM sessions)::text AS sessions,(SELECT count(*) FROM otps)::text AS otps,(SELECT count(*) FROM typing)::text AS typing,(SELECT count(*) FROM limits)::text AS limits`);
   const reminders=await sql<Reminder>(`UPDATE pim_v2.bookings b SET reminder_sent_at=now() FROM pim_v2.services s WHERE b.service_id=s.id AND b.status='ACCEPTED' AND b.scheduled_at BETWEEN now()+interval '90 minutes' AND now()+interval '3 hours' AND b.reminder_sent_at IS NULL RETURNING b.id,b.customer_id,b.pandit_id,s.name AS service_name,b.scheduled_at`);
   for(const reminder of reminders.rows){
