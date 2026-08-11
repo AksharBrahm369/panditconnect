@@ -5,6 +5,11 @@ import { adminPhoneAllowlist } from "./env";
 
 type PushRow = { id: string; endpoint: string; p256dh: string; auth: string };
 type QueuedPushRow = PushRow & { queue_id: string; notification_id: string; title: string; body: string; url: string; event_type: string; attempts: number };
+const MANDATORY_ACCOUNT_EVENTS = new Set(["PANDIT_BLOCKED", "PANDIT_RESTRICTED", "PANDIT_UNBLOCKED"]);
+
+function pushTtl(eventType: string) {
+  return MANDATORY_ACCOUNT_EVENTS.has(eventType) ? 7 * 24 * 60 * 60 : 300;
+}
 
 function configureWebPush() {
   const publicKey = VAPID_PUBLIC_KEY;
@@ -20,13 +25,13 @@ export async function notifyUser(userId: string, message: { title: string; body:
     [notificationId, userId, message.title, message.body, message.url, message.eventType]);
   const preference = await sql<{ booking_updates:boolean; chat_updates:boolean; service_updates:boolean }>(`SELECT booking_updates,chat_updates,service_updates FROM pim_v2.notification_preferences WHERE user_id=$1`,[userId]);
   const selected = preference.rows[0];
-  const pushAllowed = message.eventType.startsWith("BOOKING_") ? selected?.booking_updates !== false : message.eventType.startsWith("CONSULTATION_") || message.eventType.startsWith("CHAT_") ? selected?.chat_updates !== false : selected?.service_updates !== false;
+  const pushAllowed = MANDATORY_ACCOUNT_EVENTS.has(message.eventType) || (message.eventType.startsWith("BOOKING_") ? selected?.booking_updates !== false : message.eventType.startsWith("CONSULTATION_") || message.eventType.startsWith("CHAT_") ? selected?.chat_updates !== false : selected?.service_updates !== false);
   if (!pushAllowed) return { stored: true, pushConfigured: true, subscriptions: 0, delivered: 0, preferenceDisabled: true };
   if (!configureWebPush()) return { stored: true, pushConfigured: false, subscriptions: 0, delivered: 0 };
   const subscriptions = await sql<PushRow>(`SELECT id,endpoint,p256dh,auth FROM pim_v2.push_subscriptions WHERE user_id=$1`, [userId]);
   const deliveries = await Promise.all(subscriptions.rows.map(async (subscription) => {
     try {
-      await webpush.sendNotification({ endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } }, JSON.stringify(message), { TTL: 300, urgency: "high" });
+      await webpush.sendNotification({ endpoint: subscription.endpoint, keys: { p256dh: subscription.p256dh, auth: subscription.auth } }, JSON.stringify(message), { TTL: pushTtl(message.eventType), urgency: "high" });
       return true;
     } catch (error) {
       const status = (error as { statusCode?: number }).statusCode;
@@ -65,7 +70,7 @@ export async function retryQueuedPushNotifications(limit = 100) {
       await webpush.sendNotification(
         { endpoint:item.endpoint,keys:{p256dh:item.p256dh,auth:item.auth} },
         JSON.stringify({title:item.title,body:item.body,url:item.url,eventType:item.event_type}),
-        {TTL:300,urgency:"high"},
+        {TTL:pushTtl(item.event_type),urgency:"high"},
       );
       delivered += 1;
       await sql(`UPDATE pim_v2.push_delivery_queue SET status='DELIVERED',attempts=attempts+1,delivered_at=now(),last_error=NULL WHERE id=$1`,[item.queue_id]);

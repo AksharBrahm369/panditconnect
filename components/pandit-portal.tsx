@@ -23,7 +23,7 @@ type Booking = {
   proposed_amount?:number|null;price_change_reason?:string|null;price_change_status?:"NONE"|"PENDING"|"APPROVED"|"REJECTED";
 };
 
-export function PanditPortal({ userName }: { userName?: string | null }) {
+export function PanditPortal({ userName, accessNotice }: { userName?: string | null; accessNotice?: string | null }) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [notice, setNotice] = useState("");
@@ -206,6 +206,7 @@ export function PanditPortal({ userName }: { userName?: string | null }) {
 
   return (
     <AppShell role="Pandit" userName={profile.name ?? userName} title={awaitingReview ? "Application under admin review" : incomplete ? "Complete your verified Pandit profile" : `Namaste, ${profile.name ?? "Pandit ji"}`} subtitle={awaitingReview ? "Your details were submitted successfully. Please check again later." : incomplete ? "A trusted profile helps customers book with confidence." : "See what needs your attention today."}>
+      {accessNotice && <div className="alert success" role="status"><BadgeCheck size={18} />{accessNotice}</div>}
       {notice && <div className="alert success">{notice}</div>}
       {profile.verification_status === "APPROVED" && <PanditUrgentAlarm pujaRequests={bookings.filter((booking) => booking.status === "REQUESTED").length} chatRequests={urgentChatIds.length} />}
       {profile.verification_status === "CHANGES_REQUESTED" && <div className="alert error">Admin requested changes: {profile.review_note ?? "Please review and update your profile."}</div>}

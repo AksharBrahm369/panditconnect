@@ -12,7 +12,8 @@ type ReviewPandit = {
   id: string; name: string | null; phone: string; city: string | null; experience_years: number;
   languages: string[]; specialities: string[]; bio: string | null; base_charge: number;
   verification_status: string; review_note: string | null; created_at: string; is_online?: boolean;
-  rating?: string; rating_count?: number; completed_jobs?: number; services?: string[]; account_status?: "ACTIVE" | "SUSPENDED";
+  rating?: string; rating_count?: number; completed_jobs?: number; services?: string[]; account_status?: "ACTIVE" | "RESTRICTED" | "BLOCKED";
+  account_status_reason?: string | null; account_status_changed_at?: string | null;
   email?: string; date_of_birth?: string; current_address?: string; service_radius_km?: number; payout_method?: string; bank_account_name?: string; bank_ifsc?: string; upi_id?: string; submitted_at?: string;
   references?: Array<{ id: string; name: string; relationship: string; organisation: string | null; phone: string; status: string; note: string | null }>;
   documents?: Array<{ id: string; type: string; name: string; mimeType: string; size: number; status: string; note: string | null }>;
@@ -136,7 +137,23 @@ export function AdminPortal() {
 
   function selectPandit(pandit: ReviewPandit) { setSelected(pandit); setNote(pandit.review_note ?? pandit.review?.adminNote ?? ""); setChecklist({ ...emptyChecklist, ...(pandit.review ?? {}) }); }
   async function updateCase(caseId:string,status:"IN_REVIEW"|"RESOLVED") { const supportCase=supportCases.find(item=>item.id===caseId);const resolution=status==="IN_REVIEW"?"":window.prompt("Resolution or outcome:")?.trim(); if(status==="RESOLVED"&&!resolution)return;const hasReviewableFee=Boolean(status==="RESOLVED"&&supportCase?.cancellation_fee&&["OUTSTANDING","DISPUTED"].includes(supportCase.cancellation_fee_status??""));const waiveCancellationFee=Boolean(hasReviewableFee&&window.confirm(`Should the ₹${supportCase?.cancellation_fee} cancellation charge be waived? Choose OK to waive it, or Cancel to uphold it.`));const upholdCancellationFee=Boolean(hasReviewableFee&&!waiveCancellationFee&&supportCase?.cancellation_fee_status==="DISPUTED"); setBusy(true);const response=await fetch("/api/admin/support-cases",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({caseId,status,resolution,waiveCancellationFee,upholdCancellationFee})});const result=await readJson<{error?:string}>(response);setNotice(response.ok?waiveCancellationFee?"Support case resolved and cancellation charge waived.":upholdCancellationFee?"Support case resolved and charge upheld.":"Support case updated.":result.error??"Unable to update case");setBusy(false);await load(); }
-  async function changePanditAccess(panditId:string,action:"BLOCK"|"UNBLOCK") { const message=action==="BLOCK"?"Block this Pandit? They will be signed out, taken offline, removed from customer searches and unable to receive new requests until you unblock them.":"Unblock this Pandit? They can sign in again, but must switch availability on before customers can see them.";if(!window.confirm(message))return;setBusy(true);const response=await fetch("/api/admin/support-cases",{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({panditId,accountAction:action})});const result=await readJson<{error?:string}>(response);setNotice(response.ok?`Pandit ${action==="BLOCK"?"blocked and removed from customer searches":"unblocked; they remain offline until they sign in"}.`:result.error??"Unable to update access");setBusy(false);await load();}
+  async function changePanditAccess(panditId:string,action:"BLOCK"|"RESTRICT"|"UNBLOCK") {
+    const reason = action === "UNBLOCK" ? undefined : window.prompt(action === "BLOCK" ? "Why are you blocking this Pandit? This reason will be shown to them." : "Why are you restricting this Pandit? This reason will be shown to them.")?.trim();
+    if (action !== "UNBLOCK" && (!reason || reason.length < 5)) return;
+    const message = action === "BLOCK"
+      ? "Block this Pandit? They will be taken offline, removed from customer searches and unable to use marketplace features until Admin unblocks them."
+      : action === "RESTRICT"
+        ? "Restrict this Pandit? They will be taken offline and unable to receive Puja or chat requests until Admin restores access."
+        : "Restore this Pandit's access? They will remain offline until they choose to go online.";
+    if (!window.confirm(message)) return;
+    setBusy(true);
+    const response = await fetch("/api/admin/support-cases", { method:"PATCH", headers:{"content-type":"application/json"}, body:JSON.stringify({panditId,accountAction:action,accountReason:reason}) });
+    const result = await readJson<{error?:string}>(response);
+    const success = action === "BLOCK" ? "Pandit blocked and removed from the marketplace." : action === "RESTRICT" ? "Pandit restricted and removed from new requests." : "Pandit unblocked. They can use the portal again and will remain offline until ready.";
+    setNotice(response.ok ? success : result.error ?? "Unable to update Pandit access");
+    setBusy(false);
+    await load();
+  }
 
   return <AppShell role="Admin" title="Operations overview" subtitle="A compact control room for verification, urgent bookings and platform health.">
     <div className="demo-banner"><ShieldCheck size={17} /><div><strong>Protected operations workspace</strong><span>Customer phone numbers remain masked while you review bookings and Pandit quality.</span></div></div>
@@ -157,13 +174,18 @@ export function AdminPortal() {
     {notice && <div className="alert success admin-notice">{notice}</div>}
     <section className="history admin-support" id="admin-support"><div className="section-title"><div><h2>Support and safety cases</h2><p>Urgent reports appear first and every decision is audited.</p></div><span className="live-pill"><i /> {supportCases.filter(item=>["OPEN","IN_REVIEW"].includes(item.status)).length} open</span></div>{supportCases.length?<div className="admin-support-list">{supportCases.map(item=><article key={item.id} className={item.priority==="URGENT"?"urgent":""}><span>{item.priority==="URGENT"?<ShieldAlert/>:<Headphones/>}</span><div><strong>{item.subject}</strong><small>{item.reporter_role} · ••••{item.reporter_phone} · {item.category.replaceAll("_"," ")}</small><p>{item.description}</p>{Boolean(item.cancellation_fee)&&<em>Cancellation charge: ₹{item.cancellation_fee} · {item.cancellation_fee_status}</em>}{item.resolution&&<em>Resolution: {item.resolution}</em>}</div><span className="status">{item.status.replaceAll("_"," ")}</span><div className="button-row">{item.status==="OPEN"&&<button className="btn btn-ghost" disabled={busy} onClick={()=>void updateCase(item.id,"IN_REVIEW")}>Start review</button>}{!["RESOLVED","CLOSED"].includes(item.status)&&<button className="btn btn-primary" disabled={busy} onClick={()=>void updateCase(item.id,"RESOLVED")}>Resolve</button>}</div></article>)}</div>:<div className="empty">No support cases yet.</div>}</section>
     <section className="history approved-directory" id="admin-pandits">
-      <div className="section-title"><div><h2>Approved Pandits</h2><p>Profiles load in small batches to keep this workspace fast.</p></div><button className="btn btn-ghost" onClick={() => void loadApproved(1)} disabled={approvedLoading}><RefreshCw size={16} className={approvedLoading ? "spin" : ""} /> Refresh</button></div>
+      <div className="section-title"><div><h2>All verified Pandits</h2><p>Review active, restricted and blocked profiles. Profiles load in small batches to keep this workspace fast.</p></div><button className="btn btn-ghost" onClick={() => void loadApproved(1)} disabled={approvedLoading}><RefreshCw size={16} className={approvedLoading ? "spin" : ""} /> Refresh</button></div>
       {approved.length ? <div className="approved-grid">{approved.map((pandit) => <article className="approved-card" key={pandit.id}>
         <div className="approved-head"><span className="avatar">{(pandit.name ?? "P").split(" ").map((part) => part[0]).slice(0,2).join("")}</span><div><strong>{pandit.name ?? "Pandit"}</strong><span><MapPin size={13} /> {pandit.city ?? "City not provided"}</span></div><span className={`availability-dot ${pandit.is_online ? "online" : ""}`}>{pandit.is_online ? "Online" : "Offline"}</span></div>
         <div className="approved-metrics"><span><b>{pandit.experience_years}</b> years</span><span><b>{pandit.rating_count ? <>{pandit.rating} <Star size={12} fill="currentColor" /></> : "New"}</b>{pandit.rating_count ? `${pandit.rating_count} ratings` : "not rated"}</span><span><b>{pandit.completed_jobs ?? 0}</b> visits</span></div>
         <div className="tag-row">{(pandit.services?.length ? pandit.services : pandit.specialities).slice(0,4).map((item) => <b key={item}>{item}</b>)}</div>
-        <div className="approved-foot"><span>+91 ••••••{pandit.phone.slice(-4)}</span><strong>{pandit.account_status==="SUSPENDED"?"BLOCKED":"ACTIVE"}</strong></div>
-        <button className={`btn btn-block ${pandit.account_status==="SUSPENDED"?"btn-ghost":"btn-ghost danger"}`} disabled={busy} onClick={()=>void changePanditAccess(pandit.id,pandit.account_status==="SUSPENDED"?"UNBLOCK":"BLOCK")}>{pandit.account_status==="SUSPENDED"?"Unblock Pandit":"Block Pandit"}</button>
+        <div className="approved-foot"><span>+91 ••••••{pandit.phone.slice(-4)}</span><strong className={`admin-access-status ${(pandit.account_status ?? "ACTIVE").toLowerCase()}`}>{pandit.account_status ?? "ACTIVE"}</strong></div>
+        {pandit.account_status !== "ACTIVE" && pandit.account_status_reason && <p className="admin-access-reason"><strong>Admin reason:</strong> {pandit.account_status_reason}</p>}
+        <div className="button-row admin-access-actions">
+          {(pandit.account_status ?? "ACTIVE") === "ACTIVE" && <><button className="btn btn-ghost" disabled={busy} onClick={()=>void changePanditAccess(pandit.id,"RESTRICT")}>Restrict</button><button className="btn btn-ghost danger" disabled={busy} onClick={()=>void changePanditAccess(pandit.id,"BLOCK")}>Block</button></>}
+          {pandit.account_status === "RESTRICTED" && <><button className="btn btn-ghost" disabled={busy} onClick={()=>void changePanditAccess(pandit.id,"UNBLOCK")}>Restore access</button><button className="btn btn-ghost danger" disabled={busy} onClick={()=>void changePanditAccess(pandit.id,"BLOCK")}>Block</button></>}
+          {pandit.account_status === "BLOCKED" && <button className="btn btn-primary btn-block" disabled={busy} onClick={()=>void changePanditAccess(pandit.id,"UNBLOCK")}>Unblock Pandit</button>}
+        </div>
       </article>)}</div> : <div className="empty">No approved Pandits yet.</div>}
       {approvedHasMore && <button className="btn btn-ghost btn-block" disabled={approvedLoading} onClick={() => void loadApproved(approvedPage + 1, true)}>{approvedLoading ? "Loading more…" : "Load more approved Pandits"}</button>}
     </section>

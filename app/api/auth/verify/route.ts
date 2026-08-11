@@ -37,7 +37,8 @@ export async function POST(request: Request) {
     );
     const user = userResult.rows[0];
     if (user.role !== role) return NextResponse.json({ error: `This number is registered as ${user.role.toLowerCase()}.` }, { status: 409 });
-    if (user.account_status !== "ACTIVE") return NextResponse.json({ error: "This account is blocked. Contact support or an administrator to restore access." }, { status: 403 });
+    const inactivePandit = role === "PANDIT" && ["RESTRICTED","BLOCKED"].includes(user.account_status);
+    if (user.account_status !== "ACTIVE" && !inactivePandit) return NextResponse.json({ error: "This account is unavailable. Contact support to restore access." }, { status: 403 });
     if (role === "PANDIT") {
       await sql(`INSERT INTO pim_v2.pandit_profiles(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`, [user.id]);
     }
@@ -48,7 +49,7 @@ export async function POST(request: Request) {
        VALUES($1,$2,$3,$4,now()+interval '30 days')`,
       [crypto.randomUUID(), user.id, await digest(token), role],
     );
-    await rememberSession(token, user);
+    if (!inactivePandit) await rememberSession(token, user);
     const response = NextResponse.json(
       { success: true, redirectTo: role === "PANDIT" ? "/pandit" : "/customer" },
       { headers: { "Cache-Control": "private, no-store, max-age=0", Vary: "Cookie" } },

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { currentUser } from "@/lib/auth";
+import { currentSessionUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { notifyAdmins } from "@/lib/push-notifications";
 import { enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 const categories = new Set(["NO_SHOW","SAFETY","SERVICE_QUALITY","BOOKING","CHAT","ACCOUNT","PAYMENT","REFUND","PRIVACY","GRIEVANCE","OTHER"]);
 
 export async function GET() {
-  const user = await currentUser();
+  const user = await currentSessionUser();
   if (!user || !["CUSTOMER","PANDIT"].includes(user.role)) return NextResponse.json({ error: "Login required" }, { status: 401 });
   const result = await sql(`SELECT id,booking_id,consultation_id,category,subject,description,priority,status,resolution,created_at,updated_at FROM pim_v2.support_cases WHERE reporter_id=$1 ORDER BY created_at DESC LIMIT 30`, [user.id]);
   return NextResponse.json({ cases: result.rows }, { headers: { "Cache-Control": "private, no-store" } });
@@ -16,7 +16,7 @@ export async function GET() {
 
 export async function POST(request: Request) {
  try {
-  const user = await currentUser();
+  const user = await currentSessionUser();
   if (!user || !["CUSTOMER","PANDIT"].includes(user.role)) return NextResponse.json({ error: "Login required" }, { status: 401 });
   await enforceRateLimit(request,"support:create",user.id,5,86_400,3_600);
   const body = await request.json() as { category?: string; subject?: string; description?: string; bookingId?: string; consultationId?: string };

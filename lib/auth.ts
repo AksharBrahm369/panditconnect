@@ -3,6 +3,8 @@ import { sql } from "./db";
 
 export type Role = "CUSTOMER" | "PANDIT" | "ADMIN";
 export type AppUser = { id: string; phone: string; role: Role; name: string | null; city: string | null };
+export type AccountStatus = "ACTIVE" | "RESTRICTED" | "BLOCKED" | "DELETION_REQUESTED" | "DELETED";
+export type SessionUser = AppUser & { accountStatus: AccountStatus; accountStatusReason: string | null; accountStatusChangedAt: string | null };
 export const SESSION_COOKIE = "pim_v2_session";
 
 export class AuthorizationError extends Error {
@@ -17,6 +19,7 @@ declare global {
 
 const sessionCache = globalThis.__pimV2SessionCache ?? new Map<string, CachedSession>();
 globalThis.__pimV2SessionCache = sessionCache;
+const SESSION_CACHE_TTL_MS = 5_000;
 
 function pruneSessionCache() {
   const now = Date.now();
@@ -59,7 +62,11 @@ export function randomToken() {
 
 export async function rememberSession(token: string, user: AppUser) {
   pruneSessionCache();
-  sessionCache.set(await digest(token), { user, expiresAt: Date.now() + 60_000 });
+  sessionCache.set(await digest(token), { user, expiresAt: Date.now() + SESSION_CACHE_TTL_MS });
+}
+
+export function forgetUserSessionCache(userId: string) {
+  for (const [key,value] of sessionCache) if (value.user.id===userId) sessionCache.delete(key);
 }
 
 export async function forgetSession(token: string) {
@@ -69,7 +76,7 @@ export async function forgetSession(token: string) {
 export async function refreshCurrentSessionUser(user: AppUser) {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return;
-  sessionCache.set(await digest(token), { user, expiresAt: Date.now() + 60_000 });
+  sessionCache.set(await digest(token), { user, expiresAt: Date.now() + SESSION_CACHE_TTL_MS });
 }
 
 export async function currentUser(): Promise<AppUser | null> {
@@ -88,9 +95,22 @@ export async function currentUser(): Promise<AppUser | null> {
   const user = result.rows[0] ?? null;
   if (user) {
     pruneSessionCache();
-    sessionCache.set(tokenHash, { user, expiresAt: Date.now() + 60_000 });
+    sessionCache.set(tokenHash, { user, expiresAt: Date.now() + SESSION_CACHE_TTL_MS });
   }
   return user;
+}
+
+export async function currentSessionUser(): Promise<SessionUser | null> {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value;
+  if (!token) return null;
+  const result = await sql<SessionUser>(
+    `SELECT u.id,u.phone,s.session_role AS role,u.name,u.city,u.account_status AS "accountStatus",
+       u.account_status_reason AS "accountStatusReason",u.account_status_changed_at AS "accountStatusChangedAt"
+     FROM pim_v2.sessions s JOIN pim_v2.users u ON u.id=s.user_id
+     WHERE s.token_hash=$1 AND s.expires_at>now() AND u.account_status<>'DELETED' LIMIT 1`,
+    [await digest(token)],
+  );
+  return result.rows[0] ?? null;
 }
 
 export async function requireUser() {

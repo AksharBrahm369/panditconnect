@@ -15,7 +15,7 @@ const expectedIndexes = [
   "booking_pandit_idx", "booking_status_created_idx", "booking_scheduled_at_idx", "pandit_verification_idx", "pandit_available_idx",
   "consultation_customer_idx", "consultation_pandit_idx", "consultation_message_idx",
   "consultation_typing_expiry_idx", "admin_audit_created_idx", "admin_audit_admin_idx", "otp_challenge_active_lookup_idx", "support_reporter_idx", "support_status_idx",
-  "pandit_documents_owner_idx", "push_retry_due_idx", "operation_runs_recent_idx", "data_rights_status_idx", "api_rate_limit_cleanup_idx", "security_incident_status_idx", "payment_transaction_status_idx", "refund_status_idx", "payout_item_pandit_idx", "booking_events_timeline_idx", "booking_offer_pandit_active_idx", "booking_dispatch_due_idx",
+  "pandit_documents_owner_idx", "push_retry_due_idx", "operation_runs_recent_idx", "data_rights_status_idx", "api_rate_limit_cleanup_idx", "security_incident_status_idx", "payment_transaction_status_idx", "refund_status_idx", "payout_item_pandit_idx", "booking_events_timeline_idx", "booking_offer_pandit_active_idx", "booking_dispatch_due_idx", "user_pandit_account_status_idx",
 ];
 
 const client = new pg.Client({ connectionString, connectionTimeoutMillis: 15_000 });

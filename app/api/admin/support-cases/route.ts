@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { forgetUserSessionCache, requireAdmin } from "@/lib/auth";
 import { authorizationResponse } from "@/lib/api-auth";
 import { sql } from "@/lib/db";
 import { recordAdminAction } from "@/lib/admin-audit";
@@ -16,7 +16,7 @@ export async function GET() {
 
 export async function PATCH(request: Request) {
   const auth = await adminOrResponse(); if (auth.response) return auth.response;
-  const body = await request.json() as { caseId?: string; status?: string; resolution?: string; waiveCancellationFee?: boolean; upholdCancellationFee?: boolean; panditId?: string; accountAction?: "BLOCK"|"UNBLOCK"|"SUSPEND"|"RESTORE" };
+  const body = await request.json() as { caseId?: string; status?: string; resolution?: string; waiveCancellationFee?: boolean; upholdCancellationFee?: boolean; panditId?: string; accountAction?: "BLOCK"|"RESTRICT"|"UNBLOCK"|"SUSPEND"|"RESTORE"; accountReason?:string };
   if (body.caseId && ["IN_REVIEW","RESOLVED","CLOSED"].includes(body.status ?? "")) {
     const result = await sql(`UPDATE pim_v2.support_cases SET status=$2,resolution=$3,assigned_admin_id=$4,updated_at=now(),resolved_at=CASE WHEN $2 IN ('RESOLVED','CLOSED') THEN now() ELSE NULL END WHERE id=$1 RETURNING id`, [body.caseId,body.status,body.resolution?.trim().slice(0,2000)||null,auth.admin!.id]);
     if (!result.rows[0]) return NextResponse.json({ error: "Case not found" }, { status: 404 });
@@ -26,29 +26,29 @@ export async function PATCH(request: Request) {
     return NextResponse.json({ success: true });
   }
   if (body.panditId && body.accountAction) {
-    if (!["BLOCK","UNBLOCK","SUSPEND","RESTORE"].includes(body.accountAction)) return NextResponse.json({ error: "Invalid Pandit access action" }, { status: 400 });
-    const isBlocking = ["BLOCK","SUSPEND"].includes(body.accountAction);
-    const status = isBlocking ? "SUSPENDED" : "ACTIVE";
+    if (!["BLOCK","RESTRICT","UNBLOCK","SUSPEND","RESTORE"].includes(body.accountAction)) return NextResponse.json({ error: "Invalid Pandit access action" }, { status: 400 });
+    const action = body.accountAction === "SUSPEND" ? "BLOCK" : body.accountAction === "RESTORE" ? "UNBLOCK" : body.accountAction;
+    const reason = body.accountReason?.trim().slice(0,500) || null;
+    if (action!=="UNBLOCK" && (!reason || reason.length<5)) return NextResponse.json({error:"Add a clear reason before restricting or blocking this Pandit"},{status:400});
+    const status = action === "BLOCK" ? "BLOCKED" : action === "RESTRICT" ? "RESTRICTED" : "ACTIVE";
     const result = await sql(`WITH changed AS (
-      UPDATE pim_v2.users SET account_status=$2 WHERE id=$1 AND role='PANDIT' RETURNING id
-    ), ended_sessions AS (
-      DELETE FROM pim_v2.sessions WHERE user_id IN (SELECT id FROM changed) AND $2='SUSPENDED'
+      UPDATE pim_v2.users SET account_status=$2,account_status_reason=$3,account_status_changed_at=now(),account_status_changed_by=$4
+      WHERE id=$1 AND role='PANDIT' RETURNING id
     ), withdrawn_offers AS (
       UPDATE pim_v2.booking_offers SET status='WITHDRAWN',responded_at=now()
-      WHERE pandit_id IN (SELECT id FROM changed) AND status='OFFERED' AND $2='SUSPENDED'
+      WHERE pandit_id IN (SELECT id FROM changed) AND status='OFFERED' AND $2<>'ACTIVE'
     )
     UPDATE pim_v2.pandit_profiles
     SET is_online=false,consultation_online=false,updated_at=now()
     WHERE user_id IN (SELECT id FROM changed)
-    RETURNING user_id`, [body.panditId,status]);
+    RETURNING user_id`, [body.panditId,status,action==="UNBLOCK"?"Access restored by an administrator":reason,auth.admin!.id]);
     if (!result.rows[0]) return NextResponse.json({ error: "Pandit not found" }, { status: 404 });
-    await recordAdminAction(request,auth.admin!.id,isBlocking?"PANDIT_BLOCKED":"PANDIT_UNBLOCKED","PANDIT",body.panditId,{ accountStatus:status });
-    await notifyUser(body.panditId, {
-      title: isBlocking ? "Pandit account blocked" : "Pandit account restored",
-      body: isBlocking ? "An administrator has blocked your Pandit account. You cannot sign in or receive new requests until an administrator unblocks it." : "An administrator has restored your Pandit account. Sign in and switch availability on when you are ready to receive requests.",
-      url: isBlocking ? "/" : "/pandit",
-      eventType: isBlocking ? "PANDIT_BLOCKED" : "PANDIT_UNBLOCKED",
-    });
+    forgetUserSessionCache(body.panditId);
+    await recordAdminAction(request,auth.admin!.id,`PANDIT_${action}`,"PANDIT",body.panditId,{ accountStatus:status,reason });
+    const title = action==="BLOCK" ? "You have been blocked by Admin" : action==="RESTRICT" ? "Your Pandit account is restricted" : "Your Pandit account has been unblocked";
+    const copy = action==="BLOCK" ? "You have been blocked from PanditConnect by an administrator. Open the app to contact support." : action==="RESTRICT" ? "You are restricted from PanditConnect and cannot receive requests. Open the app to contact support." : "You have been unblocked. Sign in and switch availability on when you are ready.";
+    const eventType = action === "BLOCK" ? "PANDIT_BLOCKED" : action === "RESTRICT" ? "PANDIT_RESTRICTED" : "PANDIT_UNBLOCKED";
+    await notifyUser(body.panditId, { title, body:copy, url:"/pandit", eventType });
     return NextResponse.json({ success: true, accountStatus: status });
   }
   return NextResponse.json({ error: "Invalid operation" }, { status: 400 });
