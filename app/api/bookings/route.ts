@@ -164,7 +164,7 @@ export async function POST(request: Request) {
            sin(radians($2)) * sin(radians(p.latitude))
          ))) AS distance
        FROM pim_v2.pandit_profiles p
-       JOIN pim_v2.users u ON u.id=p.user_id
+       JOIN pim_v2.users u ON u.id=p.user_id AND u.account_status='ACTIVE'
        JOIN pim_v2.pandit_services ps ON ps.pandit_id=p.user_id AND ps.service_id=$1
        WHERE u.id=$4 AND u.id<>$5 AND p.verification_status='APPROVED' AND ($7::boolean OR p.is_online=true)
          AND p.latitude IS NOT NULL AND p.longitude IS NOT NULL

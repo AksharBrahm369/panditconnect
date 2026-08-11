@@ -62,7 +62,7 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
             AND busy.scheduled_at BETWEEN o.scheduled_at - interval '3 hours' AND o.scheduled_at + interval '3 hours'
             AND busy.status IN ('REQUESTED','ACCEPTED','ON_THE_WAY','ARRIVED','IN_PROGRESS')
         ))
-       JOIN pim_v2.users u ON u.id=p.user_id
+       JOIN pim_v2.users u ON u.id=p.user_id AND u.account_status='ACTIVE'
        JOIN pim_v2.pandit_services ps ON ps.pandit_id=p.user_id AND ps.service_id=o.service_id
        WHERE 6371 * acos(least(1, greatest(-1,
          cos(radians(o.latitude)) * cos(radians(p.latitude)) *

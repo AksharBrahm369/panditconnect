@@ -50,8 +50,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Choose a payment method before starting the chat." }, { status: 400 });
   }
   const pandit = await sql<{ consultation_rate_5min: number }>(
-    `SELECT consultation_rate_5min FROM pim_v2.pandit_profiles
-     WHERE user_id=$1 AND user_id<>$2 AND verification_status='APPROVED' AND consultation_online=true`,
+    `SELECT p.consultation_rate_5min FROM pim_v2.pandit_profiles p
+     JOIN pim_v2.users u ON u.id=p.user_id AND u.account_status='ACTIVE'
+     WHERE p.user_id=$1 AND p.user_id<>$2 AND p.verification_status='APPROVED' AND p.consultation_online=true`,
     [body.panditId, user.id],
   );
   const available = pandit.rows[0];

@@ -29,14 +29,15 @@ export async function POST(request: Request) {
     const claimed = await sql(`UPDATE pim_v2.otp_challenges SET verified_at=now() WHERE id=$1 AND verified_at IS NULL RETURNING id`, [latest.id]);
     if (!claimed.rows[0]) return NextResponse.json({ error: "This OTP has already been used. Request a new code." }, { status: 409 });
     const id = crypto.randomUUID();
-    const userResult = await sql<AppUser>(
+    const userResult = await sql<AppUser & { account_status: string }>(
       `INSERT INTO pim_v2.users(id,phone,role,last_login_at) VALUES($1,$2,$3,now())
        ON CONFLICT(phone) DO UPDATE SET role=CASE WHEN pim_v2.users.role='ADMIN' THEN EXCLUDED.role ELSE pim_v2.users.role END,last_login_at=now()
-       RETURNING id,phone,role,name,city`,
+       RETURNING id,phone,role,name,city,account_status`,
       [id, phone, role],
     );
     const user = userResult.rows[0];
     if (user.role !== role) return NextResponse.json({ error: `This number is registered as ${user.role.toLowerCase()}.` }, { status: 409 });
+    if (user.account_status !== "ACTIVE") return NextResponse.json({ error: "This account is blocked. Contact support or an administrator to restore access." }, { status: 403 });
     if (role === "PANDIT") {
       await sql(`INSERT INTO pim_v2.pandit_profiles(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`, [user.id]);
     }

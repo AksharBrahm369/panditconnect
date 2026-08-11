@@ -192,7 +192,8 @@ test("operations foundation provides support, moderation, cancellations and noti
   for (const name of ["support_cases","notification_preferences","account_status","cancellation_reason"]) assert.match(migration,new RegExp(name));
   assert.match(support,/reporter_id=\$1/);
   assert.match(admin,/recordAdminAction/);
-  assert.match(admin,/PANDIT_\$\{body\.accountAction\}/);
+  assert.match(admin,/PANDIT_BLOCKED/);
+  assert.match(admin,/PANDIT_UNBLOCKED/);
   assert.match(booking,/cancellationReason/);
   assert.match(auth,/u\.account_status='ACTIVE'/);
 });

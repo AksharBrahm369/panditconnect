@@ -17,7 +17,7 @@ export async function GET(request: Request) {
     `SELECT u.id,u.name,u.city,p.experience_years,p.languages,p.specialities,p.rating,p.rating_count,
        p.completed_jobs,p.consultation_rate_5min,count(*) OVER()::int AS total_count
      FROM pim_v2.pandit_profiles p
-     JOIN pim_v2.users u ON u.id=p.user_id
+     JOIN pim_v2.users u ON u.id=p.user_id AND u.account_status='ACTIVE'
      WHERE p.verification_status='APPROVED' AND p.consultation_online=true
      ORDER BY p.rating DESC,p.completed_jobs DESC,u.name
      LIMIT $1 OFFSET $2`,

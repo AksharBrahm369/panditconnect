@@ -34,7 +34,7 @@ export async function GET(request: Request) {
              sin(radians($1))*sin(radians(p.latitude))
            ))) AS distance
          FROM pim_v2.pandit_profiles p
-         JOIN pim_v2.users u ON u.id=p.user_id
+         JOIN pim_v2.users u ON u.id=p.user_id AND u.account_status='ACTIVE'
          WHERE p.verification_status='APPROVED' AND p.is_online=true
            AND p.latitude IS NOT NULL AND p.longitude IS NOT NULL
        )

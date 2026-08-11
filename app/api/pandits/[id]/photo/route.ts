@@ -9,6 +9,7 @@ export async function GET(_: Request, context: { params: Promise<{ id: string }>
   const result = await sql<{ storage_path: string }>(
     `SELECT d.storage_path
        FROM pim_v2.pandit_profiles p
+       JOIN pim_v2.users u ON u.id=p.user_id AND u.account_status='ACTIVE'
        JOIN pim_v2.pandit_documents d ON d.pandit_id=p.user_id
       WHERE p.user_id=$1
         AND p.verification_status='APPROVED'
