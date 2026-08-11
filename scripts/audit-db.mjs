@@ -8,13 +8,14 @@ const expectedTables = [
   "users", "otp_challenges", "sessions", "services", "pandit_profiles", "pandit_services",
   "bookings", "consultations", "consultation_messages", "consultation_typing", "admin_audit_logs", "support_cases", "notification_preferences",
   "pandit_documents", "pandit_references", "pandit_service_pricing", "pandit_verification_reviews", "push_subscriptions", "push_delivery_queue", "operation_runs", "system_events", "data_rights_requests", "user_consents", "api_rate_limits", "security_incidents", "payment_transactions", "payment_webhook_events", "refunds", "payout_batches", "payout_items", "account_ledger", "booking_events",
+  "booking_offers",
 ];
 const expectedIndexes = [
   "otp_phone_created_idx", "otp_ip_created_idx", "session_expiry_idx", "booking_customer_idx",
   "booking_pandit_idx", "booking_status_created_idx", "booking_scheduled_at_idx", "pandit_verification_idx", "pandit_available_idx",
   "consultation_customer_idx", "consultation_pandit_idx", "consultation_message_idx",
   "consultation_typing_expiry_idx", "admin_audit_created_idx", "admin_audit_admin_idx", "otp_challenge_active_lookup_idx", "support_reporter_idx", "support_status_idx",
-  "pandit_documents_owner_idx", "push_retry_due_idx", "operation_runs_recent_idx", "data_rights_status_idx", "api_rate_limit_cleanup_idx", "security_incident_status_idx", "payment_transaction_status_idx", "refund_status_idx", "payout_item_pandit_idx", "booking_events_timeline_idx",
+  "pandit_documents_owner_idx", "push_retry_due_idx", "operation_runs_recent_idx", "data_rights_status_idx", "api_rate_limit_cleanup_idx", "security_incident_status_idx", "payment_transaction_status_idx", "refund_status_idx", "payout_item_pandit_idx", "booking_events_timeline_idx", "booking_offer_pandit_active_idx", "booking_dispatch_due_idx",
 ];
 
 const client = new pg.Client({ connectionString, connectionTimeoutMillis: 15_000 });
@@ -24,6 +25,17 @@ try {
   const tables = await client.query(`SELECT table_name FROM information_schema.tables WHERE table_schema='pim_v2' AND table_name=ANY($1::text[])`, [expectedTables]);
   const indexes = await client.query(`SELECT indexname FROM pg_indexes WHERE schemaname='pim_v2' AND indexname=ANY($1::text[])`, [expectedIndexes]);
   const constraints = await client.query(`SELECT count(*)::int AS count FROM information_schema.table_constraints WHERE table_schema='pim_v2' AND constraint_type IN ('PRIMARY KEY','FOREIGN KEY','UNIQUE','CHECK')`);
+  const dataCounts = await client.query(`SELECT
+    (SELECT count(*)::int FROM pim_v2.users) AS users,
+    (SELECT count(*)::int FROM pim_v2.customer_profiles) AS customer_profiles,
+    (SELECT count(*)::int FROM pim_v2.pandit_profiles) AS pandit_profiles,
+    (SELECT count(*)::int FROM pim_v2.bookings) AS bookings,
+    (SELECT count(*)::int FROM pim_v2.consultations) AS consultations,
+    (SELECT count(*)::int FROM pim_v2.notifications) AS notifications`);
+  const schemaCounts = await client.query(`SELECT table_schema,count(*)::int AS tables
+    FROM information_schema.tables
+    WHERE table_type='BASE TABLE' AND table_schema IN ('public','pim_v2')
+    GROUP BY table_schema ORDER BY table_schema`);
   const foundTables = new Set(tables.rows.map((row) => row.table_name));
   const foundIndexes = new Set(indexes.rows.map((row) => row.indexname));
   const missingTables = expectedTables.filter((name) => !foundTables.has(name));
@@ -46,7 +58,7 @@ try {
     integrityProblems = Object.fromEntries(Object.entries(integrity.rows[0]).filter(([, count]) => Number(count) > 0));
   }
   const healthy = schema.rows[0]?.exists && !missingTables.length && !missingIndexes.length && Number(constraints.rows[0]?.count) > 0 && !Object.keys(integrityProblems).length;
-  const report = { connected: true, schema: schema.rows[0]?.exists ? "present" : "missing", tables: `${foundTables.size}/${expectedTables.length}`, indexes: `${foundIndexes.size}/${expectedIndexes.length}`, constraints: Number(constraints.rows[0]?.count), integrity: healthy ? "healthy" : "failed", ...(missingTables.length ? { missingTables } : {}), ...(missingIndexes.length ? { missingIndexes } : {}), ...(Object.keys(integrityProblems).length ? { integrityProblems } : {}) };
+  const report = { connected: true, activeDataSchema: "pim_v2", schema: schema.rows[0]?.exists ? "present" : "missing", schemaTableCounts: schemaCounts.rows, dataRows: dataCounts.rows[0], tables: `${foundTables.size}/${expectedTables.length}`, indexes: `${foundIndexes.size}/${expectedIndexes.length}`, constraints: Number(constraints.rows[0]?.count), integrity: healthy ? "healthy" : "failed", ...(missingTables.length ? { missingTables } : {}), ...(missingIndexes.length ? { missingIndexes } : {}), ...(Object.keys(integrityProblems).length ? { integrityProblems } : {}) };
   (healthy ? console.log : console.error)(JSON.stringify(report, null, 2));
   if (!healthy) process.exitCode = 1;
 } finally { await client.end(); }
