@@ -6,12 +6,9 @@ import { authorizationResponse } from "@/lib/api-auth";
 export const dynamic = "force-dynamic";
 
 export async function GET() {
-  try { await requireAdmin(); } catch (error) {
-    const response = authorizationResponse(error);
-    if (response) return response;
-    throw error;
-  }
-  const result = await sql<{
+  try {
+    await requireAdmin();
+    const result = await sql<{
     users: number;
     pending_pandits: number;
     approved_pandits: number;
@@ -39,19 +36,28 @@ export async function GET() {
         ) recent_rows
       ),'[]'::json) AS recent`,
   );
-  const row = result.rows[0];
-  return NextResponse.json(
-    {
-      stats: {
-        users: row.users,
-        pendingPandits: row.pending_pandits,
-        approvedPandits: row.approved_pandits,
-        bookings: row.bookings,
+    const row = result.rows[0];
+    return NextResponse.json(
+      {
+        stats: {
+          users: row.users,
+          pendingPandits: row.pending_pandits,
+          approvedPandits: row.approved_pandits,
+          bookings: row.bookings,
+        },
+        recent: row.recent,
+        risk: row.risk,
+        funnel: row.funnel,
       },
-      recent: row.recent,
-      risk: row.risk,
-      funnel: row.funnel,
-    },
-    { headers: { "Cache-Control": "no-store, max-age=0" } },
-  );
+      { headers: { "Cache-Control": "no-store, max-age=0" } },
+    );
+  } catch (error) {
+    const response = authorizationResponse(error);
+    if (response) return response;
+    console.error("Unable to load admin overview", error);
+    return NextResponse.json(
+      { error: "Unable to load the admin workspace. Check the database connection and try again." },
+      { status: 500, headers: { "Cache-Control": "no-store, max-age=0" } },
+    );
+  }
 }

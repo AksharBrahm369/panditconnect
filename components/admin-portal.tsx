@@ -76,13 +76,27 @@ export function AdminPortal() {
   }, []);
 
   const load = useCallback(async () => {
-    const [response,supportResponse] = await Promise.all([fetch(`/api/admin/overview?fresh=${Date.now()}`, { cache: "no-store" }),fetch(`/api/admin/support-cases?fresh=${Date.now()}`,{cache:"no-store"})]);
-    const result = await readJson<Overview & { error?: string }>(response); const support=await readJson<{cases?:SupportCase[]}>(supportResponse);
-    if (response.status === 401 || response.status === 403) { window.location.assign("/admin/login?reason=session"); return; }
-    if (!response.ok) { setNotice(result.error ?? "Unable to load the admin workspace"); return; }
-    setData(result);
-    if(supportResponse.ok)setSupportCases(support.cases??[]);
-    await loadApproved(1);
+    try {
+      const [response, supportResponse] = await Promise.all([
+        fetch(`/api/admin/overview?fresh=${Date.now()}`, { cache: "no-store" }),
+        fetch(`/api/admin/support-cases?fresh=${Date.now()}`, { cache: "no-store" }),
+      ]);
+      const result = await readJson<Partial<Overview> & { error?: string }>(response);
+      const support = await readJson<{ cases?: SupportCase[]; error?: string }>(supportResponse);
+      if (response.status === 401 || response.status === 403) {
+        window.location.assign("/admin/login?reason=session");
+        return;
+      }
+      if (!response.ok || !result.stats || !result.risk || !result.funnel || !Array.isArray(result.recent)) {
+        setNotice(result.error ?? "Unable to load the admin workspace. Please refresh and try again.");
+        return;
+      }
+      setData(result as Overview);
+      if (supportResponse.ok) setSupportCases(support.cases ?? []);
+      await loadApproved(1);
+    } catch {
+      setNotice("The admin workspace could not connect to the server. Please refresh and try again.");
+    }
   }, [loadApproved]);
   useEffect(() => {
     const timer = window.setTimeout(() => void load(), 0);
