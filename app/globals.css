@@ -15,6 +15,11 @@
 .fatal-error { min-height:100dvh; display:grid; place-items:center; padding:24px; background:var(--surface-soft,#fff8f0); }
 .fatal-error > div { width:min(520px,100%); display:flex; flex-wrap:wrap; gap:12px; padding:32px; border:1px solid var(--line); border-radius:24px; background:#fff; box-shadow:var(--shadow); }
 .fatal-error h1,.fatal-error p { flex-basis:100%; }.fatal-error p { color:var(--muted); line-height:1.6; }
+.fatal-error-actions { display:flex; flex-wrap:wrap; gap:10px; width:100%; }
+.fatal-error-actions .btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; }
+.fatal-error-contact { margin:4px 0 0; font-size:.88rem; }
+.fatal-error-contact a { color:var(--brand-dark,#9b3418); font-weight:700; overflow-wrap:anywhere; }
+@media(max-width:560px){.fatal-error>div{padding:24px 20px}.fatal-error-actions{display:grid}.fatal-error-actions .btn{width:100%}}
 
 /* Pandit portal: calm, task-first workspace for low-confidence mobile users. */
 .portal-pandit {

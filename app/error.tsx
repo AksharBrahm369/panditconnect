@@ -1,4 +1,37 @@
 "use client";
-import {useEffect} from "react";
+
+import { useEffect } from "react";
 import Link from "next/link";
-export default function ErrorPage({error,reset}:{error:Error&{digest?:string};reset:()=>void}){useEffect(()=>{void fetch("/api/client-errors",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({message:error.message,digest:error.digest,path:location.pathname}),keepalive:true});},[error]);return <main className="fatal-error"><div><span className="brand-mark">ॐ</span><h1>Something went wrong</h1><p>Your account and request are safe. Please retry. If this keeps happening, open Support from your account.</p><button className="btn btn-primary" onClick={reset}>Try again</button><Link className="btn btn-ghost" href="/">Go home</Link></div></main>}
+import { Mail } from "lucide-react";
+
+const customerCareEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL?.trim() || "darshanzala369@gmail.com";
+
+export default function ErrorPage({ error, reset }: { error: Error & { digest?: string }; reset: () => void }) {
+  useEffect(() => {
+    void fetch("/api/client-errors", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ message: error.message, digest: error.digest, path: location.pathname }),
+      keepalive: true,
+    });
+  }, [error]);
+
+  const subject = "Help needed with Pandit in Minutes";
+  const reference = error.digest ? `\nError reference: ${error.digest}` : "";
+  const body = `Namaste Customer Care,\n\nSomething went wrong while I was using Pandit in Minutes. Please help me continue.${reference}\n\nI will describe the issue here: `;
+  const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(customerCareEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
+
+  return <main className="fatal-error">
+    <div>
+      <span className="brand-mark">ॐ</span>
+      <h1>Something went wrong</h1>
+      <p>Your account and request are safe. Please retry. If the problem continues, email Customer Care and describe what happened.</p>
+      <div className="fatal-error-actions">
+        <button className="btn btn-primary" onClick={reset}>Try again</button>
+        <a className="btn btn-ghost" href={gmailUrl} target="_blank" rel="noreferrer"><Mail size={17} /> Email Customer Care</a>
+        <Link className="btn btn-ghost" href="/">Go home</Link>
+      </div>
+      <p className="fatal-error-contact">Customer Care: <a href={`mailto:${customerCareEmail}`}>{customerCareEmail}</a></p>
+    </div>
+  </main>;
+}
