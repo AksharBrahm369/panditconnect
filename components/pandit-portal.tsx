@@ -120,6 +120,34 @@ export function PanditPortal({ userName, accessNotice }: { userName?: string | n
     }
   }
 
+  async function saveCurrentLocation() {
+    setLocationBusy(true);
+    setNotice("");
+    try {
+      const current = await getCurrentCoordinates();
+      const response = await fetch("/api/pandit/profile", {
+        method: "PUT",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ latitude: current.latitude, longitude: current.longitude }),
+      });
+      const result = await readJson<{ error?: string }>(response);
+      if (!response.ok) {
+        setNotice(result.error ?? "Unable to save your current GPS location.");
+        return;
+      }
+      setProfile((existing) => existing ? {
+        ...existing,
+        latitude: current.latitude,
+        longitude: current.longitude,
+      } : existing);
+      setNotice(`Current GPS location saved within about ${Math.round(current.accuracy)} metres. ${profile?.is_online ? "Live tracking remains active while you are online." : "Go online when you are ready to receive nearby requests."}`);
+    } catch (error) {
+      setNotice(error instanceof Error ? error.message : "Unable to detect your location.");
+    } finally {
+      setLocationBusy(false);
+    }
+  }
+
   async function toggleOnline() {
     if (!profile) return;
     setNotice("");
@@ -214,7 +242,7 @@ export function PanditPortal({ userName, accessNotice }: { userName?: string | n
       {awaitingReview ? <section className="review-pending-screen" aria-live="polite"><span className="review-pending-icon"><Clock3 /></span><span className="eyebrow">Submitted successfully</span><h2>Your request is pending with Admin</h2><p>The verification team will review your identity, documents, references, knowledge and payout information. Please recheck later.</p><div className="pending-status"><i /><span><strong>{profile.verification_status === "UNDER_REVIEW" ? "Admin review in progress" : "Waiting for admin review"}</strong><small>This page checks for updates automatically every few seconds.</small></span></div><div className="pending-notification-note"><BellRing /><span><strong>Approval or rejection alert</strong><small>Enable notifications from the bell icon above. You will receive an in-app message and notification sound when Admin makes a decision.</small></span></div><button className="btn btn-primary" disabled={busy} onClick={() => void loadProfile(false)}>{busy ? "Checking…" : "Check status now"}</button></section> : incomplete ? <PanditOnboarding status={profile.verification_status} reviewNote={profile.review_note} onSaved={() => void loadProfile(true)} /> : <div className="pandit-workdesk">
         <section className={`pandit-command-centre ${profile.is_online ? "is-online" : ""}`} id="pandit-status">
           <div className="pandit-command-welcome"><span>ॐ</span><div><small>Namaste</small><h1>{profile.name ?? "Pandit ji"}</h1><p>Everything you need for today is on this screen.</p></div></div>
-          <div className="pandit-command-status"><span className="eyebrow">Today&apos;s work</span><strong>{profile.is_online ? "Available for Puja requests" : "Not receiving requests"}</strong><small><MapPin size={15} /> {profile.is_online ? "Live location is active" : "Location is shared only after you go online"}</small></div>
+          <div className="pandit-command-status"><span className="eyebrow">Today&apos;s work</span><strong>{profile.is_online ? "Available for Puja requests" : "Not receiving requests"}</strong><small><MapPin size={15} /> {profile.is_online ? "Live location is active" : profile.latitude != null && profile.longitude != null ? "GPS location saved — update it whenever you move" : "GPS location is required before you can go online"}</small><button type="button" className="pandit-location-button" onClick={() => void saveCurrentLocation()} disabled={locationBusy || busy}><MapPin size={17} /><span><b>{locationBusy ? "Detecting GPS…" : profile.latitude != null && profile.longitude != null ? "Update my GPS location" : "Use my current GPS location"}</b><small>{profile.is_online ? "Nearby customers will receive the latest position" : "Required for accurate nearby matching"}</small></span></button></div>
           <button className="pandit-presence-button" onClick={toggleOnline} disabled={busy || locationBusy} aria-pressed={profile.is_online}><Power size={24} /><span><strong>{busy || locationBusy ? "Please wait…" : profile.is_online ? "Go offline" : "Go online now"}</strong><small>{profile.is_online ? "Stop receiving new work" : "Start receiving nearby work"}</small></span></button>
         </section>
 

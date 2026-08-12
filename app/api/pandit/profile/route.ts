@@ -62,10 +62,13 @@ export async function PUT(request: Request) {
       Object.keys(body).every((key) => ["latitude", "longitude"].includes(key))) {
     const location = await sql(
       `UPDATE pim_v2.pandit_profiles SET latitude=$2,longitude=$3,updated_at=now()
-       WHERE user_id=$1 AND is_online=true RETURNING updated_at`,
+       WHERE user_id=$1 RETURNING updated_at,is_online`,
       [user.id, body.latitude, body.longitude],
     );
-    return NextResponse.json({ success: true, tracked: Boolean(location.rows[0]) });
+    if (!location.rows[0]) {
+      return NextResponse.json({ error: "Pandit profile not found" }, { status: 404 });
+    }
+    return NextResponse.json({ success: true, saved: true, tracking: Boolean(location.rows[0].is_online) });
   }
   if (typeof body.isOnline === "boolean" && availabilityKeys) {
     if (body.isOnline && !validCoordinates) {

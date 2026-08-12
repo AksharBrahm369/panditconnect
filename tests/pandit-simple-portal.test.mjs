@@ -13,6 +13,8 @@ test("pandit portal presents a simple task-first mobile workflow", async () => {
   assert.match(portal, /Today&apos;s work/);
   assert.match(portal, /What needs your attention/);
   assert.match(portal, /pandit-command-centre/);
+  assert.match(portal, /Use my current GPS location/);
+  assert.match(portal, /saveCurrentLocation/);
   assert.match(portal, /pandit-job-next/);
   assert.match(portal, /I am leaving now/);
   assert.match(portal, /I have arrived/);
@@ -21,6 +23,7 @@ test("pandit portal presents a simple task-first mobile workflow", async () => {
   assert.match(styles, /Pandit portal: calm, task-first workspace/);
   assert.match(styles, /Pandit workdesk v2/);
   assert.match(styles, /\.pandit-command-centre/);
+  assert.match(styles, /\.pandit-location-button/);
   assert.match(styles, /\.pandit-job-next/);
   assert.match(styles, /\.pandit-decision button,.pandit-next-button,.pandit-code-step button \{ width:100%; min-height:52px/);
 });
