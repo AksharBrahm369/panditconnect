@@ -15,6 +15,7 @@ await client.connect();
 try {
   await client.query("BEGIN");
   await client.query("SELECT pg_advisory_xact_lock(hashtext('pim_v2_schema_migrations'))");
+  await client.query("CREATE SCHEMA IF NOT EXISTS pim_v2");
   await client.query("CREATE TABLE IF NOT EXISTS pim_v2.schema_migrations(name text PRIMARY KEY,applied_at timestamptz NOT NULL DEFAULT now())");
   const existing = await client.query("SELECT 1 FROM pim_v2.schema_migrations WHERE name=$1", [migrationName]);
   if (existing.rows[0]) {
