@@ -32,10 +32,23 @@ test("Customer and Pandit navbars expose a persistent app-language selector", as
     read("app/globals.css"),
   ]);
   assert.match(shell, /PortalLanguageSwitcher/);
-  assert.match(shell, /localStorage\.setItem/);
-  assert.match(shell, /document\.documentElement\.lang/);
+  assert.match(shell, /usePortalLanguage/);
+  assert.match(switcher, /localStorage\.setItem/);
+  assert.match(switcher, /document\.documentElement\.lang/);
+  assert.match(switcher, /panditconnect:language-change/);
   assert.match(switcher, /Change app language/);
   for (const language of ["English", "Hindi", "Marathi", "Gujarati", "Bengali", "Tamil", "Telugu", "Malayalam"]) assert.match(translations, new RegExp(`${language}:`));
   assert.match(css, /\.portal-language-switcher/);
   assert.match(css, /@media\(max-width:720px\)/);
+});
+
+test("the selected app language updates customer dashboard content", async () => {
+  const [customer, translations] = await Promise.all([
+    read("components/customer-portal.tsx"),
+    read("lib/portal-i18n.ts"),
+  ]);
+  assert.match(customer, /translatePortalText/);
+  assert.match(customer, /tr\("What do you need help with today\?"\)/);
+  assert.match(translations, /આજે તમને કઈ મદદ જોઈએ છે\?/);
+  assert.match(translations, /export function translatePortalText/);
 });

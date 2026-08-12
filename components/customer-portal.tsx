@@ -8,6 +8,7 @@ import {
   Banknote, CalendarDays, Compass, CreditCard, HelpCircle, MapPin, Mic, PackageCheck, RefreshCw, Search, ShieldCheck, Smartphone, Sparkles, Star, X,
 } from "lucide-react";
 import { AppShell } from "./app-shell";
+import { usePortalLanguage } from "./portal-language-switcher";
 import { IndianLanguageSelect } from "./indian-language-fields";
 import { ConsultationPanel } from "./consultation-panel";
 import { PanditAvatar } from "./pandit-avatar";
@@ -15,6 +16,7 @@ import { AvailabilityFallback, type FallbackPlan } from "./availability-fallback
 import { readJson } from "@/lib/http";
 import { getCurrentCoordinates, type BrowserCoordinates } from "@/lib/browser-location";
 import { recommendRitual, ritualForService, type RequestType, type RitualRecommendation } from "@/lib/ritual-guide";
+import { translatePortalText } from "@/lib/portal-i18n";
 
 type Service = { id: string; name: string; description: string; base_price: number; duration_minutes: number };
 declare global { interface Window { Razorpay?:new(options:Record<string,unknown>)=>{open:()=>void;on:(event:string,handler:(response:unknown)=>void)=>void}; } }
@@ -94,6 +96,8 @@ function dateTimeLocalValue(timestamp: number) {
 }
 
 export function CustomerPortal({ customerId, customerName, initialStart }: { customerId: string; customerName?: string | null; initialStart?: "guided" }) {
+  const [appLanguage] = usePortalLanguage();
+  const tr = useCallback((text: string) => translatePortalText(text, appLanguage), [appLanguage]);
   const [services, setServices] = useState<Service[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
   const [requestType, setRequestType] = useState<RequestType | null>(initialStart === "guided" ? "NEED_GUIDANCE" : null);
@@ -594,18 +598,18 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
         <section className="customer-home" id="customer-home">
           <div className="customer-welcome">
             <div className="customer-welcome-copy">
-              <span className="customer-devotional-label">ॐ · Puja help</span>
-              <h1>What do you need help with today?</h1>
-              <p>Choose one option below. You do not need to know the Puja name—we will guide the rest.</p>
-              <button className="customer-primary-action" onClick={() => choosePath("NEED_GUIDANCE")}><span className="customer-action-icon"><Sparkles /></span><span><small>Best place to start</small><strong>Help me choose and book</strong><em>Describe the occasion in simple words</em></span><ChevronRight /></button>
-              <div className="customer-simple-steps"><span><b>1</b> Describe</span><i /><span><b>2</b> Choose</span><i /><span><b>3</b> Confirm</span></div>
+              <span className="customer-devotional-label">ॐ · {tr("Puja help")}</span>
+              <h1>{tr("What do you need help with today?")}</h1>
+              <p>{tr("Choose one option below. You do not need to know the Puja name—we will guide the rest.")}</p>
+              <button className="customer-primary-action" onClick={() => choosePath("NEED_GUIDANCE")}><span className="customer-action-icon"><Sparkles /></span><span><small>{tr("Best place to start")}</small><strong>{tr("Help me choose and book")}</strong><em>{tr("Describe the occasion in simple words")}</em></span><ChevronRight /></button>
+              <div className="customer-simple-steps"><span><b>1</b> {tr("Describe")}</span><i /><span><b>2</b> {tr("Choose")}</span><i /><span><b>3</b> {tr("Confirm")}</span></div>
             </div>
             <div className="customer-welcome-image"><Image src="/images/customer-puja-welcome.png" alt="A family receiving Puja guidance from a trusted Pandit at home" width={1750} height={900} priority unoptimized /><span><ShieldCheck /> Verified Pandits · Private booking</span></div>
             </div>
 
             <section className="customer-pandit-discovery" aria-labelledby="nearby-pandit-heading">
               <div className="customer-discovery-heading">
-                <div><span>Nearby verified Pandits</span><h2 id="nearby-pandit-heading">Choose someone your family can trust</h2><p>Only approved, online Pandits inside their service area are shown.</p></div>
+                <div><span>{tr("Nearby verified Pandits")}</span><h2 id="nearby-pandit-heading">{tr("Choose someone your family can trust")}</h2><p>{tr("Only approved, online Pandits inside their service area are shown.")}</p></div>
                 <div className="customer-discovery-controls">
                   <button className="btn btn-ghost" onClick={() => void loadNearbyDiscovery(1)} disabled={discoveryBusy}><MapPin size={16} /> {discoveryBusy ? "Checking location…" : discoveryPandits.length ? "Refresh nearby" : "Show Pandits near me"}</button>
                   {discoveryPandits.length > 1 && <><button className="icon-button" aria-label="Previous Pandits" onClick={() => moveDiscovery(-1)}><ArrowLeft size={18} /></button><button className="icon-button" aria-label="Next Pandits" onClick={() => moveDiscovery(1)}><ChevronRight size={18} /></button></>}
@@ -628,11 +632,11 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
               {discoveryHasMore && <button className="btn btn-ghost btn-block" disabled={discoveryBusy} onClick={() => void loadNearbyDiscovery(discoveryPage + 1, true)}>{discoveryBusy ? "Loading more…" : "Show more nearby Pandits"}</button>}
             </section>
 
-            <div className="customer-choice-heading" id="request-assistance"><div><span>Quick help</span><h2>Choose what you need now</h2></div><p>Nothing is submitted until you confirm.</p></div>
+            <div className="customer-choice-heading" id="request-assistance"><div><span>{tr("Quick help")}</span><h2>{tr("Choose what you need now")}</h2></div><p>{tr("Nothing is submitted until you confirm.")}</p></div>
           <div className="customer-choice-grid">
-            <button className="customer-choice-card schedule" onClick={() => choosePath("SCHEDULED_PUJA")}><span><CalendarDays /></span><div><small>Plan ahead</small><strong>Schedule a Puja</strong><p>Choose a future date, time and nearby Pandit.</p></div><ChevronRight /></button>
-            <button className="customer-choice-card urgent" onClick={() => choosePath("PANDIT_SOS")}><span><AlertTriangle /></span><div><small>Urgent help</small><strong>My Pandit cancelled</strong><p>Quickly find another approved Pandit nearby.</p></div><ChevronRight /></button>
-            <button className="customer-choice-card online" id="online-guidance" onClick={() => setConsultationMode(true)}><span><BadgeHelp /></span><div><small>Online guidance</small><strong>Chat with a Pandit</strong><p>Ask a religious question privately online.</p></div><ChevronRight /></button>
+            <button className="customer-choice-card schedule" onClick={() => choosePath("SCHEDULED_PUJA")}><span><CalendarDays /></span><div><small>{tr("Plan ahead")}</small><strong>{tr("Schedule a Puja")}</strong><p>Choose a future date, time and nearby Pandit.</p></div><ChevronRight /></button>
+            <button className="customer-choice-card urgent" onClick={() => choosePath("PANDIT_SOS")}><span><AlertTriangle /></span><div><small>{tr("Urgent help")}</small><strong>{tr("My Pandit cancelled")}</strong><p>{tr("Quickly find another approved Pandit nearby.")}</p></div><ChevronRight /></button>
+            <button className="customer-choice-card online" id="online-guidance" onClick={() => setConsultationMode(true)}><span><BadgeHelp /></span><div><small>{tr("Online guidance")}</small><strong>{tr("Chat with a Pandit")}</strong><p>{tr("Ask a religious question privately online.")}</p></div><ChevronRight /></button>
           </div>
 
           <div className="customer-trust-row"><span><ShieldCheck /><b>Verified profiles</b><small>Reviewed by Admin</small></span><span><MapPin /><b>Nearby matching</b><small>Based on your area</small></span><span><BadgeCheck /><b>Simple updates</b><small>Track every status</small></span></div>
