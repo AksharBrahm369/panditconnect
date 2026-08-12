@@ -9,7 +9,7 @@ import { AdminFinanceOperations } from "./admin-finance-operations";
 
 type Overview = { stats: { users: number; pendingPandits: number; approvedPandits: number; bookings: number }; risk:{outstanding_balance:number;restricted_customers:number;open_disputes:number}; funnel:{requests:number;accepted:number;completed:number;cancelled:number;acceptance_rate:number;completion_rate:number;avg_match_minutes:number;push_success_rate:number}; recent: Array<{ id: string; service_name: string; pandit_name: string; customer_phone: string; status: string; amount: number; created_at: string; request_type: string; scheduled_at: string | null }> };
 type ReviewPandit = {
-  id: string; name: string | null; phone: string; city: string | null; experience_years: number;
+  id: string; name: string | null; phone: string | null; city: string | null; experience_years: number;
   languages: string[]; specialities: string[]; bio: string | null; base_charge: number;
   verification_status: string; review_note: string | null; created_at: string; is_online?: boolean;
   rating?: string; rating_count?: number; completed_jobs?: number; services?: string[]; account_status?: "ACTIVE" | "RESTRICTED" | "BLOCKED";
@@ -179,7 +179,7 @@ export function AdminPortal() {
         <div className="approved-head"><span className="avatar">{(pandit.name ?? "P").split(" ").map((part) => part[0]).slice(0,2).join("")}</span><div><strong>{pandit.name ?? "Pandit"}</strong><span><MapPin size={13} /> {pandit.city ?? "City not provided"}</span></div><span className={`availability-dot ${pandit.is_online ? "online" : ""}`}>{pandit.is_online ? "Online" : "Offline"}</span></div>
         <div className="approved-metrics"><span><b>{pandit.experience_years}</b> years</span><span><b>{pandit.rating_count ? <>{pandit.rating} <Star size={12} fill="currentColor" /></> : "New"}</b>{pandit.rating_count ? `${pandit.rating_count} ratings` : "not rated"}</span><span><b>{pandit.completed_jobs ?? 0}</b> visits</span></div>
         <div className="tag-row">{(pandit.services?.length ? pandit.services : pandit.specialities).slice(0,4).map((item) => <b key={item}>{item}</b>)}</div>
-        <div className="approved-foot"><span>+91 ••••••{pandit.phone.slice(-4)}</span><strong className={`admin-access-status ${(pandit.account_status ?? "ACTIVE").toLowerCase()}`}>{pandit.account_status ?? "ACTIVE"}</strong></div>
+        <div className="approved-foot"><span>{pandit.phone ? `+91 ••••••${pandit.phone.slice(-4)}` : pandit.email ?? "Google account"}</span><strong className={`admin-access-status ${(pandit.account_status ?? "ACTIVE").toLowerCase()}`}>{pandit.account_status ?? "ACTIVE"}</strong></div>
         {pandit.account_status !== "ACTIVE" && pandit.account_status_reason && <p className="admin-access-reason"><strong>Admin reason:</strong> {pandit.account_status_reason}</p>}
         <div className="button-row admin-access-actions">
           {(pandit.account_status ?? "ACTIVE") === "ACTIVE" && <><button className="btn btn-ghost" disabled={busy} onClick={()=>void changePanditAccess(pandit.id,"RESTRICT")}>Restrict</button><button className="btn btn-ghost danger" disabled={busy} onClick={()=>void changePanditAccess(pandit.id,"BLOCK")}>Block</button></>}
@@ -205,7 +205,7 @@ export function AdminPortal() {
           {queueHasMore && <button className="btn btn-ghost btn-block" disabled={queueLoading} onClick={() => void loadQueue(queuePage + 1, true)}>{queueLoading ? "Loading more…" : "Load more applications"}</button>}
         </> : <>
           <button className="back-review" onClick={() => setSelected(null)}><ArrowLeft size={16} /> Back to queue</button>
-          <div className="review-profile-head"><span className="avatar large">{(selected.name ?? "P").split(" ").map((part) => part[0]).slice(0,2).join("")}</span><div><h3>{selected.name ?? "Incomplete profile"}</h3><p>+91 ••••••{selected.phone.slice(-4)} · Applied {new Date(selected.created_at).toLocaleDateString("en-IN")}</p></div><span className="status">{selected.verification_status.replaceAll("_", " ")}</span></div>
+          <div className="review-profile-head"><span className="avatar large">{(selected.name ?? "P").split(" ").map((part) => part[0]).slice(0,2).join("")}</span><div><h3>{selected.name ?? "Incomplete profile"}</h3><p>{selected.phone ? `+91 ••••••${selected.phone.slice(-4)}` : selected.email ?? "Google account"} · Applied {new Date(selected.created_at).toLocaleDateString("en-IN")}</p></div><span className="status">{selected.verification_status.replaceAll("_", " ")}</span></div>
           <div className="review-facts">
             <div><UserRound size={18} /><span>Experience</span><strong>{selected.experience_years} years</strong></div>
             <div><MapPin size={18} /><span>City</span><strong>{selected.city ?? "Not provided"}</strong></div>

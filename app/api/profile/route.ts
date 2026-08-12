@@ -42,12 +42,12 @@ export async function GET() {
     const user = await requireUser();
     if (user.role === "CUSTOMER") {
       await sql(`INSERT INTO pim_v2.customer_profiles(user_id) VALUES($1) ON CONFLICT(user_id) DO NOTHING`, [user.id]);
-      const result = await sql(`SELECT u.name,u.phone,u.city,c.email,c.default_address,c.preferred_language FROM pim_v2.users u JOIN pim_v2.customer_profiles c ON c.user_id=u.id WHERE u.id=$1`, [user.id]);
+      const result = await sql(`SELECT u.name,u.phone,u.email AS account_email,u.auth_provider,u.city,c.email,c.default_address,c.preferred_language FROM pim_v2.users u JOIN pim_v2.customer_profiles c ON c.user_id=u.id WHERE u.id=$1`, [user.id]);
       return NextResponse.json({ role: user.role, profile: result.rows[0] }, { headers: { "Cache-Control": "private, no-store" } });
     }
     if (user.role === "PANDIT") {
       const [result, pricing] = await Promise.all([
-        sql(`SELECT u.name,u.phone,u.city,p.email,p.current_address,p.experience_years,p.languages,p.specialities,p.bio,p.service_radius_km,p.base_charge,p.verification_status FROM pim_v2.users u JOIN pim_v2.pandit_profiles p ON p.user_id=u.id WHERE u.id=$1`, [user.id]),
+        sql(`SELECT u.name,u.phone,u.email AS account_email,u.auth_provider,u.city,p.email,p.current_address,p.experience_years,p.languages,p.specialities,p.bio,p.service_radius_km,p.base_charge,p.verification_status FROM pim_v2.users u JOIN pim_v2.pandit_profiles p ON p.user_id=u.id WHERE u.id=$1`, [user.id]),
         sql(`SELECT s.id AS service_id,s.name,s.description,COALESCE(pp.price,ps.charge,s.base_price) AS price,COALESCE(pp.enabled,ps.pandit_id IS NOT NULL,false) AS enabled FROM pim_v2.services s LEFT JOIN pim_v2.pandit_service_pricing pp ON pp.service_id=s.id AND pp.pandit_id=$1 LEFT JOIN pim_v2.pandit_services ps ON ps.service_id=s.id AND ps.pandit_id=$1 WHERE s.active=true ORDER BY s.name`, [user.id]),
       ]);
       return NextResponse.json({ role: user.role, profile: result.rows[0], pricing: pricing.rows }, { headers: { "Cache-Control": "private, no-store" } });

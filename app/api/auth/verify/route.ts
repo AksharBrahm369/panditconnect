@@ -32,7 +32,7 @@ export async function POST(request: Request) {
     const userResult = await sql<AppUser & { account_status: string }>(
       `INSERT INTO pim_v2.users(id,phone,role,last_login_at) VALUES($1,$2,$3,now())
        ON CONFLICT(phone) DO UPDATE SET role=CASE WHEN pim_v2.users.role='ADMIN' THEN EXCLUDED.role ELSE pim_v2.users.role END,last_login_at=now()
-       RETURNING id,phone,role,name,city,account_status`,
+       RETURNING id,phone,email,role,name,city,account_status`,
       [id, phone, role],
     );
     const user = userResult.rows[0];

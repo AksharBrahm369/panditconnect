@@ -56,7 +56,7 @@ export async function GET() {
   try {
     const user = await requirePandit();
     const [profile, references, pricing, services, documents, review] = await Promise.all([
-      sql(`SELECT u.name,u.phone,u.city,p.* FROM pim_v2.users u JOIN pim_v2.pandit_profiles p ON p.user_id=u.id WHERE u.id=$1`, [user.id]),
+      sql(`SELECT u.name,u.phone,u.email AS account_email,u.auth_provider,u.city,p.* FROM pim_v2.users u JOIN pim_v2.pandit_profiles p ON p.user_id=u.id WHERE u.id=$1`, [user.id]),
       sql(`SELECT id,reference_name,relationship,temple_or_organisation,phone,verification_status,verification_note FROM pim_v2.pandit_references WHERE pandit_id=$1 ORDER BY created_at`, [user.id]),
       sql(`SELECT service_id,price,enabled FROM pim_v2.pandit_service_pricing WHERE pandit_id=$1`, [user.id]),
       sql(`SELECT id,name,description,base_price FROM pim_v2.services WHERE active=true ORDER BY name`),

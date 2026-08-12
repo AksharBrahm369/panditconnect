@@ -15,7 +15,7 @@ export async function GET() {
     await requireAdmin();
     const result = await sql(
       `SELECT r.id,r.request_type,r.status,r.details,r.resolution,r.requested_at,r.completed_at,
-              u.id AS user_id,u.role,u.name,u.phone,u.account_status
+              u.id AS user_id,u.role,u.name,u.phone,u.email,u.account_status
        FROM pim_v2.data_rights_requests r
        JOIN pim_v2.users u ON u.id=r.user_id
        ORDER BY CASE r.status WHEN 'OPEN' THEN 0 WHEN 'IN_REVIEW' THEN 1 ELSE 2 END,r.requested_at DESC

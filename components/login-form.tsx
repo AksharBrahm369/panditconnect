@@ -4,13 +4,13 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { ArrowLeft, BadgeCheck, Clock3, LockKeyhole, MapPin } from "lucide-react";
 
-export function LoginForm({ initialRole, nextPath }: { initialRole: "CUSTOMER" | "PANDIT"; nextPath?: string }) {
+export function LoginForm({ initialRole, nextPath, googleError }: { initialRole: "CUSTOMER" | "PANDIT"; nextPath?: string; googleError?: string }) {
   const [role, setRole] = useState(initialRole);
   const [phone, setPhone] = useState("");
   const [otp, setOtp] = useState("");
   const [devOtp, setDevOtp] = useState("");
   const [step, setStep] = useState<"phone" | "otp">("phone");
-  const [error, setError] = useState("");
+  const [error, setError] = useState(googleError ?? "");
   const [busy, setBusy] = useState(false);
   const [resendIn, setResendIn] = useState(0);
 
@@ -93,6 +93,11 @@ export function LoginForm({ initialRole, nextPath }: { initialRole: "CUSTOMER" |
           </div>
           {error && <div className="alert error">{error}</div>}
           {step === "phone" ? <>
+            <a className="google-signin-button" href={`/api/auth/google/start?role=${role}${nextPath ? `&next=${encodeURIComponent(nextPath)}` : ""}`}>
+              <span className="google-signin-mark" aria-hidden="true">G</span>
+              <span>Continue with Google</span>
+            </a>
+            <div className="auth-divider"><span>or use mobile OTP</span></div>
             <label>Indian mobile number</label>
             <div className="phone-field"><span>+91</span><input value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, "").slice(0, 10))} inputMode="numeric" placeholder="10-digit number" /></div>
             <button className="btn btn-primary btn-block btn-lg" disabled={busy || phone.length !== 10} onClick={requestOtp}>{busy ? "Sending…" : "Continue with OTP"}</button>

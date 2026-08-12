@@ -9,6 +9,8 @@ type Role = "CUSTOMER" | "PANDIT";
 type Profile = {
   name?: string;
   phone?: string;
+  account_email?: string;
+  auth_provider?: "PHONE" | "GOOGLE";
   city?: string;
   email?: string;
   default_address?: string;
@@ -119,7 +121,7 @@ export function ProfileEditor({ role, onSaved }: { role: Role; onSaved?: () => v
         {role === "CUSTOMER" && !form.name && !form.city && !form.email && !form.defaultAddress && <div className="profile-empty-note"><Info size={19} /><span><strong>Complete your profile</strong><small>Your account is new, so these fields are empty. Add your details once and they will be available for future Puja requests.</small></span></div>}
         <div className="profile-form-grid">
           <label>Full name <b aria-hidden="true">*</b><input value={form.name} placeholder="For example, Darshan Zala" onChange={(event) => field("name", event.target.value)} maxLength={120} required /></label>
-          <label>Verified mobile number<input value={form.phone} readOnly disabled /><small>Contact support if this verified number must change.</small></label>
+          <label>{form.phone ? "Verified mobile number" : "Google verified email"}<input value={form.phone || form.email} readOnly disabled /><small>Contact support if this verified sign-in identity must change.</small></label>
           <label>Email address <small>Optional</small><input type="email" value={form.email} placeholder="name@example.com" onChange={(event) => field("email", event.target.value)} maxLength={180} /></label>
           <label>City <b aria-hidden="true">*</b><input value={form.city} placeholder="For example, Mumbai" onChange={(event) => field("city", event.target.value)} maxLength={100} required /></label>
           {role === "CUSTOMER" ? <>

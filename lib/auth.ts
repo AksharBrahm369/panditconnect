@@ -2,7 +2,7 @@ import { cookies } from "next/headers";
 import { sql } from "./db";
 
 export type Role = "CUSTOMER" | "PANDIT" | "ADMIN";
-export type AppUser = { id: string; phone: string; role: Role; name: string | null; city: string | null };
+export type AppUser = { id: string; phone: string | null; email: string | null; role: Role; name: string | null; city: string | null };
 export type AccountStatus = "ACTIVE" | "RESTRICTED" | "BLOCKED" | "DELETION_REQUESTED" | "DELETED";
 export type SessionUser = AppUser & { accountStatus: AccountStatus; accountStatusReason: string | null; accountStatusChangedAt: string | null };
 export const SESSION_COOKIE = "pim_v2_session";
@@ -87,7 +87,7 @@ export async function currentUser(): Promise<AppUser | null> {
   if (cached && cached.expiresAt > Date.now()) return cached.user;
   if (cached) sessionCache.delete(tokenHash);
   const result = await sql<AppUser>(
-    `SELECT u.id,u.phone,s.session_role AS role,u.name,u.city
+    `SELECT u.id,u.phone,u.email,s.session_role AS role,u.name,u.city
      FROM pim_v2.sessions s JOIN pim_v2.users u ON u.id=s.user_id
      WHERE s.token_hash=$1 AND s.expires_at > now() AND u.account_status='ACTIVE' LIMIT 1`,
     [tokenHash],
@@ -104,7 +104,7 @@ export async function currentSessionUser(): Promise<SessionUser | null> {
   const token = (await cookies()).get(SESSION_COOKIE)?.value;
   if (!token) return null;
   const result = await sql<SessionUser>(
-    `SELECT u.id,u.phone,s.session_role AS role,u.name,u.city,u.account_status AS "accountStatus",
+    `SELECT u.id,u.phone,u.email,s.session_role AS role,u.name,u.city,u.account_status AS "accountStatus",
        u.account_status_reason AS "accountStatusReason",u.account_status_changed_at AS "accountStatusChangedAt"
      FROM pim_v2.sessions s JOIN pim_v2.users u ON u.id=s.user_id
      WHERE s.token_hash=$1 AND s.expires_at>now() AND u.account_status<>'DELETED' LIMIT 1`,

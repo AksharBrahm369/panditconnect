@@ -31,7 +31,7 @@ export async function POST(request: Request) {
     const userResult = await sql<AppUser>(
       `INSERT INTO pim_v2.users(id,phone,role,last_login_at) VALUES($1,$2,'CUSTOMER',now())
        ON CONFLICT(phone) DO UPDATE SET last_login_at=now()
-       RETURNING id,phone,role,name,city`,
+       RETURNING id,phone,email,role,name,city`,
       [crypto.randomUUID(), phone],
     );
     const user = userResult.rows[0];

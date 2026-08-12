@@ -9,5 +9,5 @@ export default async function CustomerSecuritySettingsPage() {
   const user = await currentUser();
   if (!user) redirect("/login?role=customer");
   if (user.role !== "CUSTOMER") redirect("/pandit");
-  return <CustomerSettingsShell active="security" title="Privacy and security" subtitle="Review your verified account and signed-in session."><SecuritySettings phone={user.phone} /></CustomerSettingsShell>;
+  return <CustomerSettingsShell active="security" title="Privacy and security" subtitle="Review your verified account and signed-in session."><SecuritySettings phone={user.phone} email={user.email} /></CustomerSettingsShell>;
 }
