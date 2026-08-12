@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { z } from "zod";
+import { INDIAN_LANGUAGE_VALUES } from "@/lib/indian-languages";
 
 export const dynamic = "force-dynamic";
 
@@ -9,7 +10,7 @@ const profileUpdateSchema = z.object({
   name: z.string().trim().min(2).max(120).optional(),
   city: z.string().trim().min(2).max(100).optional(),
   experienceYears: z.number().int().min(0).max(80).optional(),
-  languages: z.array(z.string().trim().min(1).max(50)).max(12).optional(),
+  languages: z.array(z.enum(INDIAN_LANGUAGE_VALUES)).max(INDIAN_LANGUAGE_VALUES.length).optional(),
   specialities: z.array(z.string().trim().min(1).max(100)).max(30).optional(),
   bio: z.string().trim().max(1500).optional(),
   baseCharge: z.number().int().min(0).max(1_000_000).optional(),

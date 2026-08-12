@@ -6,6 +6,7 @@ import { decryptArrivalOtp, encryptArrivalOtp } from "@/lib/arrival-otp";
 import { CANCELLATION_POLICY_SNAPSHOT, CANCELLATION_POLICY_VERSION, recordBookingEvent } from "@/lib/booking-risk";
 import { enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 import { advanceDueBookingDispatches, startBookingDispatch } from "@/lib/booking-dispatch";
+import { isIndianLanguage } from "@/lib/indian-languages";
 
 export const dynamic = "force-dynamic";
 export const revalidate = 0;
@@ -123,7 +124,7 @@ export async function POST(request: Request) {
       !Number.isFinite(longitude) || longitude < -180 || longitude > 180) {
     return NextResponse.json({ error: "Allow current GPS location before sending the request" }, { status: 400 });
   }
-  if (!preferredLanguage || !["Hindi", "Marathi", "Gujarati", "English", "Sanskrit"].includes(preferredLanguage)) {
+  if (!preferredLanguage || !isIndianLanguage(preferredLanguage)) {
     return NextResponse.json({ error: "Choose a supported preferred language" }, { status: 400 });
   }
   const isScheduled = body.requestType === "SCHEDULED_PUJA";

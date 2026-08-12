@@ -5,6 +5,7 @@ import { authorizationResponse } from "@/lib/api-auth";
 import { sql } from "@/lib/db";
 import { encryptSensitive } from "@/lib/sensitive-data";
 import { notifyAdmins } from "@/lib/push-notifications";
+import { INDIAN_LANGUAGE_VALUES } from "@/lib/indian-languages";
 
 export const dynamic = "force-dynamic";
 
@@ -28,7 +29,7 @@ const onboardingSchema = z.object({
   city: z.string().trim().min(2).max(100),
   currentAddress: z.string().trim().min(10).max(500),
   experienceYears: z.number().int().min(0).max(80),
-  languages: z.array(z.string().trim().min(1).max(50)).min(1).max(12),
+  languages: z.array(z.enum(INDIAN_LANGUAGE_VALUES)).min(1).max(INDIAN_LANGUAGE_VALUES.length),
   specialities: z.array(z.string().trim().min(1).max(100)).min(1).max(30),
   bio: z.string().trim().min(30).max(1500),
   serviceRadiusKm: z.number().int().min(1).max(100),

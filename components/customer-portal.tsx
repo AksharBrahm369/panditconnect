@@ -8,6 +8,7 @@ import {
   Banknote, CalendarDays, Compass, CreditCard, HelpCircle, MapPin, Mic, PackageCheck, RefreshCw, Search, ShieldCheck, Smartphone, Sparkles, Star, X,
 } from "lucide-react";
 import { AppShell } from "./app-shell";
+import { IndianLanguageSelect } from "./indian-language-fields";
 import { ConsultationPanel } from "./consultation-panel";
 import { PanditAvatar } from "./pandit-avatar";
 import { AvailabilityFallback, type FallbackPlan } from "./availability-fallback";
@@ -175,6 +176,12 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
   useEffect(() => {
     fetch("/api/services").then((response) => readJson<{ services: Service[] }>(response))
       .then((data) => setServices(data.services ?? []));
+    void fetch("/api/profile", { cache: "no-store" })
+      .then((response) => readJson<{ profile?: { preferred_language?: string; default_address?: string } }>(response))
+      .then((data) => {
+        if (data.profile?.preferred_language) setLanguage(data.profile.preferred_language);
+        if (data.profile?.default_address) setAddress((current) => current || data.profile!.default_address || "");
+      });
     void fetch("/api/payments/orders",{cache:"no-store"}).then(r=>readJson<{enabled?:boolean}>(r)).then(d=>setOnlinePayments(Boolean(d.enabled)));
     const initialLoad = window.setTimeout(() => void refreshBookings(), 0);
     const refresh=()=>{if(document.visibilityState==="visible")void refreshBookings();};
@@ -682,7 +689,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
                 <aside className="side-card sticky">
                   <h3>Request details</h3>
                   {preferredPandit && <div className="preferred-pandit-note"><BadgeCheck size={18} /><span><small>Your selected Pandit</small><strong>{preferredPandit.name}</strong><em>We will confirm this Pandit serves the selected Puja and your location.</em></span><button onClick={() => setPreferredPandit(null)}>Change</button></div>}
-              <label>Preferred language<select value={language} onChange={(event) => setLanguage(event.target.value)}><option>Hindi</option><option>Marathi</option><option>Gujarati</option><option>English</option><option>Sanskrit</option></select></label>
+              <label>Language for the Puja<IndianLanguageSelect value={language} onChange={setLanguage} /><small className="field-hint">Only nearby Pandits who speak this language will be shown.</small></label>
               <label>Puja materials<select value={materialsOption} onChange={(event) => setMaterialsOption(event.target.value)}>{Object.entries(materialsLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
               {requestType === "SCHEDULED_PUJA" && <label>Puja date and time<input type="datetime-local" value={scheduledAt} min={dateTimeLocalValue(Date.now() + 2 * 60 * 60 * 1000)} max={dateTimeLocalValue(Date.now() + 180 * 24 * 60 * 60 * 1000)} onChange={(event) => setScheduledAt(event.target.value)} /><small className="field-hint">Schedule at least 2 hours ahead.</small></label>}
               <label>Full service address<textarea rows={3} value={address} onChange={(event) => { const nextAddress=event.target.value;setAddress(nextAddress);const detectedPin=nextAddress.match(/(?:^|\D)([1-9]\d{2}[\s-]?\d{3})(?!\d)/)?.[1]?.replace(/\D/g,"");if(detectedPin)setPinCode(detectedPin); }} placeholder="House or building, street and area" /></label>

@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { BadgeCheck, Info, Save, ShieldCheck, UserRound } from "lucide-react";
 import { readJson } from "@/lib/http";
+import { IndianLanguageMultiSelect, IndianLanguageSelect } from "./indian-language-fields";
 
 type Role = "CUSTOMER" | "PANDIT";
 type Profile = {
@@ -123,12 +124,12 @@ export function ProfileEditor({ role, onSaved }: { role: Role; onSaved?: () => v
           <label>City <b aria-hidden="true">*</b><input value={form.city} placeholder="For example, Mumbai" onChange={(event) => field("city", event.target.value)} maxLength={100} required /></label>
           {role === "CUSTOMER" ? <>
             <label className="span-2">Default service address <small>Optional</small><textarea rows={3} value={form.defaultAddress} placeholder="House or building, street, area and PIN code" onChange={(event) => field("defaultAddress", event.target.value)} maxLength={500} /></label>
-            <label>Preferred language<select value={form.preferredLanguage} onChange={(event) => field("preferredLanguage", event.target.value)}>{["Hindi", "Marathi", "Gujarati", "English", "Sanskrit"].map((value) => <option key={value}>{value}</option>)}</select></label>
+            <label>Preferred Puja language<IndianLanguageSelect value={form.preferredLanguage} onChange={(value) => field("preferredLanguage", value)} /><small>Used by default when finding a matching Pandit.</small></label>
           </> : <>
             <label className="span-2">Current address<textarea rows={3} value={form.currentAddress} onChange={(event) => field("currentAddress", event.target.value)} maxLength={500} /></label>
             <label>Years of experience<input type="number" min={0} max={80} value={form.experienceYears} onChange={(event) => field("experienceYears", Number(event.target.value))} /></label>
             <label>Service radius (km)<input type="number" min={1} max={25} value={form.serviceRadiusKm} onChange={(event) => field("serviceRadiusKm", Number(event.target.value))} /></label>
-            <label>Languages<small>Separate multiple languages with commas.</small><input value={form.languages} onChange={(event) => field("languages", event.target.value)} /></label>
+            <div className="span-2"><IndianLanguageMultiSelect value={form.languages.split(",").map((item) => item.trim()).filter(Boolean)} onChange={(languages) => field("languages", languages.join(", "))} /></div>
             <label className="span-2">Puja specialities<small>Separate multiple specialities with commas.</small><input value={form.specialities} onChange={(event) => field("specialities", event.target.value)} /></label>
             <label className="span-2">Professional introduction<textarea rows={5} value={form.bio} onChange={(event) => field("bio", event.target.value)} maxLength={1500} /></label>
             <div className="service-price-editor span-2"><div><strong>Services and charges</strong><small>Enable the Pujas you offer and set the customer-visible charge for each service.</small></div><div className="service-price-list">{pricing.map((service, index) => <article className={service.enabled ? "enabled" : ""} key={service.service_id}><label className="service-enable"><input type="checkbox" checked={service.enabled} onChange={(event) => setPricing((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, enabled: event.target.checked } : item))} /><span><strong>{service.name}</strong><small>{service.description}</small></span></label><label className="service-charge"><span>Charge (INR)</span><input type="number" min={0} max={1000000} disabled={!service.enabled} value={service.price} onChange={(event) => setPricing((current) => current.map((item, itemIndex) => itemIndex === index ? { ...item, price: Number(event.target.value) } : item))} /></label></article>)}</div></div>
