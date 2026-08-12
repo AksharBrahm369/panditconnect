@@ -52,3 +52,20 @@ test("the selected app language updates customer dashboard content", async () =>
   assert.match(translations, /આજે તમને કઈ મદદ જોઈએ છે\?/);
   assert.match(translations, /export function translatePortalText/);
 });
+
+test("the selected app language localizes the complete Pandit workspace", async () => {
+  const [shell, localizer, translations] = await Promise.all([
+    readFile(new URL("../components/app-shell.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/pandit-page-localizer.ts", import.meta.url), "utf8"),
+    readFile(new URL("../lib/pandit-page-translations.ts", import.meta.url), "utf8"),
+  ]);
+  assert.match(shell, /usePanditPageLocalizer\(portalMainRef, appLanguage, role === "Pandit"\)/);
+  assert.match(localizer, /MutationObserver/);
+  assert.match(localizer, /placeholder.*title.*aria-label/s);
+  for (const language of ["Hindi", "Marathi", "Gujarati", "Bengali", "Tamil", "Telugu", "Malayalam", "Kannada", "Punjabi", "Odia", "Urdu"]) {
+    assert.match(translations, new RegExp(`"${language}"\\s*:`));
+  }
+  assert.match(translations, /"Complete your verified professional profile"/);
+  assert.match(translations, /"Still needed before submission"/);
+  assert.match(translations, /"Save draft"/);
+});

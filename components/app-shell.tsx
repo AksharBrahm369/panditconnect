@@ -1,7 +1,7 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Activity, BadgeCheck, BookOpenCheck, LayoutDashboard,
   Headphones, LogOut, MapPinned, MessageCircle, ShieldCheck, Sparkles, UsersRound,
@@ -11,6 +11,7 @@ import { PanditAccountMenu } from "./pandit-account-menu";
 import { CustomerAccountMenu } from "./customer-account-menu";
 import { PortalLanguageSwitcher, usePortalLanguage } from "./portal-language-switcher";
 import { portalCopy, translatePortalText } from "@/lib/portal-i18n";
+import { usePanditPageLocalizer } from "./pandit-page-localizer";
 import "./customer-navbar.css";
 
 const roleNavigation = {
@@ -38,7 +39,9 @@ export function AppShell({ role, userName, title, subtitle, children }: { role: 
   const [activeHref, setActiveHref] = useState(navigation[0].href as string);
   const [accountName, setAccountName] = useState(userName?.trim() || "");
   const [appLanguage, setAppLanguage] = usePortalLanguage();
+  const portalMainRef = useRef<HTMLElement>(null);
   const copy = portalCopy(appLanguage);
+  usePanditPageLocalizer(portalMainRef, appLanguage, role === "Pandit");
 
   useEffect(() => {
     const syncActiveNavigation = () => {
@@ -83,7 +86,7 @@ export function AppShell({ role, userName, title, subtitle, children }: { role: 
         <div className="portal-account"><PortalLanguageSwitcher value={appLanguage} onChange={setAppLanguage} label={copy.language} /><span className="portal-role-mark">{role === "Admin" ? <ShieldCheck /> : role === "Pandit" ? <BadgeCheck /> : (accountName.charAt(0) || "C").toUpperCase()}</span><div className="account-identity"><small>{role === "Customer" ? copy.namaste : copy.signedInAs}</small><strong>{role === "Pandit" ? userName || "Pandit" : accountName || role}</strong></div><NotificationCenter role={role} />{role === "Pandit" ? <PanditAccountMenu onLogout={logout} /> : role === "Customer" ? <CustomerAccountMenu onLogout={logout} /> : <button className="icon-button" onClick={logout} aria-label="Log out"><LogOut size={17} /></button>}</div>
       </header>
 
-      <main className="portal-main">
+      <main className="portal-main" ref={portalMainRef} lang={appLanguage === "English" ? "en" : undefined} dir={appLanguage === "Urdu" ? "rtl" : "ltr"}>
         <div className="page-heading" id="portal-overview"><div><span className="eyebrow">{role} home</span><h1>{translatePortalText(title, appLanguage)}</h1><p>{translatePortalText(subtitle, appLanguage)}</p></div><span className="heading-mark" aria-hidden="true">{role === "Admin" ? <ShieldCheck /> : role === "Pandit" ? <BadgeCheck /> : <Sparkles />}</span></div>
         {children}
       </main>
