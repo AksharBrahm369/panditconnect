@@ -5,7 +5,14 @@ import { adminPhoneAllowlist } from "./env";
 
 type PushRow = { id: string; endpoint: string; p256dh: string; auth: string };
 type QueuedPushRow = PushRow & { queue_id: string; notification_id: string; title: string; body: string; url: string; event_type: string; attempts: number };
-const MANDATORY_ACCOUNT_EVENTS = new Set(["PANDIT_BLOCKED", "PANDIT_RESTRICTED", "PANDIT_UNBLOCKED"]);
+const MANDATORY_ACCOUNT_EVENTS = new Set([
+  "PANDIT_APPROVED",
+  "PANDIT_REJECTED",
+  "PANDIT_CHANGES_REQUESTED",
+  "PANDIT_BLOCKED",
+  "PANDIT_RESTRICTED",
+  "PANDIT_UNBLOCKED",
+]);
 
 function pushTtl(eventType: string) {
   return MANDATORY_ACCOUNT_EVENTS.has(eventType) ? 7 * 24 * 60 * 60 : 300;

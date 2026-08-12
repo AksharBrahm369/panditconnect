@@ -5,13 +5,14 @@ import { Bell, BellRing, Check, ShieldCheck, X } from "lucide-react";
 import { readJson } from "@/lib/http";
 import { connectDeviceToPush } from "@/lib/client-push";
 
-type Item = { id: string; title: string; body: string; url: string; read_at: string | null; created_at: string };
+type Item = { id: string; title: string; body: string; url: string; event_type: string; read_at: string | null; created_at: string };
 type Preferences = { booking_updates: boolean; chat_updates: boolean; service_updates: boolean; marketing: boolean };
 type PortalRole = "Customer" | "Pandit" | "Admin";
 
 const ONBOARDING_KEY = "panditconnect-notification-onboarding-v2";
 const PROMPT_AFTER_KEY = "panditconnect-notification-prompt-after";
 const PANDIT_ALARM_KEY = "panditconnect-pandit-loud-alarm";
+const PANDIT_DECISION_EVENTS = new Set(["PANDIT_APPROVED", "PANDIT_REJECTED", "PANDIT_CHANGES_REQUESTED"]);
 let alertAudioContext: AudioContext | null = null;
 
 async function playAlertSound() {
@@ -32,6 +33,27 @@ async function playAlertSound() {
     oscillator.start(startedAt + delay);
     oscillator.stop(startedAt + delay + 0.14);
   });
+}
+
+async function playPanditDecisionAlarm() {
+  const AudioContextClass = window.AudioContext || (window as typeof window & { webkitAudioContext?: typeof AudioContext }).webkitAudioContext;
+  if (!AudioContextClass) return;
+  alertAudioContext ??= new AudioContextClass();
+  if (alertAudioContext.state === "suspended") await alertAudioContext.resume();
+  const startedAt = alertAudioContext.currentTime;
+  [[0, 880], [0.2, 1180], [0.4, 880], [0.7, 1320], [0.95, 1040], [1.2, 1320]].forEach(([delay, frequency]) => {
+    const oscillator = alertAudioContext!.createOscillator();
+    const gain = alertAudioContext!.createGain();
+    oscillator.type = "square";
+    oscillator.frequency.setValueAtTime(frequency, startedAt + delay);
+    gain.gain.setValueAtTime(0.0001, startedAt + delay);
+    gain.gain.exponentialRampToValueAtTime(0.42, startedAt + delay + 0.025);
+    gain.gain.exponentialRampToValueAtTime(0.0001, startedAt + delay + 0.17);
+    oscillator.connect(gain).connect(alertAudioContext!.destination);
+    oscillator.start(startedAt + delay);
+    oscillator.stop(startedAt + delay + 0.19);
+  });
+  if ("vibrate" in navigator) navigator.vibrate([500, 120, 500, 120, 700]);
 }
 
 const onboardingCopy: Record<PortalRole, { title: string; body: string }> = {
@@ -59,15 +81,16 @@ export function NotificationCenter({ role }: { role: PortalRole }) {
   const [automaticPrompt, setAutomaticPrompt] = useState(false);
   const [connecting, setConnecting] = useState(false);
   const [preferences, setPreferences] = useState<Preferences>({ booking_updates: true, chat_updates: true, service_updates: true, marketing: false });
+  const [decisionAlert, setDecisionAlert] = useState<Item | null>(null);
   const latestId = useRef<string | null>(null);
   const lastSoundAt = useRef(0);
 
-  const alertDevice = useCallback(async () => {
+  const alertDevice = useCallback(async (eventType?: string) => {
     if (localStorage.getItem("panditconnect-notification-sound") !== "on" || Date.now() - lastSoundAt.current < 1500) return;
     lastSoundAt.current = Date.now();
     if ("vibrate" in navigator) navigator.vibrate([180, 80, 180]);
-    await playAlertSound();
-  }, []);
+    await (role === "Pandit" && eventType && PANDIT_DECISION_EVENTS.has(eventType) ? playPanditDecisionAlarm() : playAlertSound());
+  }, [role]);
 
   const load = useCallback(async () => {
     const [response, keyResponse] = await Promise.all([
@@ -89,17 +112,18 @@ export function NotificationCenter({ role }: { role: PortalRole }) {
     if (!response.ok) return;
     const data = await readJson<{ notifications?: Item[]; unread?: number; vapidPublicKey?: string }>(response);
     const nextItems = data.notifications ?? [];
-    if (latestId.current && nextItems[0]?.id && latestId.current !== nextItems[0].id) void alertDevice();
+    if (latestId.current && nextItems[0]?.id && latestId.current !== nextItems[0].id) void alertDevice(nextItems[0].event_type);
     latestId.current = nextItems[0]?.id ?? latestId.current;
+    setDecisionAlert(role === "Pandit" ? nextItems.find((item) => !item.read_at && PANDIT_DECISION_EVENTS.has(item.event_type)) ?? null : null);
     setItems(nextItems);
     setUnread(data.unread ?? 0);
     setKey((current) => data.vapidPublicKey || publicKey || current);
-  }, [alertDevice]);
+  }, [alertDevice, role]);
 
   useEffect(() => {
     const onPush = (event: MessageEvent) => {
       if (event.data?.type !== "PANDITCONNECT_PUSH") return;
-      void alertDevice();
+      void alertDevice(event.data.eventType);
       void load();
     };
     const initial = window.setTimeout(() => {
@@ -117,6 +141,13 @@ export function NotificationCenter({ role }: { role: PortalRole }) {
       navigator.serviceWorker?.removeEventListener("message", onPush);
     };
   }, [alertDevice, load]);
+
+  useEffect(() => {
+    if (role !== "Pandit" || !decisionAlert || localStorage.getItem("panditconnect-notification-sound") !== "on") return;
+    void playPanditDecisionAlarm().catch(() => undefined);
+    const timer = window.setInterval(() => void playPanditDecisionAlarm().catch(() => undefined), 8_000);
+    return () => window.clearInterval(timer);
+  }, [decisionAlert, role]);
 
   useEffect(() => {
     const timer = window.setTimeout(() => {
@@ -200,7 +231,15 @@ export function NotificationCenter({ role }: { role: PortalRole }) {
       await fetch("/api/notifications", { method: "PATCH" });
       setUnread(0);
       setItems((old) => old.map((item) => ({ ...item, read_at: item.read_at || new Date().toISOString() })));
+      setDecisionAlert(null);
     }
+  }
+
+  async function acknowledgeDecision() {
+    await fetch("/api/notifications", { method: "PATCH" });
+    setUnread(0);
+    setItems((old) => old.map((item) => ({ ...item, read_at: item.read_at || new Date().toISOString() })));
+    setDecisionAlert(null);
   }
 
   async function updatePreference(preferenceKey: keyof Preferences, value: boolean) {
@@ -240,6 +279,17 @@ export function NotificationCenter({ role }: { role: PortalRole }) {
         {message && <p className="notification-onboarding-error">{message}</p>}
         <button className="btn btn-primary" onClick={() => void enable(true)} disabled={connecting}>{connecting ? "Connecting this device…" : "Allow notifications"}</button>
         <button className="notification-onboarding-later" onClick={remindLater} disabled={connecting}>Not now</button>
+      </section>
+    </div>}
+
+    {role === "Pandit" && decisionAlert && <div className="pandit-decision-alert-backdrop" role="presentation">
+      <section className={`pandit-decision-alert ${decisionAlert.event_type === "PANDIT_APPROVED" ? "is-approved" : "is-attention"}`} role="alertdialog" aria-modal="true" aria-labelledby="pandit-decision-title">
+        <span className="pandit-decision-alert-icon">{decisionAlert.event_type === "PANDIT_APPROVED" ? <Check /> : <BellRing />}</span>
+        <span className="eyebrow">Admin decision</span>
+        <h2 id="pandit-decision-title">{decisionAlert.title}</h2>
+        <p>{decisionAlert.body}</p>
+        <a className="btn btn-primary" href={decisionAlert.url} onClick={() => void acknowledgeDecision()}>Open my Pandit portal</a>
+        <button className="pandit-decision-acknowledge" onClick={() => void acknowledgeDecision()}>I have read this</button>
       </section>
     </div>}
   </>;

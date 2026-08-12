@@ -4,8 +4,20 @@ self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim(
 self.addEventListener("push", (event) => {
   let data = { title: "PanditConnect", body: "You have a new update.", url: "/" };
   try { data = { ...data, ...event.data.json() }; } catch {}
+  const persistentEvents = ["BOOKING_REQUESTED", "BOOKING_CANCELLED", "CONSULTATION_STARTED", "PANDIT_APPROVED", "PANDIT_REJECTED", "PANDIT_CHANGES_REQUESTED", "PANDIT_BLOCKED", "PANDIT_RESTRICTED", "PANDIT_UNBLOCKED"];
+  const isPanditDecision = ["PANDIT_APPROVED", "PANDIT_REJECTED", "PANDIT_CHANGES_REQUESTED"].includes(data.eventType);
   event.waitUntil(Promise.all([
-    self.registration.showNotification(data.title, { body: data.body, icon: "/icon-192.png", badge: "/notification-badge.png", data: { url: data.url }, tag: data.eventType || "panditconnect-update", renotify: true, silent: false, requireInteraction: ["BOOKING_REQUESTED", "BOOKING_CANCELLED", "CONSULTATION_STARTED", "PANDIT_BLOCKED", "PANDIT_RESTRICTED", "PANDIT_UNBLOCKED"].includes(data.eventType), vibrate: [350, 120, 350, 120, 500] }),
+    self.registration.showNotification(data.title, {
+      body: data.body,
+      icon: "/icon-192.png",
+      badge: "/notification-badge.png",
+      data: { url: data.url, eventType: data.eventType },
+      tag: data.eventType || "panditconnect-update",
+      renotify: true,
+      silent: false,
+      requireInteraction: persistentEvents.includes(data.eventType),
+      vibrate: isPanditDecision ? [500, 120, 500, 120, 700, 180, 700] : [350, 120, 350, 120, 500],
+    }),
     clients.matchAll({ type: "window", includeUncontrolled: true }).then((windows) => windows.forEach((client) => client.postMessage({ type: "PANDITCONNECT_PUSH", eventType: data.eventType, receivedAt: Date.now() }))),
   ]));
 });

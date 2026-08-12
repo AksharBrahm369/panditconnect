@@ -17,3 +17,23 @@ test("admin overview measures push delivery from the current queue table", async
   assert.doesNotMatch(route, /pim_v2\.notification_deliveries/);
   assert.match(route, /status='DELIVERED'/);
 });
+
+test("Pandit approval decisions remain deliverable and trigger a persistent device alert", async () => {
+  const [push, worker, center, route] = await Promise.all([
+    readFile(new URL("../lib/push-notifications.ts", import.meta.url), "utf8"),
+    readFile(new URL("../public/sw.js", import.meta.url), "utf8"),
+    readFile(new URL("../components/notification-center.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/admin/pandits/route.ts", import.meta.url), "utf8"),
+  ]);
+  for (const event of ["PANDIT_APPROVED", "PANDIT_REJECTED", "PANDIT_CHANGES_REQUESTED"]) {
+    assert.match(push, new RegExp(`"${event}"`));
+    assert.match(worker, new RegExp(`"${event}"`));
+    assert.match(center, new RegExp(`"${event}"`));
+  }
+  assert.match(push, /7 \* 24 \* 60 \* 60/);
+  assert.match(worker, /requireInteraction: persistentEvents\.includes/);
+  assert.match(worker, /silent: false/);
+  assert.match(center, /playPanditDecisionAlarm/);
+  assert.match(center, /setInterval\(.*8_000/);
+  assert.match(route, /eventType: `PANDIT_\$\{eventAction\}`/);
+});
