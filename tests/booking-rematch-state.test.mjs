@@ -21,3 +21,18 @@ test("replacement matching excludes declined Pandits and starts a fresh requeste
   assert.match(customer, /pandit_name: data\.matchedPandit!\.name/);
   assert.match(customer, /pandit_latitude: null/);
 });
+
+test("an exhausted broadcast can retry when a newly approved nearby Pandit becomes available", async () => {
+  const [route, bookings, customer] = await Promise.all([
+    readFile(new URL("../app/api/bookings/[id]/rematch/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/bookings/route.ts", import.meta.url), "utf8"),
+    readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(route, /pandit_id IS NULL THEN COALESCE\(declined_pandit_ids/);
+  assert.match(route, /dispatch_status='ASSIGNED'/);
+  assert.match(route, /o\.scheduled_at IS NULL AND NOT EXISTS/);
+  assert.match(bookings, /available_now_count/);
+  assert.match(customer, /Search nearby Pandits again/);
+  assert.match(customer, /Availability has changed since your previous search/);
+});

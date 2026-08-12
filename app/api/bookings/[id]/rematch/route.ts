@@ -29,7 +29,8 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
   const result = await sql<RematchResult>(
     `WITH original AS (
        SELECT id,customer_id,service_id,latitude,longitude,preferred_language,pandit_id,request_type,scheduled_at,
-         CASE WHEN pandit_id = ANY(COALESCE(declined_pandit_ids,ARRAY[]::uuid[]))
+         CASE WHEN pandit_id IS NULL THEN COALESCE(declined_pandit_ids,ARRAY[]::uuid[])
+           WHEN pandit_id = ANY(COALESCE(declined_pandit_ids,ARRAY[]::uuid[]))
            THEN COALESCE(declined_pandit_ids,ARRAY[]::uuid[])
            ELSE array_append(COALESCE(declined_pandit_ids,ARRAY[]::uuid[]),pandit_id)
          END AS excluded_pandit_ids
@@ -56,12 +57,16 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
           SELECT 1 FROM unnest(p.languages) listed_language
           WHERE lower(listed_language)=lower(o.preferred_language)
         ))
-        AND (o.scheduled_at IS NULL OR NOT EXISTS (
+        AND ((o.scheduled_at IS NULL AND NOT EXISTS (
+          SELECT 1 FROM pim_v2.bookings busy
+          WHERE busy.pandit_id=p.user_id AND busy.id<>o.id
+            AND busy.status IN ('REQUESTED','ACCEPTED','ON_THE_WAY','ARRIVED','IN_PROGRESS')
+        )) OR (o.scheduled_at IS NOT NULL AND NOT EXISTS (
           SELECT 1 FROM pim_v2.bookings busy
           WHERE busy.pandit_id=p.user_id AND busy.id<>o.id
             AND busy.scheduled_at BETWEEN o.scheduled_at - interval '3 hours' AND o.scheduled_at + interval '3 hours'
             AND busy.status IN ('REQUESTED','ACCEPTED','ON_THE_WAY','ARRIVED','IN_PROGRESS')
-        ))
+        )))
        JOIN pim_v2.users u ON u.id=p.user_id AND u.account_status='ACTIVE'
        JOIN pim_v2.pandit_services ps ON ps.pandit_id=p.user_id AND ps.service_id=o.service_id
        WHERE 6371 * acos(least(1, greatest(-1,
@@ -78,7 +83,8 @@ export async function POST(_request: Request, context: { params: Promise<{ id: s
          arrival_otp=$3,arrival_otp_attempts=0,accepted_at=NULL,completed_at=NULL,
          payment_method=NULL,payment_status='NOT_SELECTED',payment_confirmed_at=NULL,
          cancellation_reason=NULL,cancelled_by=NULL,cancelled_at=NULL,
-         declined_pandit_ids=original.excluded_pandit_ids
+         declined_pandit_ids=original.excluded_pandit_ids,
+         dispatch_status='ASSIGNED',next_expansion_at=NULL,travel_surcharge=0
        FROM matches,original
        WHERE b.id=original.id AND b.status='DECLINED'
        RETURNING matches.id,matches.name,matches.distance,b.status

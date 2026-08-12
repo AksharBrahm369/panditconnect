@@ -32,6 +32,19 @@ export async function GET() {
         b.situation,b.preferred_language,b.materials_option,b.latitude,b.longitude,
         b.service_id,b.dispatch_status,b.search_radius_km,b.max_search_radius_km,b.travel_surcharge,b.next_expansion_at,
         (SELECT count(*)::int FROM pim_v2.booking_offers active_offer WHERE active_offer.booking_id=b.id AND active_offer.status='OFFERED' AND active_offer.expires_at>now()) AS active_offer_count,
+        CASE WHEN b.status='DECLINED' THEN (SELECT count(*)::int
+          FROM pim_v2.pandit_profiles available
+          JOIN pim_v2.users available_user ON available_user.id=available.user_id AND available_user.account_status='ACTIVE'
+          JOIN pim_v2.pandit_services available_service ON available_service.pandit_id=available.user_id AND available_service.service_id=b.service_id
+          WHERE available.verification_status='APPROVED'
+            AND (b.request_type='SCHEDULED_PUJA' OR available.is_online=true)
+            AND available.latitude IS NOT NULL AND available.longitude IS NOT NULL
+            AND available.user_id<>b.customer_id
+            AND (b.preferred_language IS NULL OR EXISTS(SELECT 1 FROM unnest(available.languages) listed_language WHERE lower(listed_language)=lower(b.preferred_language)))
+            AND 6371*acos(least(1,greatest(-1,cos(radians(b.latitude))*cos(radians(available.latitude))*cos(radians(available.longitude)-radians(b.longitude))+sin(radians(b.latitude))*sin(radians(available.latitude)))))<=least(COALESCE(available.service_radius_km,25),25)
+            AND ((b.scheduled_at IS NULL AND NOT EXISTS(SELECT 1 FROM pim_v2.bookings busy WHERE busy.pandit_id=available.user_id AND busy.id<>b.id AND busy.status IN ('REQUESTED','ACCEPTED','ON_THE_WAY','ARRIVED','IN_PROGRESS')))
+              OR (b.scheduled_at IS NOT NULL AND NOT EXISTS(SELECT 1 FROM pim_v2.bookings busy WHERE busy.pandit_id=available.user_id AND busy.id<>b.id AND busy.scheduled_at BETWEEN b.scheduled_at-interval '3 hours' AND b.scheduled_at+interval '3 hours' AND busy.status IN ('REQUESTED','ACCEPTED','ON_THE_WAY','ARRIVED','IN_PROGRESS'))))
+        ) ELSE 0 END AS available_now_count,
         b.customer_rating,b.rating_comment,b.rated_at,b.payment_method,b.payment_status,b.payment_confirmed_at,
         b.cancellation_fee,b.cancellation_fee_status,b.cancellation_reason,b.cancelled_at,b.proposed_amount,b.price_change_reason,b.price_change_status,
         s.name AS service_name,pu.name AS pandit_name,p.latitude AS pandit_latitude,
