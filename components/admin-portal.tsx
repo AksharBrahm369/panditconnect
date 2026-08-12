@@ -134,6 +134,41 @@ export function AdminPortal() {
   async function review(action: "APPROVE" | "REJECT" | "REQUEST_CHANGES" | "START_REVIEW" | "UPDATE_CHECKLIST") {
     if (!selected) return;
     setBusy(true); setNotice("");
+    if (action === "APPROVE") {
+      const requiredChecks: Array<[keyof ReviewChecklist, string]> = [
+        ["identityStatus", "Identity review"],
+        ["documentStatus", "Document review"],
+        ["referenceStatus", "Reference verification"],
+        ["knowledgeCheckStatus", "Puja knowledge check"],
+        ["bankStatus", "Bank / UPI verification"],
+      ];
+      const missing = requiredChecks.filter(([key]) => checklist[key] !== "VERIFIED").map(([, label]) => label);
+      if (missing.length) {
+        setNotice(`Complete these checks before approval: ${missing.join(", ")}.`);
+        setBusy(false);
+        return;
+      }
+      if (!checklist.identityMethod?.trim() || !checklist.identityReference?.trim()) {
+        setNotice("Choose how the identity was verified and add a safe masked reference before approval.");
+        setBusy(false);
+        return;
+      }
+      if (!checklist.bankMethod?.trim() || !checklist.bankReference?.trim()) {
+        setNotice("Choose how the bank or UPI account was verified and add a safe masked reference before approval.");
+        setBusy(false);
+        return;
+      }
+      const checklistResponse = await fetch("/api/admin/pandits", {
+        method: "PATCH", headers: { "content-type": "application/json" },
+        body: JSON.stringify({ panditId: selected.id, action: "UPDATE_CHECKLIST", note, ...checklist }),
+      });
+      const checklistResult = await readJson<{ error?: string }>(checklistResponse);
+      if (!checklistResponse.ok) {
+        setNotice(checklistResult.error ?? "Unable to save the verification checklist");
+        setBusy(false);
+        return;
+      }
+    }
     const response = await fetch("/api/admin/pandits", {
       method: "PATCH", headers: { "content-type": "application/json" },
       body: JSON.stringify({ panditId: selected.id, action, note, ...(action === "UPDATE_CHECKLIST" ? checklist : {}) }),
@@ -257,9 +292,12 @@ export function AdminPortal() {
           <div className="review-section"><span>Private documents</span><div className="review-documents">{selected.documents?.map((document) => <div className={`document-review-row ${document.status.toLowerCase()}`} key={document.id}><button className="document-review-button" onClick={() => void openDocument(document.id)}><span><strong>{document.type.replaceAll("_", " ")}</strong><small>{document.name} · {document.status}{document.note ? ` · ${document.note}` : ""}</small></span><ExternalLink size={15} /></button><div><button className="mini-review verify" disabled={busy || document.status === "VERIFIED"} onClick={() => void reviewDocument(document.id, "VERIFIED")}>Verify</button><button className="mini-review reject" disabled={busy || document.status === "REJECTED"} onClick={() => void reviewDocument(document.id, "REJECTED")}>Reject</button></div></div>) || <em>No documents uploaded</em>}</div><small>Open the file first, then verify or reject it. Review links expire after five minutes.</small></div>
           <div className="review-section"><span>References</span>{selected.references?.map((reference) => <div className="admin-reference" key={reference.id}><strong>{reference.name}</strong><span>{reference.relationship} · {reference.organisation || "Independent reference"}</span><small>{reference.phone} · {reference.status}</small></div>) || <em>No references submitted</em>}</div>
           <div className="review-section"><span>Payout verification</span><p>{selected.payout_method === "BANK" ? `${selected.bank_account_name || "Account holder missing"} · IFSC ${selected.bank_ifsc || "missing"}` : `UPI ${selected.upi_id || "missing"}`}</p></div>
-          <div className="verification-checklist"><h3>Admin verification checklist</h3>{([
-            ["identityStatus","Identity review"], ["documentStatus","Document review"], ["referenceStatus","Reference verification"], ["knowledgeCheckStatus","Puja knowledge check"], ["bankStatus","Bank / UPI verification"],
-          ] as Array<[keyof ReviewChecklist,string]>).map(([key,label]) => <label key={key}><span>{label}</span><select value={String(checklist[key] ?? "PENDING")} onChange={(event) => setChecklist({ ...checklist, [key]: event.target.value as CheckStatus })}><option>PENDING</option><option>VERIFIED</option><option>FAILED</option></select></label>)}<label><span>Identity verification method</span><input value={checklist.identityMethod??""} onChange={(e)=>setChecklist({...checklist,identityMethod:e.target.value})} placeholder="Manual original document comparison"/></label><label><span>Identity verification reference</span><input value={checklist.identityReference??""} onChange={(e)=>setChecklist({...checklist,identityReference:e.target.value})} placeholder="Masked reference / vendor result"/></label><label><span>Bank verification method</span><input value={checklist.bankMethod??""} onChange={(e)=>setChecklist({...checklist,bankMethod:e.target.value})} placeholder="Penny drop / cancelled cheque"/></label><label><span>Bank verification reference</span><input value={checklist.bankReference??""} onChange={(e)=>setChecklist({...checklist,bankReference:e.target.value})} placeholder="Masked reference / vendor result"/></label><label><span>Knowledge score / 100</span><input type="number" min="0" max="100" value={checklist.knowledgeScore ?? ""} onChange={(e) => setChecklist({ ...checklist, knowledgeScore: e.target.value ? Number(e.target.value) : null })} /></label><button className="btn btn-ghost btn-block" disabled={busy} onClick={() => review("UPDATE_CHECKLIST")}>Save verification checklist</button></div>
+           <div className="verification-checklist"><h3>Admin verification checklist</h3><p className="verification-help">Review each item and mark it verified only after checking the supporting information. The approval button will save this checklist automatically.</p>{([
+             ["identityStatus","Identity review"], ["documentStatus","Document review"], ["referenceStatus","Reference verification"], ["knowledgeCheckStatus","Puja knowledge check"], ["bankStatus","Bank / UPI verification"],
+           ] as Array<[keyof ReviewChecklist,string]>).map(([key,label]) => <label key={key}><span>{label}</span><select value={String(checklist[key] ?? "PENDING")} onChange={(event) => setChecklist({ ...checklist, [key]: event.target.value as CheckStatus })}><option value="PENDING">Pending</option><option value="VERIFIED">Verified</option><option value="FAILED">Failed</option></select></label>)}
+           {checklist.identityStatus === "VERIFIED" && <div className="verification-evidence"><h4>Identity evidence</h4><p>Record how you checked the ID. Never enter the complete Aadhaar, PAN or document number.</p><label><span>How was it checked?</span><select value={checklist.identityMethod??""} onChange={(e)=>setChecklist({...checklist,identityMethod:e.target.value})}><option value="">Choose method</option><option>Original ID checked</option><option>Video KYC completed</option><option>Verification provider result</option></select></label><label><span>Safe reference</span><input value={checklist.identityReference??""} onChange={(e)=>setChecklist({...checklist,identityReference:e.target.value})} placeholder="Example: Aadhaar ending 1234"/><small>Use only the last four digits or a provider result ID.</small></label></div>}
+           {checklist.bankStatus === "VERIFIED" && <div className="verification-evidence"><h4>Bank / UPI evidence</h4><p>Record how the payout owner was matched without storing full account details.</p><label><span>How was it checked?</span><select value={checklist.bankMethod??""} onChange={(e)=>setChecklist({...checklist,bankMethod:e.target.value})}><option value="">Choose method</option><option>UPI name matched</option><option>Cancelled cheque checked</option><option>Bank penny-drop verified</option></select></label><label><span>Safe reference</span><input value={checklist.bankReference??""} onChange={(e)=>setChecklist({...checklist,bankReference:e.target.value})} placeholder="Example: account ending 6789"/><small>Use only masked details or a verification result ID.</small></label></div>}
+           {checklist.knowledgeCheckStatus === "VERIFIED" && <label><span>Knowledge score / 100</span><input type="number" min="0" max="100" value={checklist.knowledgeScore ?? ""} onChange={(e) => setChecklist({ ...checklist, knowledgeScore: e.target.value ? Number(e.target.value) : null })} /></label>}<button className="btn btn-ghost btn-block" disabled={busy} onClick={() => review("UPDATE_CHECKLIST")}>Save verification checklist</button></div>
           <label>Correction note <small>Required only when requesting changes</small><textarea rows={3} value={note} onChange={(event) => setNote(event.target.value)} placeholder="Clearly explain what information needs to be updated." /></label>
           {notice && <div className="alert error">{notice}</div>}
           <div className="review-actions multi"><button className="btn btn-ghost" disabled={busy} onClick={() => review("START_REVIEW")}>Start review</button><button className="btn btn-ghost danger" disabled={busy} onClick={() => review("REJECT")}>Reject</button><button className="btn btn-ghost danger" disabled={busy} onClick={() => review("REQUEST_CHANGES")}>Request changes</button><button className="btn btn-primary" disabled={busy || selected.verification_status === "INCOMPLETE"} onClick={() => review("APPROVE")}><Check size={17} /> Approve Pandit</button></div>
