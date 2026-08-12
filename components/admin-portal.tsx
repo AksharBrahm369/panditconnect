@@ -37,6 +37,7 @@ export function AdminPortal() {
   const [queueLoading, setQueueLoading] = useState(false);
   const [queuePage, setQueuePage] = useState(1);
   const [queueHasMore, setQueueHasMore] = useState(false);
+  const [queueTotal, setQueueTotal] = useState<number | null>(null);
   const [approvedLoading, setApprovedLoading] = useState(false);
   const [approvedPage, setApprovedPage] = useState(1);
   const [approvedHasMore, setApprovedHasMore] = useState(false);
@@ -47,9 +48,10 @@ export function AdminPortal() {
     setQueueLoading(true);
     try {
       const response = await fetch(`/api/admin/pandits?page=${page}&limit=12&fresh=${Date.now()}`, { cache: "no-store" });
-      const result = await readJson<{ pandits?: ReviewPandit[]; hasMore?: boolean; error?: string }>(response);
+      const result = await readJson<{ pandits?: ReviewPandit[]; total?: number; hasMore?: boolean; error?: string }>(response);
       if (!response.ok) throw new Error(result.error ?? "Unable to refresh queue");
       setQueue((current) => append ? [...current, ...(result.pandits ?? [])] : (result.pandits ?? []));
+      setQueueTotal(Number(result.total ?? result.pandits?.length ?? 0));
       setQueuePage(page);
       setQueueHasMore(Boolean(result.hasMore));
     } catch (error) {
@@ -77,12 +79,14 @@ export function AdminPortal() {
 
   const load = useCallback(async () => {
     try {
-      const [response, supportResponse] = await Promise.all([
+      const [response, supportResponse, queueSummaryResponse] = await Promise.all([
         fetch(`/api/admin/overview?fresh=${Date.now()}`, { cache: "no-store" }),
         fetch(`/api/admin/support-cases?fresh=${Date.now()}`, { cache: "no-store" }),
+        fetch(`/api/admin/pandits?page=1&limit=4&fresh=${Date.now()}`, { cache: "no-store" }),
       ]);
       const result = await readJson<Partial<Overview> & { error?: string }>(response);
       const support = await readJson<{ cases?: SupportCase[]; error?: string }>(supportResponse);
+      const queueSummary = await readJson<{ pandits?: ReviewPandit[]; total?: number; error?: string }>(queueSummaryResponse);
       if (response.status === 401 || response.status === 403) {
         window.location.assign("/admin/login?reason=session");
         return;
@@ -93,6 +97,7 @@ export function AdminPortal() {
       }
       setData(result as Overview);
       if (supportResponse.ok) setSupportCases(support.cases ?? []);
+      if (queueSummaryResponse.ok) setQueueTotal(Number(queueSummary.total ?? queueSummary.pandits?.length ?? 0));
       await loadApproved(1);
     } catch {
       setNotice("The admin workspace could not connect to the server. Please refresh and try again.");
@@ -169,11 +174,13 @@ export function AdminPortal() {
     await load();
   }
 
+  const pendingPanditCount = queueTotal ?? data?.stats.pendingPandits ?? 0;
+
   return <AppShell role="Admin" title="Operations overview" subtitle="A compact control room for verification, urgent bookings and platform health.">
     <div className="demo-banner"><ShieldCheck size={17} /><div><strong>Protected operations workspace</strong><span>Customer phone numbers remain masked while you review bookings and Pandit quality.</span></div></div>
     <section className="stat-grid admin-stats">
       <article><Users size={21} /><span>Registered users</span><strong>{data?.stats.users ?? "—"}</strong></article>
-      <article><ShieldCheck size={21} /><span>Pandits to review</span><strong>{data?.stats.pendingPandits ?? "—"}</strong></article>
+      <article><ShieldCheck size={21} /><span>Pandits to review</span><strong>{queueTotal ?? data?.stats.pendingPandits ?? "—"}</strong></article>
       <article><CalendarCheck size={21} /><span>Total bookings</span><strong>{data?.stats.bookings ?? "—"}</strong></article>
       <article><BadgeCheck size={21} /><span>Approved Pandits</span><strong>{data?.stats.approvedPandits ?? approved.length}</strong></article>
     </section>
@@ -183,7 +190,7 @@ export function AdminPortal() {
       <div className="workspace-main"><div className="section-title"><div><h2>Recent bookings</h2><p>Monitor status without exposing customer contact details.</p></div></div>
         {data?.recent.length ? <div className="table-wrap admin-bookings-table"><table><thead><tr><th>Puja</th><th>When</th><th>Pandit</th><th>Customer</th><th>Status</th><th>Amount</th></tr></thead><tbody>{data.recent.map((row) => <tr key={row.id}><td data-label="Puja">{row.service_name}</td><td data-label="When">{row.scheduled_at ? new Date(row.scheduled_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" }) : "Urgent / now"}</td><td data-label="Pandit">{row.pandit_name}</td><td data-label="Customer">••••{row.customer_phone.slice(-4)}</td><td data-label="Status"><span className="status">{row.status}</span></td><td data-label="Amount">₹{row.amount.toLocaleString("en-IN")}</td></tr>)}</tbody></table></div> : <div className="empty">No bookings yet.</div>}
       </div>
-      <aside className="side-card"><h3>Review queue</h3><div className="queue-item"><span className="avatar">P</span><div><strong>{data?.stats.pendingPandits ?? 0} Pandit {(data?.stats.pendingPandits ?? 0) === 1 ? "profile" : "profiles"}</strong><small>Identity and experience review</small></div></div><button className="btn btn-primary btn-block" onClick={openQueue} disabled={queueLoading}>{queueLoading ? "Refreshing queue…" : "Open verification queue"}</button><p className="privacy-note">Review experience, languages and specialities before approval.</p></aside>
+      <aside className="side-card"><h3>Review queue</h3><div className="queue-item"><span className="avatar">P</span><div><strong>{pendingPanditCount} Pandit {pendingPanditCount === 1 ? "profile" : "profiles"}</strong><small>Identity and experience review</small></div></div><button className="btn btn-primary btn-block" onClick={openQueue} disabled={queueLoading}>{queueLoading ? "Refreshing queue…" : "Open verification queue"}</button><p className="privacy-note">Review experience, languages and specialities before approval.</p></aside>
     </section>
     {notice && <div className="alert success admin-notice">{notice}</div>}
     <section className="history admin-support" id="admin-support"><div className="section-title"><div><h2>Support and safety cases</h2><p>Urgent reports appear first and every decision is audited.</p></div><span className="live-pill"><i /> {supportCases.filter(item=>["OPEN","IN_REVIEW"].includes(item.status)).length} open</span></div>{supportCases.length?<div className="admin-support-list">{supportCases.map(item=><article key={item.id} className={item.priority==="URGENT"?"urgent":""}><span>{item.priority==="URGENT"?<ShieldAlert/>:<Headphones/>}</span><div><strong>{item.subject}</strong><small>{item.reporter_role} · ••••{item.reporter_phone} · {item.category.replaceAll("_"," ")}</small><p>{item.description}</p>{Boolean(item.cancellation_fee)&&<em>Cancellation charge: ₹{item.cancellation_fee} · {item.cancellation_fee_status}</em>}{item.resolution&&<em>Resolution: {item.resolution}</em>}</div><span className="status">{item.status.replaceAll("_"," ")}</span><div className="button-row">{item.status==="OPEN"&&<button className="btn btn-ghost" disabled={busy} onClick={()=>void updateCase(item.id,"IN_REVIEW")}>Start review</button>}{!["RESOLVED","CLOSED"].includes(item.status)&&<button className="btn btn-primary" disabled={busy} onClick={()=>void updateCase(item.id,"RESOLVED")}>Resolve</button>}</div></article>)}</div>:<div className="empty">No support cases yet.</div>}</section>
@@ -210,7 +217,7 @@ export function AdminPortal() {
       <section className="review-drawer">
         <header><div><span className="eyebrow">Admin review</span><h2>{selected ? "Review Pandit profile" : "Pandit verification queue"}</h2></div><div className="drawer-actions">{!selected && <button className="icon-button" onClick={() => void loadQueue(1)} disabled={queueLoading} aria-label="Refresh queue"><RefreshCw size={18} className={queueLoading ? "spin" : ""} /></button>}<button className="icon-button" onClick={() => { setQueueOpen(false); setSelected(null); }} aria-label="Close queue"><X size={19} /></button></div></header>
         {!selected ? <>
-          <p className="drawer-intro">{queueLoading ? "Refreshing the latest registrations…" : queue.length ? `${queue.length} profile${queue.length === 1 ? "" : "s"} waiting for a decision.` : "No Pandit profiles are waiting for review."}</p>
+          <p className="drawer-intro">{queueLoading ? "Refreshing the latest registrations…" : pendingPanditCount ? `${pendingPanditCount} profile${pendingPanditCount === 1 ? "" : "s"} waiting for a decision.` : "No Pandit profiles are waiting for review."}</p>
           <div className="review-list">{queue.map((pandit) => <button key={pandit.id} className="review-list-item" onClick={() => selectPandit(pandit)}>
             <span className="avatar">{(pandit.name ?? "P").split(" ").map((part) => part[0]).slice(0,2).join("")}</span>
             <div><strong>{pandit.name ?? "Profile not completed"}</strong><span><MapPin size={13} /> {pandit.city ?? "City missing"} · {pandit.experience_years} years</span><small>{pandit.specialities.length ? pandit.specialities.join(", ") : "Specialities not added"}</small></div>
