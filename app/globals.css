@@ -563,7 +563,31 @@ code { font-family: inherit; font-weight: 800; letter-spacing: .12em; color: var
 .document-upload > span { display: grid; gap: 4px; }.document-upload small { color: var(--muted); }.document-upload input { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
 .document-upload { grid-template-columns: auto 1fr auto; }.document-upload.pending { background: #fffaf0; border-color: #e8c98f; }.document-upload.verified { background: #effaf5; border-color: #91d1b4; }.document-upload.rejected { background: #fff3f1; border-color: #e4a79e; }.document-state { font-size: 10px; letter-spacing: .05em; padding: 6px 8px; border-radius: 999px; background: #f1eee9; }.document-upload.verified .document-state { color: #08774c; background: #dff5e9; }.document-upload.rejected .document-state { color: #a52919; background: #fde2dd; }
 .reference-row { display: grid; grid-template-columns: repeat(4,1fr); gap: 9px; margin-bottom: 10px; }.payout-box { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin-top: 20px; padding: 18px; background: #f8fafb; border-radius: 14px; }
-.rules-consent { display: flex; gap: 13px; padding: 20px; align-items: flex-start; }.rules-consent > span { display: grid; gap: 5px; }.rules-consent small { color: var(--muted); line-height: 1.45; }
+.rules-consent {
+  display: grid;
+  grid-template-columns: 22px minmax(0, 1fr);
+  align-items: start;
+  gap: 14px;
+  padding: 20px 22px;
+  cursor: pointer;
+  transition: border-color .18s ease, background .18s ease, box-shadow .18s ease;
+}
+.rules-consent > input[type="checkbox"] {
+  width: 20px;
+  height: 20px;
+  min-height: 20px;
+  margin: 2px 0 0;
+  padding: 0;
+  flex: 0 0 20px;
+  accent-color: var(--green);
+  cursor: pointer;
+}
+.rules-consent > span { display: grid; gap: 5px; min-width: 0; }
+.rules-consent strong { line-height: 1.4; }
+.rules-consent small { color: var(--muted); line-height: 1.5; }
+.rules-consent:hover { border-color: #cdbfb2; background: #fffdf9; }
+.rules-consent:focus-within { border-color: var(--green); box-shadow: 0 0 0 3px rgba(24,121,78,.12); }
+.rules-consent:has(> input:checked) { border-color: #b9dfca; background: #f1faf5; }
 .onboarding-actions { display: flex; justify-content: flex-end; gap: 12px; }.private-storage-note { display: flex; gap: 9px; justify-content: center; color: var(--muted); font-size: 12px; }
 .requirements-card { display: grid; grid-template-columns: minmax(210px,.35fr) 1fr; gap: 22px; padding: 20px 22px; border: 1px solid #e6b66d; border-radius: 15px; background: #fff9ed; scroll-margin: 24px; }.requirements-card > div { display: grid; align-content: start; gap: 4px; }.requirements-card > div span { color: #9a5b00; font-size: 12px; }.requirements-card ul { margin: 0; padding-left: 20px; columns: 2; column-gap: 28px; }.requirements-card li { margin: 0 0 8px; break-inside: avoid; color: #6f4a13; font-size: 13px; }.requirements-ready { display: flex; align-items: center; gap: 10px; padding: 16px 20px; color: #08774c; border: 1px solid #9fd7bd; border-radius: 14px; background: #edfaf4; }.requirements-ready span { display: flex; flex-wrap: wrap; gap: 5px; }
 .interview-mode-grid { display: grid; grid-template-columns: repeat(2,1fr); gap: 12px; margin: 16px 0 20px; }.interview-mode-grid > label { display: flex; gap: 12px; align-items: flex-start; padding: 17px; border: 1px solid var(--line); border-radius: 14px; cursor: pointer; }.interview-mode-grid > label.selected { border-color: #d86a39; background: #fff6f0; box-shadow: 0 0 0 2px #f8dfd2; }.interview-mode-grid span { display: grid; gap: 5px; }.interview-mode-grid small,.recorded-interview-upload small { color: var(--muted); line-height: 1.4; }.recorded-interview-upload { display: grid; align-content: center; gap: 5px; }.admin-interview-summary strong { display: block; margin: 7px 0; }.admin-interview-summary p { margin: 6px 0; }
