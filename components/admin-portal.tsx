@@ -77,16 +77,24 @@ export function AdminPortal() {
     }
   }, []);
 
+  const refreshQueueTotal = useCallback(async () => {
+    try {
+      const response = await fetch(`/api/admin/pandits?page=1&limit=4&fresh=${Date.now()}`, { cache: "no-store" });
+      const result = await readJson<{ pandits?: ReviewPandit[]; total?: number }>(response);
+      if (response.ok) setQueueTotal(Number(result.total ?? result.pandits?.length ?? 0));
+    } catch {
+      // Keep the last confirmed queue total during a temporary network failure.
+    }
+  }, []);
+
   const load = useCallback(async () => {
     try {
-      const [response, supportResponse, queueSummaryResponse] = await Promise.all([
+      const [response, supportResponse] = await Promise.all([
         fetch(`/api/admin/overview?fresh=${Date.now()}`, { cache: "no-store" }),
         fetch(`/api/admin/support-cases?fresh=${Date.now()}`, { cache: "no-store" }),
-        fetch(`/api/admin/pandits?page=1&limit=4&fresh=${Date.now()}`, { cache: "no-store" }),
       ]);
       const result = await readJson<Partial<Overview> & { error?: string }>(response);
       const support = await readJson<{ cases?: SupportCase[]; error?: string }>(supportResponse);
-      const queueSummary = await readJson<{ pandits?: ReviewPandit[]; total?: number; error?: string }>(queueSummaryResponse);
       if (response.status === 401 || response.status === 403) {
         window.location.assign("/admin/login?reason=session");
         return;
@@ -97,16 +105,25 @@ export function AdminPortal() {
       }
       setData(result as Overview);
       if (supportResponse.ok) setSupportCases(support.cases ?? []);
-      if (queueSummaryResponse.ok) setQueueTotal(Number(queueSummary.total ?? queueSummary.pandits?.length ?? 0));
       await loadApproved(1);
     } catch {
       setNotice("The admin workspace could not connect to the server. Please refresh and try again.");
     }
   }, [loadApproved]);
   useEffect(() => {
-    const timer = window.setTimeout(() => void load(), 0);
-    return () => window.clearTimeout(timer);
-  }, [load]);
+    const timer = window.setTimeout(() => {
+      void load();
+      void refreshQueueTotal();
+    }, 0);
+    const interval = window.setInterval(() => void refreshQueueTotal(), 30_000);
+    const refreshWhenVisible = () => { if (document.visibilityState === "visible") void refreshQueueTotal(); };
+    document.addEventListener("visibilitychange", refreshWhenVisible);
+    return () => {
+      window.clearTimeout(timer);
+      window.clearInterval(interval);
+      document.removeEventListener("visibilitychange", refreshWhenVisible);
+    };
+  }, [load, refreshQueueTotal]);
 
   async function openQueue() {
     setNotice("");
@@ -207,7 +224,7 @@ export function AdminPortal() {
           {pandit.account_status === "RESTRICTED" && <><button className="btn btn-ghost" disabled={busy} onClick={()=>void changePanditAccess(pandit.id,"UNBLOCK")}>Restore access</button><button className="btn btn-ghost danger" disabled={busy} onClick={()=>void changePanditAccess(pandit.id,"BLOCK")}>Block</button></>}
           {pandit.account_status === "BLOCKED" && <button className="btn btn-primary btn-block" disabled={busy} onClick={()=>void changePanditAccess(pandit.id,"UNBLOCK")}>Unblock Pandit</button>}
         </div>
-      </article>)}</div> : <div className="empty">No approved Pandits yet.</div>}
+      </article>)}</div> : <div className="empty"><strong>No approved Pandits yet.</strong><span>Submitted applications remain in the Review queue until Admin completes verification and approves them.</span></div>}
       {approvedHasMore && <button className="btn btn-ghost btn-block" disabled={approvedLoading} onClick={() => void loadApproved(approvedPage + 1, true)}>{approvedLoading ? "Loading more…" : "Load more approved Pandits"}</button>}
     </section>
     <AdminPrivacyRequests />
