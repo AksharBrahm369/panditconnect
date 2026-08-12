@@ -9,6 +9,8 @@ import {
 import { NotificationCenter } from "./notification-center";
 import { PanditAccountMenu } from "./pandit-account-menu";
 import { CustomerAccountMenu } from "./customer-account-menu";
+import { PortalLanguageSwitcher, PORTAL_LANGUAGE_STORAGE_KEY } from "./portal-language-switcher";
+import { portalCopy } from "@/lib/portal-i18n";
 import "./customer-navbar.css";
 
 const roleNavigation = {
@@ -35,6 +37,20 @@ export function AppShell({ role, userName, title, subtitle, children }: { role: 
   const navigation = roleNavigation[role];
   const [activeHref, setActiveHref] = useState(navigation[0].href as string);
   const [accountName, setAccountName] = useState(userName?.trim() || "");
+  const [appLanguage, setAppLanguage] = useState("English");
+  const copy = portalCopy(appLanguage);
+
+  useEffect(() => {
+    const saved = window.localStorage.getItem(PORTAL_LANGUAGE_STORAGE_KEY);
+    if (saved) setAppLanguage(saved);
+  }, []);
+
+  function changeAppLanguage(language:string) {
+    setAppLanguage(language);
+    window.localStorage.setItem(PORTAL_LANGUAGE_STORAGE_KEY, language);
+    document.documentElement.lang = language === "English" ? "en" : language.toLowerCase();
+    document.documentElement.dir = ["Urdu", "Kashmiri", "Sindhi"].includes(language) ? "rtl" : "ltr";
+  }
 
   useEffect(() => {
     const syncActiveNavigation = () => {
@@ -74,9 +90,9 @@ export function AppShell({ role, userName, title, subtitle, children }: { role: 
       <header className="portal-header">
         <Link href={`/${role.toLowerCase()}`} className="brand portal-brand" aria-label={`Pandit in Minutes ${role} home`}><span className="brand-mark">ॐ</span><span><strong>Pandit</strong> in Minutes</span></Link>
         <nav className="portal-tabs" aria-label={`${role} navigation`}>
-          {navigation.map(({ label, href, icon: Icon }) => <a className={activeHref === href ? "active" : ""} href={href} key={href} aria-current={activeHref === href ? "page" : undefined}><Icon size={17} /><span>{label}</span></a>)}
+          {navigation.map(({ label, href, icon: Icon }) => { const translated = label === "Home" ? copy.home : label === "Book Pandit" ? copy.bookPandit : label === "Ask online" ? copy.askOnline : label === "My bookings" ? copy.myBookings : label === "Today" ? copy.today : label === "Requests" ? copy.requests : label === "Chat" ? copy.chat : label; return <a className={activeHref === href ? "active" : ""} href={href} key={href} aria-current={activeHref === href ? "page" : undefined}><Icon size={17} /><span>{translated}</span></a>; })}
         </nav>
-        <div className="portal-account"><span className="portal-role-mark">{role === "Admin" ? <ShieldCheck /> : role === "Pandit" ? <BadgeCheck /> : (accountName.charAt(0) || "C").toUpperCase()}</span><div className="account-identity"><small>{role === "Customer" ? "Namaste" : "Signed in as"}</small><strong>{role === "Pandit" ? userName || "Pandit" : accountName || role}</strong></div><NotificationCenter role={role} />{role === "Pandit" ? <PanditAccountMenu onLogout={logout} /> : role === "Customer" ? <CustomerAccountMenu onLogout={logout} /> : <button className="icon-button" onClick={logout} aria-label="Log out"><LogOut size={17} /></button>}</div>
+        <div className="portal-account"><PortalLanguageSwitcher value={appLanguage} onChange={changeAppLanguage} label={copy.language} /><span className="portal-role-mark">{role === "Admin" ? <ShieldCheck /> : role === "Pandit" ? <BadgeCheck /> : (accountName.charAt(0) || "C").toUpperCase()}</span><div className="account-identity"><small>{role === "Customer" ? copy.namaste : copy.signedInAs}</small><strong>{role === "Pandit" ? userName || "Pandit" : accountName || role}</strong></div><NotificationCenter role={role} />{role === "Pandit" ? <PanditAccountMenu onLogout={logout} /> : role === "Customer" ? <CustomerAccountMenu onLogout={logout} /> : <button className="icon-button" onClick={logout} aria-label="Log out"><LogOut size={17} /></button>}</div>
       </header>
 
       <main className="portal-main">
@@ -85,7 +101,7 @@ export function AppShell({ role, userName, title, subtitle, children }: { role: 
       </main>
 
       <nav className={`portal-mobile-nav mobile-nav-${navigation.length}`} aria-label={`${role} mobile navigation`}>
-        {navigation.map(({ label, href, icon: Icon }) => <a className={activeHref === href ? "active" : ""} href={href} key={href} aria-current={activeHref === href ? "page" : undefined}><Icon size={19} /><span>{label}</span></a>)}
+        {navigation.map(({ label, href, icon: Icon }) => { const translated = label === "Home" ? copy.home : label === "Book Pandit" ? copy.bookPandit : label === "Ask online" ? copy.askOnline : label === "My bookings" ? copy.myBookings : label === "Today" ? copy.today : label === "Requests" ? copy.requests : label === "Chat" ? copy.chat : label; return <a className={activeHref === href ? "active" : ""} href={href} key={href} aria-current={activeHref === href ? "page" : undefined}><Icon size={19} /><span>{translated}</span></a>; })}
       </nav>
     </div>
   );

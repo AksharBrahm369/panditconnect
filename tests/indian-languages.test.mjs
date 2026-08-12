@@ -23,3 +23,19 @@ test("customer and Pandit flows support the full scheduled Indian language catal
   assert.match(profileApi, /INDIAN_LANGUAGE_VALUES/);
   assert.match(bookingApi, /isIndianLanguage/);
 });
+
+test("Customer and Pandit navbars expose a persistent app-language selector", async () => {
+  const [shell, switcher, translations, css] = await Promise.all([
+    read("components/app-shell.tsx"),
+    read("components/portal-language-switcher.tsx"),
+    read("lib/portal-i18n.ts"),
+    read("app/globals.css"),
+  ]);
+  assert.match(shell, /PortalLanguageSwitcher/);
+  assert.match(shell, /localStorage\.setItem/);
+  assert.match(shell, /document\.documentElement\.lang/);
+  assert.match(switcher, /Change app language/);
+  for (const language of ["English", "Hindi", "Marathi", "Gujarati", "Bengali", "Tamil", "Telugu", "Malayalam"]) assert.match(translations, new RegExp(`${language}:`));
+  assert.match(css, /\.portal-language-switcher/);
+  assert.match(css, /@media\(max-width:720px\)/);
+});
