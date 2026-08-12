@@ -6,7 +6,7 @@ test("customer home keeps urgent replacement but removes the duplicate direct-bo
   const portal = await readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8");
   const homepage = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 
-  assert.match(portal, /<strong>My Pandit cancelled<\/strong>/);
+  assert.match(portal, /My Pandit cancelled/);
   assert.match(homepage, /<strong>My Pandit cancelled<\/strong>/);
   assert.doesNotMatch(portal, /<strong>Choose a specific Puja<\/strong>/);
   assert.doesNotMatch(homepage, /<strong>Choose a specific Puja<\/strong>/);

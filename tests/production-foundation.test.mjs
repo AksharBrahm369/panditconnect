@@ -102,6 +102,8 @@ test("trusted Pandit onboarding uses private Supabase storage and auditable revi
   for (const table of ["pandit_documents", "pandit_references", "pandit_service_pricing", "pandit_verification_reviews", "pandit_verification_events"]) assert.match(migration, new RegExp(table));
   assert.match(migration, /'pandit-private-documents'[\s\S]*false/);
   assert.match(storage, /createPrivateSignedUrl/);
+  assert.match(storage, /key\.startsWith\("sb_secret_"\)/);
+  assert.doesNotMatch(storage, /bkmctsydceofqyhkxepk/);
   assert.doesNotMatch(storage, /getPublicUrl|\/object\/public\//);
   assert.match(adminRoute, /Complete and verify every review check before approval/);
   assert.match(adminRoute, /body\.action === "APPROVE"[\s\S]*\? "APPROVED"/);
