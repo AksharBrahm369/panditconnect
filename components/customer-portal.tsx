@@ -29,6 +29,17 @@ type DiscoveryPandit = {
   specialities: string[]; rating: string; rating_count: number; completed_jobs: number;
   starting_charge: number; distance_km: string; eta_minutes: number; services: string[];
 };
+type PreparationGuide = {
+  guide: { title: string; essentials: string[]; optional: string[]; confirmation: string };
+  panchangStatus: "READY" | "NOT_CONFIGURED" | "UNAVAILABLE";
+  message?: string;
+  panchang: null | {
+    date: string; tithi: string; paksha: string | null; tithiPeriod: string | null;
+    nakshatra: string; nakshatraPeriod: string | null; yoga: string | null; karana: string | null;
+    sunrise: string | null; sunset: string | null; abhijitMuhurat: string | null;
+    brahmaMuhurat: string | null; rahuKaal: string | null;
+  };
+};
 type Booking = {
   id: string; status: string; service_name: string; pandit_name: string | null; amount: number;
   address: string; arrival_otp: string; created_at: string; request_type: RequestType; scheduled_at: string | null;
@@ -151,6 +162,9 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
   const [fallbackRadius, setFallbackRadius] = useState(20);
   const [fallbackBusy, setFallbackBusy] = useState(false);
   const [fallbackError, setFallbackError] = useState("");
+  const [preparationGuide, setPreparationGuide] = useState<PreparationGuide | null>(null);
+  const [preparationBusy, setPreparationBusy] = useState(false);
+  const [preparationError, setPreparationError] = useState("");
   const discoveryRail = useRef<HTMLDivElement>(null);
 
   const refreshBookings = useCallback(async () => {
@@ -271,6 +285,8 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
     setFallbackPlan(null);
     setFallbackBookingId(null);
     setFallbackError("");
+    setPreparationGuide(null);
+    setPreparationError("");
   }
 
   function requestDiscoveryPandit(pandit: DiscoveryPandit) {
@@ -446,6 +462,38 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
     setNearbyPandits((currentPandits) => append && currentPandits ? [...currentPandits, ...eligible] : eligible);
     if(!append&&eligible.length===0)await loadFallbackOptions(current);
     setBusy(false);
+  }
+
+  async function loadPreparationGuide() {
+    if (!serviceId) {
+      setPreparationError("Choose the Puja first.");
+      return;
+    }
+    if (requestType === "SCHEDULED_PUJA" && !scheduledAt) {
+      setPreparationError("Choose the Puja date and time before checking its Panchang.");
+      return;
+    }
+    setPreparationBusy(true);
+    setPreparationError("");
+    const current = coordinates ?? await detectLocation();
+    if (!current) {
+      setPreparationBusy(false);
+      setPreparationError("Allow GPS location so the Panchang can be calculated for your Puja place.");
+      return;
+    }
+    const date = requestType === "SCHEDULED_PUJA" && scheduledAt
+      ? scheduledAt.slice(0, 10)
+      : dateTimeLocalValue(Date.now()).slice(0, 10);
+    const params = new URLSearchParams({ serviceId, date, lat: String(current.latitude), lng: String(current.longitude) });
+    const response = await fetch(`/api/ritual-preparation?${params}`, { cache: "no-store" });
+    const data = await readJson<PreparationGuide & { error?: string }>(response);
+    setPreparationBusy(false);
+    if (!response.ok) {
+      setPreparationError(data.error ?? "Unable to prepare the Puja guide.");
+      return;
+    }
+    setPreparationGuide(data);
+    window.setTimeout(() => document.getElementById("puja-preparation-guide")?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
   }
 
   async function sendRequest(panditId: string, confirmedLocation = coordinates) {
@@ -679,7 +727,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
 
               {(requestType !== "NEED_GUIDANCE" || recommendation) && (
                 <><div className="service-grid">
-                  {services.map((service) => <button key={service.id} className={`select-card ${serviceId === service.id ? "selected" : ""}`} onClick={() => { setServiceId(service.id); setRecommendation(ritualForService(service.id)); }}>
+                  {services.map((service) => <button key={service.id} className={`select-card ${serviceId === service.id ? "selected" : ""}`} onClick={() => { setServiceId(service.id); setRecommendation(ritualForService(service.id)); setPreparationGuide(null); setPreparationError(""); }}>
                     <span className="service-icon">ॐ</span><div><strong>{service.name}</strong><small>{service.description}</small></div><b>from ₹{service.base_price.toLocaleString("en-IN")}</b>
                   </button>)}
                 </div>
@@ -696,18 +744,26 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
                   <small>This is practical guidance, not a substitute for advice from a qualified Pandit. The matched Pandit will confirm the ritual.</small>
                 </article>
               )}
+              {materialsOption === "NEED_GUIDANCE" && preparationGuide && <article className="puja-preparation-guide" id="puja-preparation-guide">
+                <header><span><PackageCheck /></span><div><small>Personal preparation guide</small><h3>{preparationGuide.guide.title}</h3><p>Prepared for the selected Puja, date and GPS location.</p></div></header>
+                <section><h4>Essential samagri</h4><div className="samagri-grid">{preparationGuide.guide.essentials.map((item) => <span key={item}><CheckCircle2 /> {item}</span>)}</div></section>
+                <details><summary>Optional or tradition-specific items</summary><div className="samagri-grid optional">{preparationGuide.guide.optional.map((item) => <span key={item}><Sparkles /> {item}</span>)}</div></details>
+                {preparationGuide.panchang ? <section className="panchang-panel"><div className="panchang-heading"><CalendarDays /><div><small>Live Panchang · {new Date(`${preparationGuide.panchang.date}T12:00:00`).toLocaleDateString("en-IN", { dateStyle: "full" })}</small><h4>Calculated for your Puja location</h4></div></div><div className="panchang-grid"><span><small>Tithi</small><strong>{preparationGuide.panchang.tithi}{preparationGuide.panchang.paksha ? ` · ${preparationGuide.panchang.paksha} Paksha` : ""}</strong>{preparationGuide.panchang.tithiPeriod && <em>{preparationGuide.panchang.tithiPeriod}</em>}</span><span><small>Nakshatra</small><strong>{preparationGuide.panchang.nakshatra}</strong>{preparationGuide.panchang.nakshatraPeriod && <em>{preparationGuide.panchang.nakshatraPeriod}</em>}</span>{preparationGuide.panchang.abhijitMuhurat && <span><small>General Abhijit Muhurat</small><strong>{preparationGuide.panchang.abhijitMuhurat}</strong></span>}{preparationGuide.panchang.brahmaMuhurat && <span><small>Brahma Muhurta</small><strong>{preparationGuide.panchang.brahmaMuhurat}</strong></span>}{preparationGuide.panchang.rahuKaal && <span className="avoid"><small>Avoid · Rahu Kaal</small><strong>{preparationGuide.panchang.rahuKaal}</strong></span>}{preparationGuide.panchang.sunrise && <span><small>Sunrise / sunset</small><strong>{preparationGuide.panchang.sunrise}{preparationGuide.panchang.sunset ? ` / ${preparationGuide.panchang.sunset}` : ""}</strong></span>}</div></section> : <div className="panchang-unavailable"><Clock3 /><span><strong>Live Panchang is not available yet</strong><small>{preparationGuide.message}</small></span></div>}
+                <footer><ShieldCheck /><p><strong>Final confirmation is required.</strong> {preparationGuide.guide.confirmation} Panchang windows are calculation-based guidance; confirm the final ritual-specific muhurta with the Pandit before making arrangements.</p></footer>
+              </article>}
             </div>
 
                 <aside className="side-card sticky">
                   <h3>Request details</h3>
                   {preferredPandit && <div className="preferred-pandit-note"><BadgeCheck size={18} /><span><small>Your selected Pandit</small><strong>{preferredPandit.name}</strong><em>We will confirm this Pandit serves the selected Puja and your location.</em></span><button onClick={() => setPreferredPandit(null)}>Change</button></div>}
               <label>Language for the Puja<IndianLanguageSelect value={language} onChange={setLanguage} /><small className="field-hint">Only nearby Pandits who speak this language will be shown.</small></label>
-              <label>Puja materials<select value={materialsOption} onChange={(event) => setMaterialsOption(event.target.value)}>{Object.entries(materialsLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
-              {requestType === "SCHEDULED_PUJA" && <label>Puja date and time<input type="datetime-local" value={scheduledAt} min={dateTimeLocalValue(Date.now() + 2 * 60 * 60 * 1000)} max={dateTimeLocalValue(Date.now() + 180 * 24 * 60 * 60 * 1000)} onChange={(event) => setScheduledAt(event.target.value)} /><small className="field-hint">Schedule at least 2 hours ahead.</small></label>}
+              <label>Puja materials<select value={materialsOption} onChange={(event) => { setMaterialsOption(event.target.value); setPreparationGuide(null); setPreparationError(""); }}>{Object.entries(materialsLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
+              {requestType === "SCHEDULED_PUJA" && <label>Puja date and time<input type="datetime-local" value={scheduledAt} min={dateTimeLocalValue(Date.now() + 2 * 60 * 60 * 1000)} max={dateTimeLocalValue(Date.now() + 180 * 24 * 60 * 60 * 1000)} onChange={(event) => { setScheduledAt(event.target.value); setPreparationGuide(null); setPreparationError(""); }} /><small className="field-hint">Schedule at least 2 hours ahead.</small></label>}
               <label>Full service address<textarea rows={3} value={address} onChange={(event) => { const nextAddress=event.target.value;setAddress(nextAddress);const detectedPin=nextAddress.match(/(?:^|\D)([1-9]\d{2}[\s-]?\d{3})(?!\d)/)?.[1]?.replace(/\D/g,"");if(detectedPin)setPinCode(detectedPin); }} placeholder="House or building, street and area" /></label>
               <label>6-digit PIN code<input inputMode="numeric" autoComplete="postal-code" maxLength={6} pattern="[1-9][0-9]{5}" value={pinCode} onChange={(event)=>setPinCode(event.target.value.replace(/\D/g,"").slice(0,6))} placeholder="Example: 400075"/><small className="field-hint">Enter the PIN code for the Puja address.</small></label>
               <button className="btn btn-ghost btn-block" onClick={detectLocation} disabled={locationBusy}>{locationBusy ? "Detecting GPS…" : <><MapPin size={16} /> Use my current GPS location</>}</button>
               <p className={`location-state ${coordinates ? "ready" : ""}`}>{coordinates ? `GPS detected within about ${Math.round(coordinates.accuracy)} metres` : "GPS permission is required. Pandits are fetched only after your location is detected."}</p>
+              {materialsOption === "NEED_GUIDANCE" && serviceId && <div className="preparation-action"><button type="button" className="btn btn-ghost btn-block" disabled={preparationBusy} onClick={() => void loadPreparationGuide()}><PackageCheck size={17} /> {preparationBusy ? "Preparing samagri and Panchang…" : preparationGuide ? "Refresh samagri and Panchang" : "Show samagri and Panchang guide"}</button><small>Uses the Puja, selected date and current GPS location. Final muhurta is confirmed by your Pandit.</small>{preparationError && <span className="field-error">{preparationError}</span>}</div>}
               <label>Additional note <em>Optional</em><textarea rows={2} value={notes} onChange={(event) => setNotes(event.target.value)} /></label>
               <div className="booking-policy-consent"><strong>Cancellation policy</strong><p>Cancellation is free before acceptance and for 5 minutes after acceptance. Later cancellation may cost ₹49, up to ₹99 while travelling, or up to ₹199 after arrival.</p><label><input type="checkbox" checked={policyAccepted} onChange={(event)=>setPolicyAccepted(event.target.checked)}/><span>I understand and agree to cancellation policy version {cancellationPolicyVersion}.</span></label><Link href="/cancellation-policy" target="_blank">Read full cancellation policy</Link></div>
                   <button className="btn btn-primary btn-block" disabled={busy || !serviceId || !policyAccepted || (requestType === "SCHEDULED_PUJA" && !scheduledAt)} onClick={() => void findNearbyPandits(1)}>{busy ? "Checking availability…" : preferredPandit ? `Confirm and request ${preferredPandit.name}` : requestType === "SCHEDULED_PUJA" ? "Compare Pandits for this time" : "Compare nearby Pandits"} <ChevronRight size={17} /></button>
