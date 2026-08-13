@@ -33,6 +33,8 @@ test("an exhausted broadcast can retry when a newly approved nearby Pandit becom
   assert.match(route, /dispatch_status='ASSIGNED'/);
   assert.match(route, /o\.scheduled_at IS NULL AND NOT EXISTS/);
   assert.match(bookings, /available_now_count/);
-  assert.match(customer, /Search nearby Pandits again/);
-  assert.match(customer, /Availability has changed since your previous search/);
+  assert.match(customer, /visibleBookings = useMemo/);
+  assert.match(customer, /booking\.available_now_count > 0/);
+  assert.match(customer, /No matching Pandit is available right now/);
+  assert.doesNotMatch(customer, /Availability has changed since your previous search/);
 });

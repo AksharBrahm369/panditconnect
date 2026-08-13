@@ -245,6 +245,14 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
       return Number(a.distance_km) - Number(b.distance_km);
     });
   }, [nearbyPandits, panditSort]);
+  const visibleBookings = useMemo(
+    () => bookings.filter((booking) => !(
+      booking.status === "DECLINED" &&
+      booking.dispatch_status === "EXHAUSTED" &&
+      booking.available_now_count > 0
+    )),
+    [bookings],
+  );
 
   function choosePath(type: RequestType) {
     setRequestType(type);
@@ -735,7 +743,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
 
       <section className="history tracking-history" id="live-requests">
         <div className="section-title live-request-title"><div><span className="eyebrow">My bookings</span><h2>Your Puja requests</h2><p>See the latest update and what you need to do next.</p></div><button className="icon-button" onClick={refreshBookings} aria-label="Refresh requests"><RefreshCw size={17} /></button></div>
-        {bookings.length ? <div className="tracking-list">{bookings.map((booking) => {
+        {visibleBookings.length ? <div className="tracking-list">{visibleBookings.map((booking) => {
           const activeIndex = statusOrder.indexOf(booking.status);
           const isDeclined = booking.status === "DECLINED";
           const isCancelled = booking.status === "CANCELLED";
@@ -746,7 +754,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
               <div className="tracking-head"><div><span className="status">{booking.request_type === "PANDIT_SOS" ? "Urgent replacement" : booking.request_type === "SCHEDULED_PUJA" ? "Scheduled Puja" : "Puja booking"}</span><h3>{booking.service_name}</h3><p>with <strong>{booking.pandit_name ?? "a nearby Pandit"}</strong></p>{booking.scheduled_at && <p><CalendarDays size={15} /> <strong>{new Date(booking.scheduled_at).toLocaleString("en-IN", { dateStyle: "full", timeStyle: "short" })}</strong></p>}</div><div className="tracking-price"><small>Service amount</small><strong>₹{booking.amount.toLocaleString("en-IN")}</strong></div></div>
               {booking.price_change_status==="PENDING"&&<div className="price-change-review"><div><small>Approval required</small><strong>Revised total: ₹{booking.proposed_amount?.toLocaleString("en-IN")}</strong><p>{booking.price_change_reason}</p></div><button onClick={()=>void decidePriceChange(booking.id,"REJECT")}>Keep original</button><button className="approve" onClick={()=>void decidePriceChange(booking.id,"APPROVE")}>Approve ₹{booking.proposed_amount?.toLocaleString("en-IN")}</button></div>}
             {isDeclined&&booking.dispatch_status==="EXHAUSTED" ? <div className="exhausted-search">
-              {fallbackBookingId===booking.id&&fallbackPlan?<AvailabilityFallback compact plan={fallbackPlan} selectedRadius={40} onRadiusChange={()=>undefined} onStartSearch={()=>void reserveEarliestForBooking(booking.id)} onOnlineGuidance={openOnlineGuidance} onReserveEarliest={()=>void reserveEarliestForBooking(booking.id)} busy={fallbackBusy}/>:<>{booking.available_now_count>0?<CheckCircle2 size={24}/>:<AlertTriangle size={24}/>}<div><strong>{booking.available_now_count>0?`${booking.available_now_count} matching Pandit${booking.available_now_count===1?" is":"s are"} available now`:`No matching Pandit was available when this request was sent`}</strong><p>{booking.available_now_count>0?"Availability has changed since your previous search. Send this request again to the nearest eligible Pandit.":`The earlier search up to ${booking.max_search_radius_km} km ended without confirmation. Availability can change at any time.`}</p>{rematchErrors[booking.id]&&<small className="rematch-error">{rematchErrors[booking.id]}</small>}<div className="fallback-inline-actions"><button className="btn btn-primary" disabled={rematchingId===booking.id} onClick={()=>void findAnotherPandit(booking.id)}>{rematchingId===booking.id?"Checking live availability…":"Search nearby Pandits again"}</button><button className="btn btn-ghost" disabled={fallbackBusy} onClick={()=>void loadFallbackOptions(null,booking.id)}>See earliest available visit</button><button className="btn btn-ghost" onClick={openOnlineGuidance}>Talk to a Pandit online</button></div></div></>}
+              {fallbackBookingId===booking.id&&fallbackPlan?<AvailabilityFallback compact plan={fallbackPlan} selectedRadius={40} onRadiusChange={()=>undefined} onStartSearch={()=>void reserveEarliestForBooking(booking.id)} onOnlineGuidance={openOnlineGuidance} onReserveEarliest={()=>void reserveEarliestForBooking(booking.id)} busy={fallbackBusy}/>:<><AlertTriangle size={24}/><div><strong>No matching Pandit is available right now</strong><p>The earlier search up to {booking.max_search_radius_km} km ended without confirmation. Availability can change at any time.</p>{rematchErrors[booking.id]&&<small className="rematch-error">{rematchErrors[booking.id]}</small>}<div className="fallback-inline-actions"><button className="btn btn-primary" disabled={rematchingId===booking.id} onClick={()=>void findAnotherPandit(booking.id)}>{rematchingId===booking.id?"Checking live availability…":"Check nearby Pandits again"}</button><button className="btn btn-ghost" disabled={fallbackBusy} onClick={()=>void loadFallbackOptions(null,booking.id)}>See earliest available visit</button><button className="btn btn-ghost" onClick={openOnlineGuidance}>Talk to a Pandit online</button></div></div></>}
               {fallbackError&&fallbackBookingId===booking.id&&<div className="alert error">{fallbackError}</div>}
             </div> : isDeclined ? <div className="request-unavailable">
               <AlertTriangle size={22} />
