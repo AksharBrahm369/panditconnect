@@ -71,8 +71,8 @@ export function LoginForm({ initialRole, nextPath, googleError }: { initialRole:
   return (
     <div className="auth-shell">
       <section className="auth-side">
-        <Link href="/" className="brand brand-light"><span className="brand-mark">ॐ</span><span><strong>PanditConnect</strong><small>Seva with trust</small></span></Link>
-        <div><span className="eyebrow eyebrow-light">{role === "CUSTOMER" ? "Puja help for every family" : "A trusted Pandit Seva network"}</span><h1>{role === "CUSTOMER" ? "Puja help, without the confusion." : "Your Seva requests, clearly organised."}</h1><p>{role === "CUSTOMER" ? "Tell us what your family needs. We guide every step and connect you with an approved Pandit." : "Manage your availability, genuine nearby requests and customer updates from one calm workspace."}</p>
+        <Link href="/" className="brand brand-light"><span className="brand-mark">ॐ</span><span>Pandit in Minutes</span></Link>
+        <div><span className="eyebrow eyebrow-light">{role === "CUSTOMER" ? "Religious help, made simple" : "Professional Pandit network"}</span><h1>{role === "CUSTOMER" ? "The right guidance. A trusted Pandit. One simple flow." : "Receive genuine nearby Puja requests."}</h1><p>{role === "CUSTOMER" ? "You do not need to know the ritual name. Start with what happened and we guide every next step." : "Control your availability, accept suitable requests and protect your personal contact details."}</p>
           <div className="auth-benefits">
             <span><BadgeCheck /> Approved Pandit profiles</span>
             <span><MapPin /> Nearby GPS-based matching</span>
@@ -85,7 +85,7 @@ export function LoginForm({ initialRole, nextPath, googleError }: { initialRole:
         <div className="auth-card">
           <Link href="/" className="back-link"><ArrowLeft size={16} /> Back home</Link>
           <span className="auth-step">Step {step === "phone" ? "1 of 2" : "2 of 2"}</span>
-          <h2>{step === "phone" ? "Let’s begin" : "Enter verification code"}</h2>
+          <h2>{step === "phone" ? "Let’s get you started" : "Enter verification code"}</h2>
           <p>{step === "phone" ? "Choose your role and enter your mobile number. No password is needed." : `Enter the 6-digit code sent to +91 ${phone.slice(-10)}`}</p>
           <div className="role-tabs">
             <button className={role === "CUSTOMER" ? "active" : ""} onClick={() => { setRole("CUSTOMER"); setStep("phone"); }}>Customer</button>
