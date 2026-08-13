@@ -12,8 +12,9 @@ type ReviewPandit = {
   id: string; name: string | null; phone: string | null; city: string | null; experience_years: number;
   languages: string[]; specialities: string[]; bio: string | null; base_charge: number;
   verification_status: string; review_note: string | null; created_at: string; is_online?: boolean;
-  rating?: string; rating_count?: number; completed_jobs?: number; services?: string[]; account_status?: "ACTIVE" | "RESTRICTED" | "BLOCKED";
+  rating?: string; rating_count?: number; completed_jobs?: number; services?: string[]; account_status?: "ACTIVE" | "RESTRICTED" | "BLOCKED" | "DELETION_REQUESTED" | "DELETED";
   account_status_reason?: string | null; account_status_changed_at?: string | null;
+  deletion_request_id?: string | null; deletion_request_status?: "OPEN" | "IN_REVIEW" | null; deletion_requested_at?: string | null;
   email?: string; date_of_birth?: string; current_address?: string; service_radius_km?: number; payout_method?: string; bank_account_name?: string; bank_ifsc?: string; upi_id?: string; submitted_at?: string;
   references?: Array<{ id: string; name: string; relationship: string; organisation: string | null; phone: string; status: string; note: string | null }>;
   documents?: Array<{ id: string; type: string; name: string; mimeType: string; size: number; status: string; note: string | null }>;
@@ -43,6 +44,7 @@ export function AdminPortal() {
   const [approvedHasMore, setApprovedHasMore] = useState(false);
   const [checklist, setChecklist] = useState<ReviewChecklist>(emptyChecklist);
   const [supportCases,setSupportCases]=useState<SupportCase[]>([]);
+  const [deletionFocus,setDeletionFocus]=useState<string|null>(null);
 
   async function loadQueue(page = 1, append = false) {
     setQueueLoading(true);
@@ -226,6 +228,11 @@ export function AdminPortal() {
     await load();
   }
 
+  function reviewDeletionRequest(requestId:string){
+    setDeletionFocus(requestId);
+    window.setTimeout(()=>document.getElementById("admin-privacy")?.scrollIntoView({behavior:"smooth",block:"start"}),0);
+  }
+
   const pendingPanditCount = queueTotal ?? data?.stats.pendingPandits ?? 0;
 
   return <AppShell role="Admin" title="Operations overview" subtitle="A compact control room for verification, urgent bookings and platform health.">
@@ -254,15 +261,17 @@ export function AdminPortal() {
         <div className="tag-row">{(pandit.services?.length ? pandit.services : pandit.specialities).slice(0,4).map((item) => <b key={item}>{item}</b>)}</div>
         <div className="approved-foot"><span>{pandit.phone ? `+91 ••••••${pandit.phone.slice(-4)}` : pandit.email ?? "Google account"}</span><strong className={`admin-access-status ${(pandit.account_status ?? "ACTIVE").toLowerCase()}`}>{pandit.account_status ?? "ACTIVE"}</strong></div>
         {pandit.account_status !== "ACTIVE" && pandit.account_status_reason && <p className="admin-access-reason"><strong>Admin reason:</strong> {pandit.account_status_reason}</p>}
+        {pandit.account_status === "DELETION_REQUESTED" && <div className="admin-deletion-pending"><strong>Account deletion needs your decision</strong><span>The profile remains stored for review but is hidden from customer searches. Approve only after checking active services and balances.</span>{pandit.deletion_requested_at&&<small>Requested {new Date(pandit.deletion_requested_at).toLocaleString("en-IN")}</small>}</div>}
         <div className="button-row admin-access-actions">
           {(pandit.account_status ?? "ACTIVE") === "ACTIVE" && <><button className="btn btn-ghost" disabled={busy} onClick={()=>void changePanditAccess(pandit.id,"RESTRICT")}>Restrict</button><button className="btn btn-ghost danger" disabled={busy} onClick={()=>void changePanditAccess(pandit.id,"BLOCK")}>Block</button></>}
           {pandit.account_status === "RESTRICTED" && <><button className="btn btn-ghost" disabled={busy} onClick={()=>void changePanditAccess(pandit.id,"UNBLOCK")}>Restore access</button><button className="btn btn-ghost danger" disabled={busy} onClick={()=>void changePanditAccess(pandit.id,"BLOCK")}>Block</button></>}
           {pandit.account_status === "BLOCKED" && <button className="btn btn-primary btn-block" disabled={busy} onClick={()=>void changePanditAccess(pandit.id,"UNBLOCK")}>Unblock Pandit</button>}
+          {pandit.account_status === "DELETION_REQUESTED" && pandit.deletion_request_id && <button className="btn btn-primary btn-block" disabled={busy} onClick={()=>reviewDeletionRequest(pandit.deletion_request_id!)}>Review deletion request</button>}
         </div>
       </article>)}</div> : <div className="empty"><strong>No approved Pandits yet.</strong><span>Submitted applications remain in the Review queue until Admin completes verification and approves them.</span></div>}
       {approvedHasMore && <button className="btn btn-ghost btn-block" disabled={approvedLoading} onClick={() => void loadApproved(approvedPage + 1, true)}>{approvedLoading ? "Loading more…" : "Load more approved Pandits"}</button>}
     </section>
-    <AdminPrivacyRequests />
+    <AdminPrivacyRequests focusRequestId={deletionFocus} onChanged={()=>{setDeletionFocus(null);void load();}} />
     <AdminFinanceOperations />
 
     {queueOpen && <div className="review-overlay" role="dialog" aria-modal="true" aria-label="Pandit verification queue">

@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireUser,SESSION_COOKIE } from "@/lib/auth";
+import { forgetUserSessionCache, requireUser,SESSION_COOKIE } from "@/lib/auth";
 import { authorizationResponse } from "@/lib/api-auth";
 import { sql } from "@/lib/db";
 import { notifyAdmins } from "@/lib/push-notifications";
@@ -24,7 +24,7 @@ export async function POST(request:Request){
     if(requestType==="ACCOUNT_DELETION")await sql(`UPDATE pim_v2.users SET account_status='DELETION_REQUESTED' WHERE id=$1`,[user.id]);
     await notifyAdmins({title:"Privacy rights request",body:`A ${user.role.toLowerCase()} submitted a ${requestType.toLowerCase().replaceAll("_"," ")} request.`,url:"/admin#admin-privacy",eventType:"PRIVACY_REQUEST_CREATED"});
     const response=NextResponse.json({request:result.rows[0]},{status:201});
-    if(requestType==="ACCOUNT_DELETION"){await sql(`DELETE FROM pim_v2.sessions WHERE user_id=$1`,[user.id]);response.cookies.set(SESSION_COOKIE,"",{httpOnly:true,sameSite:"lax",secure:true,path:"/",expires:new Date(0)});}
+    if(requestType==="ACCOUNT_DELETION"){await sql(`DELETE FROM pim_v2.sessions WHERE user_id=$1`,[user.id]);forgetUserSessionCache(user.id);response.cookies.set(SESSION_COOKIE,"",{httpOnly:true,sameSite:"lax",secure:true,path:"/",expires:new Date(0)});}
     return response;
   }catch(error){return authorizationResponse(error)??NextResponse.json({error:"Unable to create privacy request"},{status:500});}
 }

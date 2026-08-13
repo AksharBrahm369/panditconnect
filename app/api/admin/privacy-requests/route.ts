@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { requireAdmin } from "@/lib/auth";
+import { forgetUserSessionCache, requireAdmin } from "@/lib/auth";
 import { authorizationResponse } from "@/lib/api-auth";
 import { recordAdminAction } from "@/lib/admin-audit";
 import { sql } from "@/lib/db";
@@ -15,7 +15,9 @@ export async function GET() {
     await requireAdmin();
     const result = await sql(
       `SELECT r.id,r.request_type,r.status,r.details,r.resolution,r.requested_at,r.completed_at,
-              u.id AS user_id,u.role,u.name,u.phone,u.email,u.account_status
+              u.id AS user_id,u.role,u.name,u.phone,u.email,u.account_status,
+              (SELECT count(*)::int FROM pim_v2.bookings WHERE (customer_id=u.id OR pandit_id=u.id) AND status IN ('REQUESTED','ACCEPTED','ON_THE_WAY','ARRIVED','IN_PROGRESS')) AS active_services,
+              (SELECT COALESCE(sum(amount),0)::int FROM pim_v2.account_ledger WHERE user_id=u.id AND status IN ('OUTSTANDING','DISPUTED')) AS outstanding_balance
        FROM pim_v2.data_rights_requests r
        JOIN pim_v2.users u ON u.id=r.user_id
        ORDER BY CASE r.status WHEN 'OPEN' THEN 0 WHEN 'IN_REVIEW' THEN 1 ELSE 2 END,r.requested_at DESC
@@ -70,14 +72,19 @@ export async function PATCH(request: Request) {
         );
         if ((blockers.rows[0]?.active ?? 0) > 0 || (blockers.rows[0]?.balance ?? 0) > 0) return NextResponse.json({ error: "Active services or an unresolved balance still block deletion" }, { status: 409 });
         await removePanditDocuments(item.user_id);
-        await Promise.all([
-          sql(`DELETE FROM pim_v2.sessions WHERE user_id=$1`,[item.user_id]),
-          sql(`DELETE FROM pim_v2.push_subscriptions WHERE user_id=$1`,[item.user_id]),
-          sql(`DELETE FROM pim_v2.notification_preferences WHERE user_id=$1`,[item.user_id]),
-          sql(`DELETE FROM pim_v2.pandit_profiles WHERE user_id=$1`,[item.user_id]),
-          sql(`DELETE FROM pim_v2.customer_profiles WHERE user_id=$1`,[item.user_id]),
-        ]);
-        await sql(`UPDATE pim_v2.users SET phone='deleted-'||id::text,name='Deleted account',city=NULL,account_status='DELETED',last_login_at=NULL WHERE id=$1`, [item.user_id]);
+        await sql(`DELETE FROM pim_v2.sessions WHERE user_id=$1`,[item.user_id]);
+        forgetUserSessionCache(item.user_id);
+        await sql(`DELETE FROM pim_v2.push_subscriptions WHERE user_id=$1`,[item.user_id]);
+        await sql(`DELETE FROM pim_v2.notification_preferences WHERE user_id=$1`,[item.user_id]);
+        await sql(`DELETE FROM pim_v2.notifications WHERE user_id=$1`,[item.user_id]);
+        await sql(`DELETE FROM pim_v2.pandit_services WHERE pandit_id=$1`,[item.user_id]);
+        await sql(`DELETE FROM pim_v2.pandit_service_pricing WHERE pandit_id=$1`,[item.user_id]);
+        await sql(`DELETE FROM pim_v2.pandit_references WHERE pandit_id=$1`,[item.user_id]);
+        await sql(`DELETE FROM pim_v2.pandit_verification_reviews WHERE pandit_id=$1`,[item.user_id]);
+        await sql(`DELETE FROM pim_v2.pandit_verification_events WHERE pandit_id=$1`,[item.user_id]);
+        await sql(`DELETE FROM pim_v2.pandit_profiles WHERE user_id=$1`,[item.user_id]);
+        await sql(`DELETE FROM pim_v2.customer_profiles WHERE user_id=$1`,[item.user_id]);
+        await sql(`UPDATE pim_v2.users SET phone='deleted-'||id::text,email=NULL,name='Deleted account',city=NULL,account_status='DELETED',account_status_reason='Account deletion approved by Admin',account_status_changed_at=now(),account_status_changed_by=$2,last_login_at=NULL WHERE id=$1`, [item.user_id,admin.id]);
       }
       await sql(`UPDATE pim_v2.data_rights_requests SET status='COMPLETED',resolution=$2,handled_by=$3,completed_at=now() WHERE id=$1`, [item.id, body.resolution!.trim(), admin.id]);
       if (item.request_type !== "ACCOUNT_DELETION") await notifyUser(item.user_id, { title: "Privacy request completed", body: body.resolution!.trim(), url: "/", eventType: "PRIVACY_REQUEST_COMPLETED" });
