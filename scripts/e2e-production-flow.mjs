@@ -86,7 +86,14 @@ try {
   });
   assert.equal(payment.response.status, 200, JSON.stringify(payment.body));
   assert.equal(payment.body.paymentMethod, "CASH");
-  assert.equal(payment.body.paymentStatus, "CONFIRMED");
+  assert.equal(payment.body.paymentStatus, "AWAITING_PANDIT");
+
+  const panditCashConfirmation = await api(`/api/bookings/${ids.booking}/payment`, tokens.pandit, {
+    method: "POST",
+    body: JSON.stringify({ action: "CONFIRM_RECEIVED" }),
+  });
+  assert.equal(panditCashConfirmation.response.status, 200, JSON.stringify(panditCashConfirmation.body));
+  assert.equal(panditCashConfirmation.body.paymentStatus, "CONFIRMED");
 
   const supportCase = await api("/api/support-cases", tokens.customer, {
     method: "POST",
@@ -108,7 +115,7 @@ try {
   });
   assert.equal(duplicateRating.response.status, 409);
 
-  console.log(JSON.stringify({ success: true, checks: 20, baseUrl }));
+  console.log(JSON.stringify({ success: true, checks: 23, baseUrl }));
 } finally {
   await client.query(`DELETE FROM pim_v2.bookings WHERE customer_id=ANY($1::uuid[]) OR pandit_id=ANY($1::uuid[])`, [[ids.customer, ids.pandit, ids.outsider]]).catch(() => undefined);
   await client.query(`DELETE FROM pim_v2.users WHERE id=ANY($1::uuid[])`, [[ids.customer, ids.pandit, ids.outsider]]).catch(() => undefined);

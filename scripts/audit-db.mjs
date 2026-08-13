@@ -44,7 +44,7 @@ try {
   let integrityProblems = {};
   if (!missingTables.length) {
     const integrity = await client.query(`SELECT
-      (SELECT count(*)::int FROM pim_v2.users u LEFT JOIN pim_v2.pandit_profiles p ON p.user_id=u.id WHERE u.role='PANDIT' AND p.user_id IS NULL) AS pandit_users_without_profile,
+      (SELECT count(*)::int FROM pim_v2.users u LEFT JOIN pim_v2.pandit_profiles p ON p.user_id=u.id WHERE u.role='PANDIT' AND u.account_status NOT IN ('DELETION_REQUESTED','DELETED') AND p.user_id IS NULL) AS pandit_users_without_profile,
       (SELECT count(*)::int FROM pim_v2.pandit_profiles p LEFT JOIN pim_v2.users u ON u.id=p.user_id WHERE u.id IS NULL OR u.role<>'PANDIT') AS profiles_without_pandit_user,
       (SELECT count(*)::int FROM pim_v2.pandit_profiles p WHERE p.verification_status='APPROVED' AND NOT EXISTS(SELECT 1 FROM pim_v2.pandit_services ps WHERE ps.pandit_id=p.user_id)) AS approved_without_services,
       (SELECT count(*)::int FROM pim_v2.bookings b LEFT JOIN pim_v2.users u ON u.id=b.customer_id WHERE u.id IS NULL OR u.role<>'CUSTOMER') AS bookings_without_customer,

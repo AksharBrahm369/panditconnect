@@ -78,7 +78,7 @@ async function offerRadius(booking: DispatchBooking, radiusKm: number) {
     await notifyUser(booking.customer_id, {
       title: `Search expanded to ${radiusKm} km`,
       body: offered.length
-        ? `We found ${offered.length} more eligible Pandit${offered.length === 1 ? "" : "s"}. Travel surcharge is capped at â‚¹${surcharge}.`
+        ? `We found ${offered.length} more eligible Pandit${offered.length === 1 ? "" : "s"}. Travel surcharge is capped at ₹${surcharge}.`
         : `No eligible Pandit responded inside ${radiusKm} km yet. We are continuing your approved search.`,
       url: "/customer#live-requests",
       eventType: "BOOKING_SEARCH_EXPANDED",
