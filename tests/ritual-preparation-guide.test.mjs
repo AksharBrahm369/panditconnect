@@ -37,7 +37,8 @@ test("Panchang lookup is authenticated, rate limited and keeps its API key serve
   assert.match(route, /process\.env\.TATHAASTU_API_KEY/);
   assert.match(route, /"X-API-Key": apiKey/);
   assert.match(route, /api\.tathaastuapi\.com\/v1\/panchang/);
-  assert.match(route, /include", "timings"/);
+  assert.match(route, /api\.tathaastuapi\.com\/v1\/timings/);
+  assert.match(route, /Promise\.all/);
   assert.match(env, /^TATHAASTU_API_KEY=""$/m);
   assert.doesNotMatch(route + env, /NEXT_PUBLIC_TATHAASTU/);
 });

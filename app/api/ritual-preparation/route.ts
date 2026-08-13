@@ -39,20 +39,24 @@ export async function GET(request: Request) {
     if (!apiKey) {
       return NextResponse.json({ guide, panchang: null, panchangStatus: "NOT_CONFIGURED", message: "Samagri is ready. Live Panchang needs the free server API key to be configured." });
     }
-    const url = new URL("https://api.tathaastuapi.com/v1/panchang");
-    url.searchParams.set("date", date);
-    url.searchParams.set("lat", String(latitude));
-    url.searchParams.set("lon", String(longitude));
-    url.searchParams.set("include", "timings");
-    const response = await fetch(url, { headers: { "X-API-Key": apiKey, Accept: "application/json" }, signal: AbortSignal.timeout(8_000), next: { revalidate: 21_600 } });
-    const raw = await response.json().catch(() => null) as Record<string, unknown> | null;
-    if (!response.ok || !raw) {
-      return NextResponse.json({ guide, panchang: null, panchangStatus: "UNAVAILABLE", message: response.status === 429 ? "Panchang free-tier limit is temporarily reached. Please try later." : "Live Panchang is temporarily unavailable. Please confirm the muhurta with your Pandit." });
+    const query = new URLSearchParams({ date, lat: String(latitude), lon: String(longitude) });
+    const headers = { "X-API-Key": apiKey, Accept: "application/json" };
+    const [panchangResponse, timingsResponse] = await Promise.all([
+      fetch(`https://api.tathaastuapi.com/v1/panchang?${query}`, { headers, signal: AbortSignal.timeout(8_000), next: { revalidate: 21_600 } }),
+      fetch(`https://api.tathaastuapi.com/v1/timings?${query}`, { headers, signal: AbortSignal.timeout(8_000), next: { revalidate: 21_600 } }),
+    ]);
+    const raw = await panchangResponse.json().catch(() => null) as Record<string, unknown> | null;
+    const rawTimings = await timingsResponse.json().catch(() => null) as Record<string, unknown> | null;
+    if (!panchangResponse.ok || !raw) {
+      return NextResponse.json({ guide, panchang: null, panchangStatus: "UNAVAILABLE", message: panchangResponse.status === 429 ? "Panchang free-tier limit is temporarily reached. Please try later." : "Live Panchang is temporarily unavailable. Please confirm the muhurta with your Pandit." });
     }
     const data = (raw.data && typeof raw.data === "object" ? raw.data : raw) as Record<string, unknown>;
     const tithi = data.tithi as Record<string, unknown> | undefined;
     const nakshatra = data.nakshatra as Record<string, unknown> | undefined;
-    const timings = (data.timings && typeof data.timings === "object" ? data.timings : {}) as Record<string, unknown>;
+    const timingPayload = rawTimings && rawTimings.data && typeof rawTimings.data === "object" ? rawTimings.data : rawTimings;
+    const timings = (timingsResponse.ok && timingPayload && typeof timingPayload === "object"
+      ? timingPayload
+      : data.timings && typeof data.timings === "object" ? data.timings : {}) as Record<string, unknown>;
     return NextResponse.json({
       guide,
       panchangStatus: "READY",
