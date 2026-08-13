@@ -18,16 +18,6 @@ type DispatchBooking = {
 };
 type Candidate = { id: string; name: string; charge: number; distance_km: string };
 
-async function loadDispatchBooking(bookingId: string) {
-  const result = await sql<DispatchBooking>(
-    `SELECT id,customer_id,service_id,request_type,preferred_language,latitude,longitude,scheduled_at,
-       search_radius_km,max_search_radius_km,status,dispatch_status
-     FROM pim_v2.bookings WHERE id=$1`,
-    [bookingId],
-  );
-  return result.rows[0] ?? null;
-}
-
 async function candidatesForRadius(booking: DispatchBooking, radiusKm: number) {
   return sql<Candidate>(
     `WITH candidates AS (

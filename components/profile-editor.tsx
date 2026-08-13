@@ -76,8 +76,8 @@ export function ProfileEditor({ role, onSaved }: { role: Role; onSaved?: () => v
   async function save() {
     setMessage("");
     setError("");
-    if (!form.name.trim() || !form.city.trim()) {
-      setError("Please enter your full name and city before saving.");
+    if (!form.name.trim() || (role === "PANDIT" && !form.city.trim())) {
+      setError(role === "PANDIT" ? "Please enter your full name and city before saving." : "Please enter your full name before saving.");
       return;
     }
     setSaving(true);
@@ -123,11 +123,11 @@ export function ProfileEditor({ role, onSaved }: { role: Role; onSaved?: () => v
           <label>Full name <b aria-hidden="true">*</b><input value={form.name} placeholder="For example, Darshan Zala" onChange={(event) => field("name", event.target.value)} maxLength={120} required /></label>
           <label>{form.phone ? "Verified mobile number" : "Google verified email"}<input value={form.phone || form.email} readOnly disabled /><small>Contact support if this verified sign-in identity must change.</small></label>
           <label>Email address <small>Optional</small><input type="email" value={form.email} placeholder="name@example.com" onChange={(event) => field("email", event.target.value)} maxLength={180} /></label>
-          <label>City <b aria-hidden="true">*</b><input value={form.city} placeholder="For example, Mumbai" onChange={(event) => field("city", event.target.value)} maxLength={100} required /></label>
           {role === "CUSTOMER" ? <>
             <label className="span-2">Default service address <small>Optional</small><textarea rows={3} value={form.defaultAddress} placeholder="House or building, street, area and PIN code" onChange={(event) => field("defaultAddress", event.target.value)} maxLength={500} /></label>
             <label>Preferred Puja language<IndianLanguageSelect value={form.preferredLanguage} onChange={(value) => field("preferredLanguage", value)} /><small>Used by default when finding a matching Pandit.</small></label>
           </> : <>
+            <label>City <b aria-hidden="true">*</b><input value={form.city} placeholder="For example, Mumbai" onChange={(event) => field("city", event.target.value)} maxLength={100} required /></label>
             <label className="span-2">Current address<textarea rows={3} value={form.currentAddress} onChange={(event) => field("currentAddress", event.target.value)} maxLength={500} /></label>
             <label>Years of experience<input type="number" min={0} max={80} value={form.experienceYears} onChange={(event) => field("experienceYears", Number(event.target.value))} /></label>
             <label>Service radius (km)<input type="number" min={1} max={25} value={form.serviceRadiusKm} onChange={(event) => field("serviceRadiusKm", Number(event.target.value))} /></label>

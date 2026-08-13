@@ -8,13 +8,13 @@ const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
-  title: { default: "Pandit in Minutes", template: "%s · Pandit in Minutes" },
+  title: { default: "PanditConnect", template: "%s · PanditConnect" },
   description: "Book a verified nearby Pandit for an urgent home Puja.",
   openGraph: {
-    title: "Pandit in Minutes",
+    title: "PanditConnect",
     description: "Verified nearby Pandits for urgent Puja",
     type: "website",
-    images: [{ url: "/og.png", width: 1776, height: 887, alt: "Pandit in Minutes" }],
+    images: [{ url: "/og.png", width: 1776, height: 887, alt: "PanditConnect" }],
   },
   twitter: { card: "summary_large_image", images: ["/og.png"] },
   manifest: "/manifest.webmanifest",

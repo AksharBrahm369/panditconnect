@@ -105,7 +105,7 @@ test("trusted Pandit onboarding uses private Supabase storage and auditable revi
   assert.match(storage, /key\.startsWith\("sb_secret_"\)/);
   assert.doesNotMatch(storage, /bkmctsydceofqyhkxepk/);
   assert.doesNotMatch(storage, /getPublicUrl|\/object\/public\//);
-  assert.match(adminRoute, /Complete and verify every review check before approval/);
+  assert.match(adminRoute, /Complete the identity, document and reference checks before approval/);
   assert.match(adminRoute, /body\.action === "APPROVE"[\s\S]*\? "APPROVED"/);
   assert.match(adminRoute, /body\.action === "REJECT"[\s\S]*\? "REJECTED"/);
   assert.match(adminRoute, /: "CHANGES_REQUESTED"/);
@@ -181,7 +181,7 @@ test("completed Puja payment choice is persisted without pretending to process o
   assert.match(customer, />Cash</);
   assert.match(customer, />UPI</);
   assert.match(customer, />Card</);
-  assert.match(customer, /Coming soon/);
+  assert.match(customer, /onlinePayments &&/);
   assert.doesNotMatch(customer, /confirmPaymentMethod\(booking\.id, "OTHER"\)/);
 });
 
@@ -221,9 +221,9 @@ test("online consultation is excluded from the Puja service selector", async () 
 test("submitted Pandits see a pending screen and receive admin decision notifications", async () => {
   const portal = await readFile(new URL("../components/pandit-portal.tsx", import.meta.url), "utf8");
   const admin = await readFile(new URL("../app/api/admin/pandits/route.ts", import.meta.url), "utf8");
-  assert.match(portal,/Your request is pending with Admin/);
-  assert.match(portal,/checks for updates automatically/);
-  assert.match(portal,/Enable notifications from the bell icon/);
+  assert.match(portal,/Your profile is under review/);
+  assert.match(portal,/We will notify you after the identity, experience and document checks are complete/);
+  assert.doesNotMatch(portal,/You do not need to keep this page open/);
   assert.match(admin,/Application approved/);
   assert.match(admin,/Application not approved/);
   assert.match(admin,/notifyUser\(panditId/);
@@ -243,8 +243,7 @@ test("customers can review every eligible nearby Pandit in GPS-filtered pages be
   assert.match(customer, /Choose your Pandit/);
   assert.match(customer, /sortedNearbyPandits\.map/);
   assert.match(customer, /Send request to/);
-  assert.match(customer, /Highest rated/);
-  assert.match(customer, /Most experienced/);
+  assert.doesNotMatch(customer, /Highest rated|Most experienced/);
   assert.match(customer, /Show more nearby Pandits/);
 });
 
@@ -262,7 +261,7 @@ test("push notifications provide sound, delivery diagnostics and admin event cov
   assert.match(center, /navigator\.vibrate/);
   assert.match(center, /playAlertSound/);
   assert.match(center, /registration\.update/);
-  assert.match(center, /push delivery failed/i);
+  assert.doesNotMatch(center, /push delivery failed/i);
   assert.match(push, /export async function notifyAdmins/);
   assert.match(onboarding, /notifyAdmins/);
   assert.match(support, /notifyAdmins/);
@@ -275,8 +274,8 @@ test("Pandits receive the customer address and GPS directions only after accepti
   assert.match(route, /CASE WHEN b\.status='REQUESTED' THEN 'Exact address shared after acceptance'/);
   assert.match(route, /CASE WHEN b\.status='REQUESTED' THEN NULL ELSE b\.latitude/);
   assert.match(route, /CASE WHEN b\.status='REQUESTED' THEN NULL ELSE b\.longitude/);
-  assert.match(portal, /Customer service address/);
-  assert.match(portal, /Open directions/);
+  assert.match(portal, /Customer address/);
+  assert.match(portal, /> Directions</);
   assert.match(portal, /google\.com\/maps\/dir/);
 });
 
@@ -301,7 +300,7 @@ test("customer and Pandit profile editing is role scoped and protects verified f
   assert.match(migration, /REFERENCES pim_v2\.users\(id\) ON DELETE CASCADE/);
   assert.match(route, /requireUser\(\)/);
   assert.match(route, /WHERE u\.id=\$1/);
-  assert.match(route, /UPDATE pim_v2\.users SET name=\$2,city=\$3 WHERE id=\$1/);
+  assert.match(route, /UPDATE pim_v2\.users SET name=\$2,city=NULLIF\(\$3,''\) WHERE id=\$1/);
   assert.match(route, /WITH updated_user AS/);
   assert.match(route, /notifyAdmins/);
   assert.match(editor, /Verified mobile number/);
@@ -314,12 +313,12 @@ test("customer and Pandit profile editing is role scoped and protects verified f
   assert.match(route, /pim_v2\.pandit_services/);
   assert.match(route, /Enable at least one Puja service/);
   assert.match(route, /verification_status='APPROVED'/);
-  assert.match(shell, /PanditAccountMenu/);
+  assert.match(shell, /label: "Account"/);
   assert.doesNotMatch(shell, /#pandit-profile/);
 });
 
-test("Pandit private account features live behind a named gear menu and protected pages", async () => {
-  const menu = await readFile(new URL("../components/pandit-account-menu.tsx", import.meta.url), "utf8");
+test("Pandit private account features live on protected account pages", async () => {
+  const menu = await readFile(new URL("../components/pandit-settings-shell.tsx", import.meta.url), "utf8");
   const shell = await readFile(new URL("../components/app-shell.tsx", import.meta.url), "utf8");
   const dashboard = await readFile(new URL("../components/pandit-portal.tsx", import.meta.url), "utf8");
   const payoutRoute = await readFile(new URL("../app/api/pandit/payout/route.ts", import.meta.url), "utf8");
@@ -335,16 +334,16 @@ test("Pandit private account features live behind a named gear menu and protecte
   assert.doesNotMatch(payoutRoute, /bank_account_number.*SELECT/);
 });
 
-test("customers have a private gear menu for profile and request settings", async () => {
+test("customers have private account pages for profile and request settings", async () => {
   const shell = await readFile(new URL("../components/app-shell.tsx", import.meta.url), "utf8");
-  const menu = await readFile(new URL("../components/customer-account-menu.tsx", import.meta.url), "utf8");
-  assert.match(shell, /CustomerAccountMenu/);
-  assert.match(menu, /Customer account settings/);
+  const menu = await readFile(new URL("../components/customer-settings-shell.tsx", import.meta.url), "utf8");
+  assert.match(shell, /label: "Account"/);
+  assert.match(menu, /My account/);
   assert.match(menu, /customer\/settings\/profile/);
   assert.match(menu, /customer\/settings\/notifications/);
   assert.match(menu, /customer\/settings\/security/);
   assert.match(menu, /customer\/settings\/support/);
-  assert.match(menu, /Privacy & security/);
+  assert.match(menu, /Security/);
   const editor = await readFile(new URL("../components/profile-editor.tsx", import.meta.url), "utf8");
   assert.match(editor, /Complete your profile/);
   assert.match(editor, /Please enter your full name and city before saving/);
@@ -384,14 +383,13 @@ test("customer portal uses the simplified devotional home experience", async () 
 
 test("customers can discover nearby Pandits and open privacy-safe profiles", async () => {
   const portal = await readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8");
-  const discovery = await readFile(new URL("../app/api/pandits/discover/route.ts", import.meta.url), "utf8");
+  const nearby = await readFile(new URL("../app/api/pandits/nearby/route.ts", import.meta.url), "utf8");
   const profile = await readFile(new URL("../app/customer/pandits/[id]/page.tsx", import.meta.url), "utf8");
-  assert.match(portal, /Show Pandits near me/);
-  assert.match(portal, /Request this Pandit/);
-  assert.match(portal, /Know more about/);
-  assert.match(discovery, /requireCustomer/);
-  assert.match(discovery, /verification_status='APPROVED'/);
-  assert.match(discovery, /p\.distance <= p\.service_radius_km/);
+  assert.match(portal, /Compare nearby Pandits/);
+  assert.match(portal, /Send request to/);
+  assert.doesNotMatch(portal, /\/api\/pandits\/discover/);
+  assert.match(nearby, /verification_status='APPROVED'/);
+  assert.match(nearby, /distance <= service_radius_km/);
   assert.match(profile, /Pujas and charges/);
   assert.match(profile, /Phone number, personal address, documents and payment details stay private/);
   assert.doesNotMatch(profile, /current_address|u\.phone|bank_account|upi_id/);

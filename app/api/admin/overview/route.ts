@@ -56,7 +56,7 @@ export async function GET() {
     if (response) return response;
     console.error("Unable to load admin overview", error);
     return NextResponse.json(
-      { error: "Unable to load the admin workspace. Check the database connection and try again." },
+      { error: "Unable to load the admin workspace. Please try again." },
       { status: 500, headers: { "Cache-Control": "no-store, max-age=0" } },
     );
   }

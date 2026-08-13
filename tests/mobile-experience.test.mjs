@@ -20,8 +20,8 @@ test("the complete app has a final mobile-first layout authority", async () => {
   assert.match(css, /\.customer-welcome-copy \{ order:1/);
   assert.match(css, /\.customer-welcome-image \{ order:2/);
   assert.match(css, /\.auth-side \{ display:none/);
-  assert.match(css, /scroll-snap-stop:always/);
-  assert.match(css, /\.customer-pandit-facts \{ grid-template-columns:repeat\(3/);
+  assert.match(css, /\.nearby-pandit-head \{ grid-template-columns/);
+  assert.match(css, /\.payment-method-grid \{ grid-template-columns/);
   assert.match(css, /prefers-reduced-motion/);
 });
 

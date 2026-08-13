@@ -10,11 +10,11 @@ export const dynamic = "force-dynamic";
 
 const shared = {
   name: z.string().trim().min(2).max(120),
-  city: z.string().trim().min(2).max(100),
   email: z.union([z.literal(""), z.string().trim().email().max(180)]),
 };
 const customerSchema = z.object({
   ...shared,
+  city: z.string().trim().max(100),
   defaultAddress: z.string().trim().max(500),
   preferredLanguage: z.enum(INDIAN_LANGUAGE_VALUES),
 }).strict();
@@ -25,6 +25,7 @@ const servicePriceSchema = z.object({
 });
 const panditSchema = z.object({
   ...shared,
+  city: z.string().trim().min(2).max(100),
   currentAddress: z.string().trim().min(10).max(500),
   experienceYears: z.number().int().min(0).max(80),
   languages: z.array(z.enum(INDIAN_LANGUAGE_VALUES)).min(1).max(INDIAN_LANGUAGE_VALUES.length),
@@ -66,7 +67,7 @@ export async function PUT(request: Request) {
       if (!parsed.success) return NextResponse.json({ error: parsed.error.issues[0]?.message ?? "Check your profile details" }, { status: 400 });
       const value = parsed.data;
       await sql(`WITH updated_user AS (
-        UPDATE pim_v2.users SET name=$2,city=$3 WHERE id=$1 RETURNING id
+        UPDATE pim_v2.users SET name=$2,city=NULLIF($3,'') WHERE id=$1 RETURNING id
       )
       INSERT INTO pim_v2.customer_profiles(user_id,email,default_address,preferred_language,updated_at)
       SELECT id,$4,$5,$6,now() FROM updated_user

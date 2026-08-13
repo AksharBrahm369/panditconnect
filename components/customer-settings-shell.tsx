@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { ArrowLeft, Bell, Headphones, ShieldCheck, UserRound, Database } from "lucide-react";
 import { AppShell } from "./app-shell";
+import { LogoutButton } from "./logout-button";
 
 const links = [
   { key: "profile", href: "/customer/settings/profile", label: "Profile", icon: UserRound },
@@ -11,10 +12,10 @@ const links = [
 ] as const;
 
 export function CustomerSettingsShell({ active, title, subtitle, children }: { active: typeof links[number]["key"]; title: string; subtitle: string; children: React.ReactNode }) {
-  return <AppShell role="Customer" title={title} subtitle={subtitle}>
+  return <AppShell role="Customer" title={title} subtitle={subtitle} showHeading>
     <Link className="settings-back" href="/customer"><ArrowLeft size={16} /> Back to customer dashboard</Link>
     <div className="settings-workspace">
-      <aside><strong>My account</strong><small>Private to your signed-in account</small><nav>{links.map(({ key, href, label, icon: Icon }) => <Link className={active === key ? "active" : ""} href={href} key={href}><Icon size={17} />{label}</Link>)}</nav></aside>
+      <aside><strong>My account</strong><small>Private to your signed-in account</small><nav>{links.map(({ key, href, label, icon: Icon }) => <Link className={active === key ? "active" : ""} href={href} key={href}><Icon size={17} />{label}</Link>)}</nav><LogoutButton /></aside>
       <div className="settings-content">{children}</div>
     </div>
   </AppShell>;

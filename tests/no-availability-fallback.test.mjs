@@ -22,15 +22,15 @@ test("first valid broadcast acceptance wins and closes every competing offer", a
   assert.match(transition, /Another Pandit already accepted this request/);
 });
 
-test("customer fallback UI discloses radius, timing, fees, online guidance and earliest visit", async () => {
+test("customer fallback UI keeps automatic search details internal and shows useful next actions", async () => {
   const fallback = await read("../components/availability-fallback.tsx");
   const customer = await read("../components/customer-portal.tsx");
-  for (const copy of ["Nearby Pandits are currently busy", "expands every 3 minutes", "travel surcharge", "Talk to a Pandit online now", "Reserve the earliest visit"]) {
+  for (const copy of ["No one nearby has accepted yet", "Keep searching automatically", "Talk to a Pandit online now", "Reserve the earliest visit"]) {
     assert.match(fallback, new RegExp(copy));
   }
   assert.match(customer, /dispatchMode:"BROADCAST"/);
   assert.match(customer, /RESERVE_EARLIEST/);
-  assert.match(customer, /Automatic nearby search/);
+  assert.doesNotMatch(fallback, /travel surcharge|expands every 3 minutes/);
 });
 
 test("fallback dispatch is persisted in additive database tables", async () => {

@@ -48,7 +48,7 @@ test("distributed abuse controls protect non-OTP endpoints", async () => {
     "../app/api/consultations/[id]/messages/route.ts",
     "../app/api/location/geocode/route.ts",
     "../app/api/support-cases/route.ts",
-    "../app/api/notifications/test/route.ts",
+    "../app/api/ritual-preparation/route.ts",
   ]) assert.match(await source(relative), /enforceRateLimit/);
 });
 

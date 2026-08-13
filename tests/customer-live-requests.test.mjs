@@ -7,16 +7,16 @@ test("customer live requests prioritise current status, next action and safe arr
   const styles = await readFile(new URL("../app/globals.css", import.meta.url), "utf8");
   const mobile = await readFile(new URL("../app/mobile.css", import.meta.url), "utf8");
 
-  assert.match(portal, /See the latest update and what you need to do next/);
+  assert.match(portal, /Current bookings/);
   assert.match(portal, /bookingStatusCopy/);
   assert.match(portal, /Track Pandit on map/);
   assert.match(portal, /\["ACCEPTED", "ON_THE_WAY", "ARRIVED"\]\.includes\(booking\.status\)/);
   assert.match(portal, /Puja completed successfully/);
-  assert.match(portal, /Payment preference saved/);
+  assert.match(portal, /Payment settled/);
   assert.match(portal, /value: "COMPLETED", label: "Completed"/);
   assert.match(portal, /booking\.status === "ARRIVED"/);
   assert.doesNotMatch(portal, /!\["REQUESTED", "DECLINED", "CANCELLED"\]\.includes\(booking\.status\).*arrival-code/);
-  assert.match(portal, /Arrival code is protected/);
+  assert.doesNotMatch(portal, /Arrival code is protected/);
   assert.match(styles, /\.booking-current-state/);
   assert.match(styles, /\.tracking-facts/);
   assert.match(styles, /\.tracking-card\.status-completed/);

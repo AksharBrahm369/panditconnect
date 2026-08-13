@@ -1,11 +1,10 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
-import Link from "next/link";
 import {
   AlertTriangle, ArrowLeft, BadgeCheck, BadgeHelp, CheckCircle2, ChevronRight, Clock3,
-  Banknote, CalendarDays, Compass, CreditCard, HelpCircle, MapPin, Mic, PackageCheck, RefreshCw, Search, ShieldCheck, Smartphone, Sparkles, Star, X,
+  Banknote, CalendarDays, CreditCard, Home, MapPin, Mic, PackageCheck, Search, ShieldCheck, Smartphone, Sparkles, Star, X,
 } from "lucide-react";
 import { AppShell } from "./app-shell";
 import { usePortalLanguage } from "./portal-language-switcher";
@@ -23,11 +22,6 @@ declare global { interface Window { Razorpay?:new(options:Record<string,unknown>
 type NearbyPandit = {
   id: string; name: string; experience_years: number; languages: string[]; rating: string;
   rating_count: number; completed_jobs: number; charge: number; distance_km: string; eta_minutes: number;
-};
-type DiscoveryPandit = {
-  id: string; name: string; city: string | null; experience_years: number; languages: string[];
-  specialities: string[]; rating: string; rating_count: number; completed_jobs: number;
-  starting_charge: number; distance_km: string; eta_minutes: number; services: string[];
 };
 type PreparationGuide = {
   guide: { title: string; essentials: string[]; optional: string[]; confirmation: string };
@@ -82,6 +76,7 @@ const materialsLabels: Record<string, string> = {
   NEED_GUIDANCE: "Help me understand what is needed",
 };
 const cancellationPolicyVersion = "2026-08-v1";
+const activeBookingStatuses = new Set(["REQUESTED", "ACCEPTED", "ON_THE_WAY", "ARRIVED", "IN_PROGRESS"]);
 const cancellationReasons = [
   "My plans changed",
   "There is a family or medical emergency",
@@ -106,6 +101,12 @@ function dateTimeLocalValue(timestamp: number) {
   return new Date(timestamp - date.getTimezoneOffset() * 60_000).toISOString().slice(0, 16);
 }
 
+function scheduleAt(date: string, window: string) {
+  if (!date) return "";
+  const time = window === "MORNING" ? "09:00" : window === "AFTERNOON" ? "14:00" : window === "EVENING" ? "18:00" : "10:00";
+  return `${date}T${time}`;
+}
+
 export function CustomerPortal({ customerId, customerName, initialStart }: { customerId: string; customerName?: string | null; initialStart?: "guided" }) {
   const [appLanguage] = usePortalLanguage();
   const tr = useCallback((text: string) => translatePortalText(text, appLanguage), [appLanguage]);
@@ -115,11 +116,16 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
   const [serviceId, setServiceId] = useState("");
   const [situation, setSituation] = useState("");
   const [language, setLanguage] = useState("Hindi");
+  const [showLanguagePicker, setShowLanguagePicker] = useState(false);
   const [materialsOption, setMaterialsOption] = useState("NEED_GUIDANCE");
   const [address, setAddress] = useState("");
+  const [savedAddress, setSavedAddress] = useState("");
+  const [addressMode, setAddressMode] = useState<"CURRENT" | "SAVED" | "OTHER">("CURRENT");
   const [pinCode, setPinCode] = useState("");
   const [notes, setNotes] = useState("");
   const [scheduledAt, setScheduledAt] = useState("");
+  const [scheduleDate, setScheduleDate] = useState("");
+  const [scheduleWindow, setScheduleWindow] = useState("PANDIT_RECOMMENDS");
   const [policyAccepted, setPolicyAccepted] = useState(false);
   const [clientRequestId, setClientRequestId] = useState(() => initialStart === "guided" ? crypto.randomUUID() : "");
   const [outstandingBalance, setOutstandingBalance] = useState(0);
@@ -130,12 +136,11 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
   const [locationBusy, setLocationBusy] = useState(false);
+  const [locationFailed, setLocationFailed] = useState(false);
   const [listening, setListening] = useState(false);
-  const [match, setMatch] = useState<{ name: string; distanceKm: string; etaMinutes: number; broadcast?:boolean } | null>(null);
   const [nearbyPandits, setNearbyPandits] = useState<NearbyPandit[] | null>(null);
   const [nearbyPage, setNearbyPage] = useState(1);
   const [nearbyHasMore, setNearbyHasMore] = useState(false);
-  const [panditSort, setPanditSort] = useState<"NEAREST" | "RATING" | "EXPERIENCE">("NEAREST");
   const [rematchingId, setRematchingId] = useState<string | null>(null);
   const [rematchErrors, setRematchErrors] = useState<Record<string, string>>({});
   const [consultationMode, setConsultationMode] = useState(false);
@@ -145,12 +150,8 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
   const [ratingMessages, setRatingMessages] = useState<Record<string, string>>({});
   const [paymentBusy, setPaymentBusy] = useState<string | null>(null);
   const [paymentMessages, setPaymentMessages] = useState<Record<string, string>>({});
+  const [bookingView, setBookingView] = useState<"ACTIVE" | "HISTORY">("ACTIVE");
   const [onlinePayments,setOnlinePayments]=useState(false);
-  const [discoveryPandits, setDiscoveryPandits] = useState<DiscoveryPandit[]>([]);
-  const [discoveryBusy, setDiscoveryBusy] = useState(false);
-  const [discoveryPage, setDiscoveryPage] = useState(1);
-  const [discoveryHasMore, setDiscoveryHasMore] = useState(false);
-  const [discoveryMessage, setDiscoveryMessage] = useState("");
   const [preferredPandit, setPreferredPandit] = useState<{ id: string; name: string } | null>(null);
   const [cancellationReview, setCancellationReview] = useState<{ bookingId: string; fee: number; stage: string; free: boolean; notice?: string } | null>(null);
   const [cancellationReason, setCancellationReason] = useState("");
@@ -163,9 +164,9 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
   const [fallbackBusy, setFallbackBusy] = useState(false);
   const [fallbackError, setFallbackError] = useState("");
   const [preparationGuide, setPreparationGuide] = useState<PreparationGuide | null>(null);
+  const [preparationBookingId, setPreparationBookingId] = useState<string | null>(null);
   const [preparationBusy, setPreparationBusy] = useState(false);
   const [preparationError, setPreparationError] = useState("");
-  const discoveryRail = useRef<HTMLDivElement>(null);
 
   const refreshBookings = useCallback(async () => {
     const response = await fetch(`/api/bookings?fresh=${Date.now()}`, {
@@ -198,8 +199,16 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
       .then((response) => readJson<{ profile?: { preferred_language?: string; default_address?: string } }>(response))
       .then((data) => {
         if (data.profile?.preferred_language) setLanguage(data.profile.preferred_language);
-        if (data.profile?.default_address) setAddress((current) => current || data.profile!.default_address || "");
+        if (data.profile?.default_address) {
+          setSavedAddress(data.profile.default_address);
+          setAddress((current) => current || data.profile!.default_address || "");
+        }
       });
+    const restorePolicy = window.setTimeout(() => {
+      if (window.localStorage.getItem("panditconnect:cancellation-policy") === cancellationPolicyVersion) {
+        setPolicyAccepted(true);
+      }
+    }, 0);
     void fetch("/api/payments/orders",{cache:"no-store"}).then(r=>readJson<{enabled?:boolean}>(r)).then(d=>setOnlinePayments(Boolean(d.enabled)));
     const initialLoad = window.setTimeout(() => void refreshBookings(), 0);
     const refresh=()=>{if(document.visibilityState==="visible")void refreshBookings();};
@@ -208,32 +217,11 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
     window.addEventListener("focus",refresh);document.addEventListener("visibilitychange",onVisibility);
     return () => {
       window.clearTimeout(initialLoad);
+      window.clearTimeout(restorePolicy);
       window.clearInterval(timer);
       window.removeEventListener("focus",refresh);document.removeEventListener("visibilitychange",onVisibility);
     };
   }, [refreshBookings]);
-
-  const loadNearbyDiscovery = useCallback(async (page = 1, append = false) => {
-    setDiscoveryBusy(true);
-    setDiscoveryMessage("");
-    try {
-      const current = await getCurrentCoordinates();
-      setCoordinates(current);
-      setLocationSource("GPS");
-      const params = new URLSearchParams({ lat: String(current.latitude), lng: String(current.longitude), page: String(page), limit: "6" });
-      const response = await fetch(`/api/pandits/discover?${params}`, { cache: "no-store" });
-      const data = await readJson<{ pandits?: DiscoveryPandit[]; hasMore?: boolean; error?: string }>(response);
-      if (!response.ok) throw new Error(data.error ?? "Unable to load nearby Pandits.");
-      setDiscoveryPandits((currentPandits) => append ? [...currentPandits, ...(data.pandits ?? [])] : (data.pandits ?? []));
-      setDiscoveryPage(page);
-      setDiscoveryHasMore(Boolean(data.hasMore));
-      if (!data.pandits?.length) setDiscoveryMessage("No approved Pandit is online near you right now. Please check again shortly.");
-    } catch (error) {
-      setDiscoveryMessage(error instanceof Error ? error.message : "Allow location access to see nearby Pandits.");
-    } finally {
-      setDiscoveryBusy(false);
-    }
-  }, []);
 
   useEffect(() => {
     const applySelection = window.setTimeout(() => {
@@ -251,22 +239,18 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
     () => recommendation ?? (serviceId ? ritualForService(serviceId) : null),
     [recommendation, serviceId],
   );
-  const sortedNearbyPandits = useMemo(() => {
-    if (!nearbyPandits) return [];
-    return [...nearbyPandits].sort((a, b) => {
-      if (panditSort === "RATING") return Number(b.rating) - Number(a.rating) || b.rating_count - a.rating_count || Number(a.distance_km) - Number(b.distance_km);
-      if (panditSort === "EXPERIENCE") return b.experience_years - a.experience_years || Number(a.distance_km) - Number(b.distance_km);
-      return Number(a.distance_km) - Number(b.distance_km);
-    });
-  }, [nearbyPandits, panditSort]);
-  const visibleBookings = useMemo(
-    () => bookings.filter((booking) => !(
+  const sortedNearbyPandits = useMemo(
+    () => [...(nearbyPandits ?? [])].sort((a, b) => Number(a.distance_km) - Number(b.distance_km)),
+    [nearbyPandits],
+  );
+  const visibleBookings = useMemo(() => bookings.filter((booking) => !(
       booking.status === "DECLINED" &&
       booking.dispatch_status === "EXHAUSTED" &&
       booking.available_now_count > 0
-    )),
-    [bookings],
-  );
+    )), [bookings]);
+  const activeBookings = useMemo(() => visibleBookings.filter((booking) => activeBookingStatuses.has(booking.status)), [visibleBookings]);
+  const closedBookings = useMemo(() => visibleBookings.filter((booking) => !activeBookingStatuses.has(booking.status)), [visibleBookings]);
+  const bookingsForView = bookingView === "ACTIVE" ? activeBookings : closedBookings;
 
   function choosePath(type: RequestType) {
     setRequestType(type);
@@ -274,29 +258,19 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
     setSituation("");
     setRecommendation(null);
     setGuidanceError("");
-    setMatch(null);
     setNearbyPandits(null);
     setNearbyPage(1);
     setNearbyHasMore(false);
     setMessage("");
     setScheduledAt("");
-    setPolicyAccepted(false);
+    setScheduleDate("");
+    setScheduleWindow("PANDIT_RECOMMENDS");
     setClientRequestId(crypto.randomUUID());
     setFallbackPlan(null);
     setFallbackBookingId(null);
     setFallbackError("");
     setPreparationGuide(null);
     setPreparationError("");
-  }
-
-  function requestDiscoveryPandit(pandit: DiscoveryPandit) {
-    choosePath("KNOWN_PUJA");
-    setPreferredPandit({ id: pandit.id, name: pandit.name });
-    window.setTimeout(() => document.getElementById("request-assistance")?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
-  }
-
-  function moveDiscovery(direction: -1 | 1) {
-    discoveryRail.current?.scrollBy({ left: direction * Math.min(360, discoveryRail.current.clientWidth * .86), behavior: "smooth" });
   }
 
   async function detectLocation() {
@@ -306,9 +280,19 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
       const current = await getCurrentCoordinates();
       setCoordinates(current);
       setLocationSource("GPS");
+      setLocationFailed(false);
+      void fetch("/api/location/geocode", {
+        method: "POST",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({ latitude: current.latitude, longitude: current.longitude }),
+      }).then((response) => readJson<{ label?: string; postalCode?: string | null }>(response)).then((result) => {
+        if (result.label) setAddress((value) => value.trim() ? value : result.label!);
+        if (result.postalCode) setPinCode(result.postalCode);
+      }).catch(() => undefined);
       return current;
     } catch (error) {
       setMessage(error instanceof Error ? error.message : "Unable to detect your location.");
+      setLocationFailed(true);
       return null;
     } finally {
       setLocationBusy(false);
@@ -382,7 +366,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
   }
 
   function openOnlineGuidance(){
-    setRequestType(null);setMatch(null);setNearbyPandits(null);setConsultationMode(true);
+    setRequestType(null);setNearbyPandits(null);setConsultationMode(true);
     window.setTimeout(()=>document.getElementById("online-guidance")?.scrollIntoView({behavior:"smooth",block:"start"}),0);
   }
 
@@ -400,9 +384,10 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
     setFallbackBusy(false);
     if(!response.ok){setFallbackError(data.error??"Unable to start the wider search.");return;}
     if(scheduledVisit){setRequestType("SCHEDULED_PUJA");setScheduledAt(dateTimeLocalValue(new Date(visitAt!).getTime()));}
-    setMatch({name:"nearby approved Pandits",distanceKm:`up to ${maxRadiusKm}`,etaMinutes:0,broadcast:true});
     setNearbyPandits(null);setFallbackPlan(null);setClientRequestId(crypto.randomUUID());
     await refreshBookings();
+    setRequestType(null);
+    setMessage("We are contacting matching nearby Pandits. You will get an update as soon as one accepts.");
   }
 
   async function reserveEarliestForBooking(bookingId:string){
@@ -415,22 +400,30 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
   }
 
   async function findNearbyPandits(page = 1, append = false) {
-    if (!requestType || !serviceId || !address.trim()) {
-      setMessage("Complete the guidance, Puja and address details before continuing.");
+    if (!requestType || !serviceId) {
+      setMessage("Choose the Puja before continuing.");
       return;
     }
     if ((requestType === "NEED_GUIDANCE" || requestType === "PANDIT_SOS") && situation.trim().length < 5) {
       setMessage("Please add a short description of what happened.");
       return;
     }
-    if (!/^[1-9]\d{5}$/.test(pinCode)) {
-      setMessage("Enter your 6-digit service-area PIN code before continuing.");
-      return;
-    }
     setBusy(true);
     setMessage("");
     const current = locationSource === "GPS" && coordinates ? coordinates : await detectLocation();
     if (!current) { setBusy(false); return; }
+    if (!address.trim()) {
+      setMessage("We could not identify the service address. Enter it once and continue.");
+      setLocationFailed(true);
+      setBusy(false);
+      return;
+    }
+    if (!/^[1-9]\d{5}$/.test(pinCode)) {
+      setMessage("We could not identify the PIN code from GPS. Enter it once to confirm the service area.");
+      setLocationFailed(true);
+      setBusy(false);
+      return;
+    }
     if (requestType === "SCHEDULED_PUJA" && !scheduledAt) {
       setMessage("Choose the date and time for your Puja before comparing Pandits.");
       setBusy(false);
@@ -464,27 +457,14 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
     setBusy(false);
   }
 
-  async function loadPreparationGuide() {
-    if (!serviceId) {
-      setPreparationError("Choose the Puja first.");
-      return;
-    }
-    if (requestType === "SCHEDULED_PUJA" && !scheduledAt) {
-      setPreparationError("Choose the Puja date and time before checking its Panchang.");
-      return;
-    }
+  async function loadPreparationGuide(booking: Booking) {
+    setPreparationBookingId(booking.id);
     setPreparationBusy(true);
     setPreparationError("");
-    const current = coordinates ?? await detectLocation();
-    if (!current) {
-      setPreparationBusy(false);
-      setPreparationError("Allow GPS location so the Panchang can be calculated for your Puja place.");
-      return;
-    }
-    const date = requestType === "SCHEDULED_PUJA" && scheduledAt
-      ? scheduledAt.slice(0, 10)
+    const date = booking.scheduled_at
+      ? booking.scheduled_at.slice(0, 10)
       : dateTimeLocalValue(Date.now()).slice(0, 10);
-    const params = new URLSearchParams({ serviceId, date, lat: String(current.latitude), lng: String(current.longitude) });
+    const params = new URLSearchParams({ serviceId: booking.service_id, date, lat: String(booking.latitude), lng: String(booking.longitude) });
     const response = await fetch(`/api/ritual-preparation?${params}`, { cache: "no-store" });
     const data = await readJson<PreparationGuide & { error?: string }>(response);
     setPreparationBusy(false);
@@ -493,7 +473,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
       return;
     }
     setPreparationGuide(data);
-    window.setTimeout(() => document.getElementById("puja-preparation-guide")?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
+    window.setTimeout(() => document.getElementById(`puja-preparation-${booking.id}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 0);
   }
 
   async function sendRequest(panditId: string, confirmedLocation = coordinates) {
@@ -517,10 +497,11 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
       setBusy(false);
       return;
     }
-    setMatch(data.matchedPandit ?? null);
-    setNearbyPandits(null);
-    setBusy(false);
-    void refreshBookings();
+      setNearbyPandits(null);
+      setBusy(false);
+      await refreshBookings();
+      setRequestType(null);
+      setMessage(data.matchedPandit ? `Request sent to ${data.matchedPandit.name}. We will notify you when the Pandit responds.` : "Your request was sent.");
   }
 
   async function findAnotherPandit(bookingId: string) {
@@ -552,7 +533,6 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
       pandit_longitude: null,
       location_updated_at: null,
     } : booking));
-    setMatch({ name: data.matchedPandit.name, distanceKm: data.matchedPandit.distanceKm, etaMinutes: data.matchedPandit.etaMinutes });
     await refreshBookings();
     setRematchingId(null);
   }
@@ -600,7 +580,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
     const idempotencyKey=`${purpose}:${bookingId}:${crypto.randomUUID()}`;
     const response=await fetch("/api/payments/orders",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({bookingId,purpose,idempotencyKey})});const data=await readJson<{error?:string;orderId?:string;amount?:number;keyId?:string}>(response);if(!response.ok||!data.orderId||!data.keyId){setPaymentMessages(current=>({...current,[bookingId]:data.error??"Unable to start secure payment."}));setPaymentBusy(null);return;}
     if(!window.Razorpay){await new Promise<void>((resolve,reject)=>{const script=document.createElement("script");script.src="https://checkout.razorpay.com/v1/checkout.js";script.onload=()=>resolve();script.onerror=()=>reject(new Error("Payment checkout could not load"));document.head.appendChild(script);}).catch(error=>setPaymentMessages(current=>({...current,[bookingId]:error instanceof Error?error.message:"Payment checkout could not load"})));}
-    if(!window.Razorpay){setPaymentBusy(null);return;}const checkout=new window.Razorpay({key:data.keyId,amount:(data.amount??0)*100,currency:"INR",name:"Pandit in Minutes",description:purpose==="CANCELLATION_FEE"?"Cancellation balance":"Completed Puja payment",order_id:data.orderId,handler:()=>{setPaymentMessages(current=>({...current,[bookingId]:"Payment submitted securely. Waiting for provider confirmation…"}));setPaymentBusy(null);window.setTimeout(()=>void refreshBookings(),2500);},modal:{ondismiss:()=>setPaymentBusy(null)},theme:{color:"#c54824"}});checkout.on("payment.failed",()=>{setPaymentMessages(current=>({...current,[bookingId]:"Payment failed or was cancelled. No success was recorded."}));setPaymentBusy(null);});checkout.open();
+    if(!window.Razorpay){setPaymentBusy(null);return;}const checkout=new window.Razorpay({key:data.keyId,amount:(data.amount??0)*100,currency:"INR",name:"PanditConnect",description:purpose==="CANCELLATION_FEE"?"Cancellation balance":"Completed Puja payment",order_id:data.orderId,handler:()=>{setPaymentMessages(current=>({...current,[bookingId]:"Payment submitted securely. Waiting for confirmation…"}));setPaymentBusy(null);window.setTimeout(()=>void refreshBookings(),2500);},modal:{ondismiss:()=>setPaymentBusy(null)},theme:{color:"#c54824"}});checkout.on("payment.failed",()=>{setPaymentMessages(current=>({...current,[bookingId]:"Payment failed or was cancelled. No success was recorded."}));setPaymentBusy(null);});checkout.open();
   }
   async function disputeCashPayment(bookingId:string){if(!window.confirm("Report a cash-payment disagreement? Please also create a support case with the facts."))return;setPaymentBusy(bookingId);const response=await fetch(`/api/bookings/${bookingId}/payment`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"DISPUTE"})});const data=await readJson<{error?:string}>(response);setPaymentMessages(current=>({...current,[bookingId]:response.ok?"Payment marked disputed. Open Help and safety to submit evidence.":data.error??"Unable to report payment issue."}));await refreshBookings();setPaymentBusy(null);}
   async function decidePriceChange(bookingId:string,decision:"APPROVE"|"REJECT"){if(!window.confirm(decision==="APPROVE"?"Approve this revised total? The new amount will replace the original booking amount.":"Reject this change? The previously agreed amount and scope will remain."))return;const response=await fetch(`/api/bookings/${bookingId}/price-change`,{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({decision})});const data=await readJson<{error?:string}>(response);if(!response.ok)setMessage(data.error??"Unable to update the price request.");await refreshBookings();}
@@ -650,7 +630,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
       {message && <div className="alert error">{message}</div>}
       {outstandingBalance>0&&<div className="alert error"><strong>Outstanding cancellation balance: ₹{outstandingBalance.toLocaleString("en-IN")}</strong> New bookings are paused. You can dispute an incorrect charge through Help and safety.{onlinePayments&&bookings.find(item=>item.cancellation_fee_status==="OUTSTANDING")&&<button className="btn btn-primary" disabled={Boolean(paymentBusy)} onClick={()=>void startOnlinePayment(bookings.find(item=>item.cancellation_fee_status==="OUTSTANDING")!.id,"CANCELLATION_FEE")}>Pay balance securely</button>}</div>}
 
-      {!requestType && !match && !consultationMode && (
+      {!requestType && !consultationMode && (
         <section className="customer-home" id="customer-home">
           <div className="customer-welcome">
             <div className="customer-welcome-copy">
@@ -663,62 +643,33 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
             <div className="customer-welcome-image"><Image src="/images/customer-puja-welcome.png" alt="A family receiving Puja guidance from a trusted Pandit at home" width={1750} height={900} priority unoptimized /><span><ShieldCheck /> Verified Pandits · Private booking</span></div>
             </div>
 
-            <section className="customer-pandit-discovery" aria-labelledby="nearby-pandit-heading">
-              <div className="customer-discovery-heading">
-                <div><span>{tr("Nearby verified Pandits")}</span><h2 id="nearby-pandit-heading">{tr("Choose someone your family can trust")}</h2><p>{tr("Only approved, online Pandits inside their service area are shown.")}</p></div>
-                <div className="customer-discovery-controls">
-                  <button className="btn btn-ghost" onClick={() => void loadNearbyDiscovery(1)} disabled={discoveryBusy}><MapPin size={16} /> {discoveryBusy ? "Checking location…" : discoveryPandits.length ? "Refresh nearby" : "Show Pandits near me"}</button>
-                  {discoveryPandits.length > 1 && <><button className="icon-button" aria-label="Previous Pandits" onClick={() => moveDiscovery(-1)}><ArrowLeft size={18} /></button><button className="icon-button" aria-label="Next Pandits" onClick={() => moveDiscovery(1)}><ChevronRight size={18} /></button></>}
-                </div>
-              </div>
-              {discoveryMessage && <div className="customer-discovery-message"><MapPin size={18} /><span>{discoveryMessage}</span></div>}
-              {discoveryPandits.length > 0 && <div className="customer-pandit-rail" ref={discoveryRail}>{discoveryPandits.map((pandit) => {
-                const labels = pandit.services.length ? pandit.services : pandit.specialities;
-                const extraCount = Math.max(0, labels.length - 3);
-                return <article className="customer-pandit-card" key={pandit.id}>
-                  <div className="customer-pandit-top"><PanditAvatar panditId={pandit.id} name={pandit.name} className="pandit-avatar" /><div><h3>{pandit.name}</h3><span className="online-label">Available nearby</span></div><b>{pandit.distance_km} km</b></div>
-                  <div className="customer-pandit-tags">{labels.slice(0,3).map((item) => <span key={item}>{item}</span>)}{extraCount > 0 && <span>+{extraCount} more</span>}</div>
-                  <div className="customer-pandit-facts"><span><Star size={15} fill="currentColor" /><strong>{pandit.rating_count ? Number(pandit.rating).toFixed(1) : "New"}</strong><small>{pandit.rating_count ? `${pandit.rating_count} ratings` : "No ratings yet"}</small></span><span><Clock3 size={15} /><strong>{pandit.experience_years} years</strong><small>Experience</small></span><span><BadgeCheck size={15} /><strong>{pandit.completed_jobs}</strong><small>Pujas completed</small></span></div>
-                  <p className="customer-pandit-language">Speaks {pandit.languages.slice(0,3).join(", ")}</p>
-                  <div className="customer-pandit-price"><span>Starts from <strong>₹{pandit.starting_charge.toLocaleString("en-IN")}</strong></span><small>About {pandit.eta_minutes} min away</small></div>
-                  <button className="btn btn-primary btn-block" onClick={() => requestDiscoveryPandit(pandit)}>Request this Pandit</button>
-                  <Link className="customer-pandit-more" href={`/customer/pandits/${pandit.id}`}>Know more about {pandit.name} <ChevronRight size={15} /></Link>
-                </article>;
-              })}</div>}
-              {discoveryHasMore && <button className="btn btn-ghost btn-block" disabled={discoveryBusy} onClick={() => void loadNearbyDiscovery(discoveryPage + 1, true)}>{discoveryBusy ? "Loading more…" : "Show more nearby Pandits"}</button>}
-            </section>
-
-            <div className="customer-choice-heading" id="request-assistance"><div><span>{tr("Quick help")}</span><h2>{tr("Choose what you need now")}</h2></div><p>{tr("Nothing is submitted until you confirm.")}</p></div>
-          <div className="customer-choice-grid">
-            <button className="customer-choice-card schedule" onClick={() => choosePath("SCHEDULED_PUJA")}><span><CalendarDays /></span><div><small>{tr("Plan ahead")}</small><strong>{tr("Schedule a Puja")}</strong><p>Choose a future date, time and nearby Pandit.</p></div><ChevronRight /></button>
-            <button className="customer-choice-card urgent" onClick={() => choosePath("PANDIT_SOS")}><span><AlertTriangle /></span><div><small>{tr("Urgent help")}</small><strong>{tr("My Pandit cancelled")}</strong><p>{tr("Quickly find another approved Pandit nearby.")}</p></div><ChevronRight /></button>
-            <button className="customer-choice-card online" id="online-guidance" onClick={() => setConsultationMode(true)}><span><BadgeHelp /></span><div><small>{tr("Online guidance")}</small><strong>{tr("Chat with a Pandit")}</strong><p>{tr("Ask a religious question privately online.")}</p></div><ChevronRight /></button>
+          <div className="customer-choice-grid customer-home-actions" id="request-assistance">
+            <button className="customer-choice-card schedule" onClick={() => choosePath("SCHEDULED_PUJA")}><span><CalendarDays /></span><div><small>{tr("Plan ahead")}</small><strong>{tr("Schedule for later")}</strong><p>Choose a date; the Pandit can confirm the right time.</p></div><ChevronRight /></button>
+            {onlinePayments&&<button className="customer-choice-card online" onClick={() => setConsultationMode(true)}><span><BadgeHelp /></span><div><small>{tr("Private guidance")}</small><strong>{tr("Ask a Pandit online")}</strong><p>{tr("Use this when you need advice instead of a home visit.")}</p></div><ChevronRight /></button>}
           </div>
-
-          <div className="customer-trust-row"><span><ShieldCheck /><b>Verified profiles</b><small>Reviewed by Admin</small></span><span><MapPin /><b>Nearby matching</b><small>Based on your area</small></span><span><BadgeCheck /><b>Simple updates</b><small>Track every status</small></span></div>
+          {activeBookingStatuses.size > 0 && bookings.some((booking) => activeBookingStatuses.has(booking.status)) && <button className="customer-active-booking-link" onClick={() => document.getElementById("live-requests")?.scrollIntoView({ behavior: "smooth" })}><Clock3 /> You have an active booking <ChevronRight /></button>}
         </section>
       )}
 
       {consultationMode && <ConsultationPanel role="CUSTOMER" onBack={() => setConsultationMode(false)} />}
 
-          {requestType && !match && nearbyPandits === null && (
+          {requestType && nearbyPandits === null && (
         <>
-          <div className="flow-assurance"><ShieldCheck /><div><strong>You stay in control</strong><span>Nothing is sent until you review the Puja, language, materials and address.</span></div></div>
-          <div className="progress"><span className="active">1 {requestType === "KNOWN_PUJA" || requestType === "SCHEDULED_PUJA" ? "Select Puja" : "Describe need"}</span><i /><span className={serviceId ? "active" : ""}>2 Booking details</span><i /><span>3 Choose Pandit</span></div>
-          <button className="back-review flow-back" onClick={() => setRequestType(null)}><ArrowLeft size={16} /> Choose another path</button>
+          <div className="progress"><span className="active">1 Your need</span><i /><span className={serviceId ? "active" : ""}>2 Details</span><i /><span>3 Pandit</span></div>
+          <button className="back-review flow-back" onClick={() => setRequestType(null)}><ArrowLeft size={16} /> Back</button>
           <section className="guided-workspace" id="request-assistance">
             <div className="guided-main">
               <div className="flow-heading">
                 <span className="eyebrow">{requestType === "NEED_GUIDANCE" ? "Guided booking" : requestType === "SCHEDULED_PUJA" ? "Scheduled booking" : "Direct Puja booking"}</span>
                 <h2>{requestType === "NEED_GUIDANCE" ? "What happened or what is the occasion?" : requestType === "SCHEDULED_PUJA" ? "Which Puja would you like to schedule?" : "Select the Puja you want to book"}</h2>
-                {requestType === "KNOWN_PUJA" && <p>Prices shown are starting prices. You will choose from Pandits who perform this Puja, speak your preferred language and serve your location.</p>}
+                {requestType === "KNOWN_PUJA" && <p>Choose the Puja. We will show only suitable Pandits after the details are complete.</p>}
               </div>
 
               {(requestType === "NEED_GUIDANCE" || requestType === "PANDIT_SOS") && (
                 <>
                   <label>Describe the situation
                     <textarea rows={5} value={situation} aria-invalid={Boolean(guidanceError)} onChange={(event) => updateSituation(event.target.value)} placeholder={requestType === "PANDIT_SOS" ? "Example: Our Griha Pravesh is today at 11 AM and our Pandit cancelled." : "Example: We are opening a new shop and do not know which Puja is suitable."} />
-                    <button type="button" className={`voice-button ${listening ? "active" : ""}`} onClick={startVoiceInput}><Mic size={16} /> {listening ? "Listening…" : "Speak instead of typing"}</button>
+                    {typeof window !== "undefined" && ("SpeechRecognition" in window || "webkitSpeechRecognition" in window) && <button type="button" className={`voice-button ${listening ? "active" : ""}`} onClick={startVoiceInput}><Mic size={16} /> {listening ? "Listening…" : "Speak"}</button>}
                   </label>
                   {guidanceError && <div className="field-error" role="alert">{guidanceError}</div>}
                   {!guidanceError && <p className="field-hint">For example: “We are opening a new shop” or “Our Pandit cancelled today.”</p>}
@@ -734,38 +685,30 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
                 {!services.length && <div className="empty"><strong>Puja services are being prepared</strong><span>Please try again shortly or contact support for urgent assistance.</span></div>}</>
               )}
 
-              {requestType === "NEED_GUIDANCE" && !recommendation && <button className="btn btn-primary" onClick={getGuidance}><Compass size={17} /> Recommend the right ritual</button>}
+              {requestType === "NEED_GUIDANCE" && !recommendation && <button className="btn btn-primary" onClick={getGuidance}>Continue <ChevronRight size={17} /></button>}
 
               {guidance && (
                 <article className="guidance-card">
                   <div className="guidance-head"><CheckCircle2 size={23} /><div><span>{requestType === "KNOWN_PUJA" ? "Selected Puja" : "Recommended"}</span><h3>{guidance.title}</h3></div></div>
                   <p>{guidance.reason}</p>
-                  <div className="checklist"><strong>Preparation checklist</strong>{guidance.checklist.map((item) => <span key={item}><CheckCircle2 size={15} /> {item}</span>)}</div>
-                  <small>This is practical guidance, not a substitute for advice from a qualified Pandit. The matched Pandit will confirm the ritual.</small>
+                  <small>The Pandit will confirm the exact ritual, materials and muhurat after accepting.</small>
                 </article>
               )}
-              {materialsOption === "NEED_GUIDANCE" && preparationGuide && <article className="puja-preparation-guide" id="puja-preparation-guide">
-                <header><span><PackageCheck /></span><div><small>Personal preparation guide</small><h3>{preparationGuide.guide.title}</h3><p>Prepared for the selected Puja, date and GPS location.</p></div></header>
-                <section><h4>Essential samagri</h4><div className="samagri-grid">{preparationGuide.guide.essentials.map((item) => <span key={item}><CheckCircle2 /> {item}</span>)}</div></section>
-                <details><summary>Optional or tradition-specific items</summary><div className="samagri-grid optional">{preparationGuide.guide.optional.map((item) => <span key={item}><Sparkles /> {item}</span>)}</div></details>
-                {preparationGuide.panchang ? <section className="panchang-panel"><div className="panchang-heading"><CalendarDays /><div><small>Live Panchang · {new Date(`${preparationGuide.panchang.date}T12:00:00`).toLocaleDateString("en-IN", { dateStyle: "full" })}</small><h4>Calculated for your Puja location</h4></div></div><div className="panchang-grid"><span><small>Tithi</small><strong>{preparationGuide.panchang.tithi}{preparationGuide.panchang.paksha ? ` · ${preparationGuide.panchang.paksha} Paksha` : ""}</strong>{preparationGuide.panchang.tithiPeriod && <em>{preparationGuide.panchang.tithiPeriod}</em>}</span><span><small>Nakshatra</small><strong>{preparationGuide.panchang.nakshatra}</strong>{preparationGuide.panchang.nakshatraPeriod && <em>{preparationGuide.panchang.nakshatraPeriod}</em>}</span>{preparationGuide.panchang.abhijitMuhurat && <span><small>General Abhijit Muhurat</small><strong>{preparationGuide.panchang.abhijitMuhurat}</strong></span>}{preparationGuide.panchang.brahmaMuhurat && <span><small>Brahma Muhurta</small><strong>{preparationGuide.panchang.brahmaMuhurat}</strong></span>}{preparationGuide.panchang.rahuKaal && <span className="avoid"><small>Avoid · Rahu Kaal</small><strong>{preparationGuide.panchang.rahuKaal}</strong></span>}{preparationGuide.panchang.sunrise && <span><small>Sunrise / sunset</small><strong>{preparationGuide.panchang.sunrise}{preparationGuide.panchang.sunset ? ` / ${preparationGuide.panchang.sunset}` : ""}</strong></span>}</div></section> : <div className="panchang-unavailable"><Clock3 /><span><strong>Live Panchang is not available yet</strong><small>{preparationGuide.message}</small></span></div>}
-                <footer><ShieldCheck /><p><strong>Final confirmation is required.</strong> {preparationGuide.guide.confirmation} Panchang windows are calculation-based guidance; confirm the final ritual-specific muhurta with the Pandit before making arrangements.</p></footer>
-              </article>}
             </div>
 
                 <aside className="side-card sticky">
                   <h3>Request details</h3>
                   {preferredPandit && <div className="preferred-pandit-note"><BadgeCheck size={18} /><span><small>Your selected Pandit</small><strong>{preferredPandit.name}</strong><em>We will confirm this Pandit serves the selected Puja and your location.</em></span><button onClick={() => setPreferredPandit(null)}>Change</button></div>}
-              <label>Language for the Puja<IndianLanguageSelect value={language} onChange={setLanguage} /><small className="field-hint">Only nearby Pandits who speak this language will be shown.</small></label>
-              <label>Puja materials<select value={materialsOption} onChange={(event) => { setMaterialsOption(event.target.value); setPreparationGuide(null); setPreparationError(""); }}>{Object.entries(materialsLabels).map(([value, label]) => <option value={value} key={value}>{label}</option>)}</select></label>
-              {requestType === "SCHEDULED_PUJA" && <label>Puja date and time<input type="datetime-local" value={scheduledAt} min={dateTimeLocalValue(Date.now() + 2 * 60 * 60 * 1000)} max={dateTimeLocalValue(Date.now() + 180 * 24 * 60 * 60 * 1000)} onChange={(event) => { setScheduledAt(event.target.value); setPreparationGuide(null); setPreparationError(""); }} /><small className="field-hint">Schedule at least 2 hours ahead.</small></label>}
-              <label>Full service address<textarea rows={3} value={address} onChange={(event) => { const nextAddress=event.target.value;setAddress(nextAddress);const detectedPin=nextAddress.match(/(?:^|\D)([1-9]\d{2}[\s-]?\d{3})(?!\d)/)?.[1]?.replace(/\D/g,"");if(detectedPin)setPinCode(detectedPin); }} placeholder="House or building, street and area" /></label>
-              <label>6-digit PIN code<input inputMode="numeric" autoComplete="postal-code" maxLength={6} pattern="[1-9][0-9]{5}" value={pinCode} onChange={(event)=>setPinCode(event.target.value.replace(/\D/g,"").slice(0,6))} placeholder="Example: 400075"/><small className="field-hint">Enter the PIN code for the Puja address.</small></label>
-              <button className="btn btn-ghost btn-block" onClick={detectLocation} disabled={locationBusy}>{locationBusy ? "Detecting GPS…" : <><MapPin size={16} /> Use my current GPS location</>}</button>
-              <p className={`location-state ${coordinates ? "ready" : ""}`}>{coordinates ? `GPS detected within about ${Math.round(coordinates.accuracy)} metres` : "GPS permission is required. Pandits are fetched only after your location is detected."}</p>
-              {materialsOption === "NEED_GUIDANCE" && serviceId && <div className="preparation-action"><button type="button" className="btn btn-ghost btn-block" disabled={preparationBusy} onClick={() => void loadPreparationGuide()}><PackageCheck size={17} /> {preparationBusy ? "Preparing samagri and Panchang…" : preparationGuide ? "Refresh samagri and Panchang" : "Show samagri and Panchang guide"}</button><small>Uses the Puja, selected date and current GPS location. Final muhurta is confirmed by your Pandit.</small>{preparationError && <span className="field-error">{preparationError}</span>}</div>}
-              <label>Additional note <em>Optional</em><textarea rows={2} value={notes} onChange={(event) => setNotes(event.target.value)} /></label>
-              <div className="booking-policy-consent"><strong>Cancellation policy</strong><p>Cancellation is free before acceptance and for 5 minutes after acceptance. Later cancellation may cost ₹49, up to ₹99 while travelling, or up to ₹199 after arrival.</p><label><input type="checkbox" checked={policyAccepted} onChange={(event)=>setPolicyAccepted(event.target.checked)}/><span>I understand and agree to cancellation policy version {cancellationPolicyVersion}.</span></label><Link href="/cancellation-policy" target="_blank">Read full cancellation policy</Link></div>
+              <div className="request-summary-row"><span><small>Language</small><strong>{language}</strong></span><button type="button" onClick={() => setShowLanguagePicker((value) => !value)}>{showLanguagePicker ? "Done" : "Change"}</button></div>
+              {showLanguagePicker && <label>Language for the Puja<IndianLanguageSelect value={language} onChange={setLanguage} /><small className="field-hint">Only Pandits who speak this language will be matched.</small></label>}
+              <fieldset className="materials-choice"><legend>Who will arrange Puja materials?</legend>{Object.entries(materialsLabels).map(([value, label]) => <label className={materialsOption === value ? "selected" : ""} key={value}><input type="radio" name="materials" value={value} checked={materialsOption === value} onChange={(event) => setMaterialsOption(event.target.value)} /><span>{label}</span></label>)}</fieldset>
+              {requestType === "SCHEDULED_PUJA" && <div className="schedule-choice"><label>Preferred date<input type="date" value={scheduleDate} min={dateTimeLocalValue(Date.now() + 24 * 60 * 60 * 1000).slice(0, 10)} max={dateTimeLocalValue(Date.now() + 180 * 24 * 60 * 60 * 1000).slice(0, 10)} onChange={(event) => { const nextDate = event.target.value; setScheduleDate(nextDate); setScheduledAt(scheduleAt(nextDate, scheduleWindow)); }} /></label><label>Preferred time<select value={scheduleWindow} onChange={(event) => { const nextWindow = event.target.value; setScheduleWindow(nextWindow); setScheduledAt(scheduleAt(scheduleDate, nextWindow)); }}><option value="PANDIT_RECOMMENDS">Let the Pandit recommend</option><option value="MORNING">Morning</option><option value="AFTERNOON">Afternoon</option><option value="EVENING">Evening</option></select></label><small>The Pandit will confirm the final muhurat after accepting.</small></div>}
+              <fieldset className="address-choice"><legend>Where is the Puja?</legend><button type="button" className={addressMode === "CURRENT" ? "selected" : ""} onClick={() => { setAddressMode("CURRENT"); setLocationFailed(false); }}><MapPin /> Current location</button>{savedAddress&&<button type="button" className={addressMode === "SAVED" ? "selected" : ""} onClick={() => { setAddressMode("SAVED"); setAddress(savedAddress); setLocationFailed(false); }}><Home /> Saved address</button>}<button type="button" className={addressMode === "OTHER" ? "selected" : ""} onClick={() => { setAddressMode("OTHER"); setCoordinates(null); setLocationSource(null); setLocationFailed(true); setAddress(""); setPinCode(""); }}>Other address</button></fieldset>
+              {!coordinates && addressMode !== "OTHER" && <button className="btn btn-primary btn-block" onClick={detectLocation} disabled={locationBusy}>{locationBusy ? "Finding your location…" : <><MapPin size={16} /> Confirm location with GPS</>}</button>}
+              {coordinates && <div className="location-confirmed"><CheckCircle2 /><span><strong>Location ready</strong><small>{address || "Current GPS location"}</small></span><button type="button" onClick={() => { setCoordinates(null); setLocationSource(null); }}>Change</button></div>}
+              {locationFailed && <><label>Service address<textarea rows={2} value={address} onChange={(event) => { const nextAddress=event.target.value;setAddress(nextAddress);const detectedPin=nextAddress.match(/(?:^|\D)([1-9]\d{2}[\s-]?\d{3})(?!\d)/)?.[1]?.replace(/\D/g,"");if(detectedPin)setPinCode(detectedPin); }} placeholder="House or building, street and area" /></label><label>PIN code <small>Only needed when GPS cannot confirm the area</small><input inputMode="numeric" autoComplete="postal-code" maxLength={6} value={pinCode} onChange={(event)=>setPinCode(event.target.value.replace(/\D/g,"").slice(0,6))} placeholder="6-digit PIN"/></label>{addressMode === "OTHER" && !coordinates && <button className="btn btn-ghost btn-block" type="button" onClick={detectLocation} disabled={locationBusy}>{locationBusy ? "Checking GPS…" : "Use GPS for this address"}</button>}</>}
+              <details className="optional-note"><summary>Add a note <span>Optional</span></summary><label>Anything the Pandit should know<textarea rows={2} value={notes} onChange={(event) => setNotes(event.target.value)} /></label></details>
+              {!policyAccepted&&<label className="simple-policy-consent"><input type="checkbox" checked={policyAccepted} onChange={(event)=>{const accepted=event.target.checked;setPolicyAccepted(accepted);if(accepted)window.localStorage.setItem("panditconnect:cancellation-policy",cancellationPolicyVersion);}}/><span>I agree to the <a href="/cancellation-policy" target="_blank">cancellation policy</a>.</span></label>}
                   <button className="btn btn-primary btn-block" disabled={busy || !serviceId || !policyAccepted || (requestType === "SCHEDULED_PUJA" && !scheduledAt)} onClick={() => void findNearbyPandits(1)}>{busy ? "Checking availability…" : preferredPandit ? `Confirm and request ${preferredPandit.name}` : requestType === "SCHEDULED_PUJA" ? "Compare Pandits for this time" : "Compare nearby Pandits"} <ChevronRight size={17} /></button>
               <p className="privacy-note"><ShieldCheck size={15} /> Exact address is released to the matched Pandit only after acceptance.</p>
             </aside>
@@ -773,33 +716,29 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
         </>
       )}
 
-      {requestType && !match && nearbyPandits !== null && (
+      {requestType && nearbyPandits !== null && (
         <section className="nearby-chooser" id="nearby-pandits">
           <div className="section-title">
             <div><span className="eyebrow">Nearby and available</span><h2>Choose your Pandit</h2><p>{nearbyPandits.length} approved Pandit{nearbyPandits.length === 1 ? "" : "s"} can serve this Puja near your location.</p></div>
-            <div className="nearby-actions"><label>Sort profiles<select value={panditSort} onChange={(event) => setPanditSort(event.target.value as typeof panditSort)}><option value="NEAREST">Nearest first</option><option value="RATING">Highest rated</option><option value="EXPERIENCE">Most experienced</option></select></label><button className="btn btn-ghost" onClick={() => setNearbyPandits(null)}><ArrowLeft size={16} /> Edit request</button></div>
+            <button className="btn btn-ghost" onClick={() => setNearbyPandits(null)}><ArrowLeft size={16} /> Edit request</button>
           </div>
-          {nearbyPandits.length ? <><p className="nearby-scope-note"><MapPin size={15} /> Only approved, online Pandits within 25 km and inside their own service radius are shown.</p><div className="nearby-pandit-grid">{sortedNearbyPandits.map((pandit) => (
+          {nearbyPandits.length ? <><p className="nearby-scope-note"><MapPin size={15} /> Matched for your Puja, language and current location.</p><div className="nearby-pandit-grid">{sortedNearbyPandits.map((pandit) => (
             <article className="nearby-pandit-card" key={pandit.id}>
               <div className="nearby-pandit-head"><PanditAvatar panditId={pandit.id} name={pandit.name} className="pandit-avatar" /><div><h3>{pandit.name}</h3><span className="online-label">Online now</span></div><strong>₹{pandit.charge.toLocaleString("en-IN")}</strong></div>
-              <div className="nearby-pandit-stats"><span><MapPin size={16} /><b>{pandit.distance_km} km</b><small>away</small></span><span><Clock3 size={16} /><b>{pandit.eta_minutes} min</b><small>estimated</small></span><span><Star size={16} fill="currentColor" /><b>{pandit.rating_count ? Number(pandit.rating).toFixed(1) : "New"}</b><small>{pandit.rating_count ? `${pandit.rating_count} ratings` : "not rated"}</small></span></div>
+              <div className="nearby-pandit-stats"><span><MapPin size={16} /><b>{Number(pandit.distance_km) < 1 ? "Within 1 km" : `About ${Math.round(Number(pandit.distance_km))} km`}</b><small>away</small></span><span><Clock3 size={16} /><b>{pandit.eta_minutes} min</b><small>estimated</small></span><span><Star size={16} fill="currentColor" /><b>{pandit.rating_count ? Number(pandit.rating).toFixed(1) : "New"}</b><small>{pandit.rating_count ? `${pandit.rating_count} ratings` : "not rated"}</small></span></div>
               <p><b>{pandit.experience_years} years</b> experience · {pandit.completed_jobs} completed Puja{pandit.completed_jobs === 1 ? "" : "s"}</p>
               <div className="pandit-language-list">{pandit.languages.map((item) => <span key={item}>{item}</span>)}</div>
               <button className="btn btn-primary btn-block" disabled={busy} onClick={() => sendRequest(pandit.id)}>{busy ? "Sending request…" : `Send request to ${pandit.name}`} <ChevronRight size={17} /></button>
             </article>
           ))}</div>{nearbyHasMore && <button className="btn btn-ghost btn-block" disabled={busy} onClick={() => void findNearbyPandits(nearbyPage + 1, true)}>{busy ? "Loading nearby Pandits…" : "Show more nearby Pandits"}</button>}</> : <div className="empty"><MapPin size={26} /><strong>No approved Pandit is online nearby</strong><span>Try again in a few minutes or edit the Puja and location details.</span><button className="btn btn-ghost" onClick={() => setNearbyPandits(null)}>Edit request</button></div>}
-          {!nearbyPandits.length&&fallbackPlan&&!fallbackBookingId&&<AvailabilityFallback plan={fallbackPlan} selectedRadius={fallbackRadius} onRadiusChange={setFallbackRadius} onStartSearch={()=>void startWiderSearch(fallbackRadius)} onOnlineGuidance={openOnlineGuidance} onReserveEarliest={()=>fallbackPlan.earliestAvailableAt&&void startWiderSearch(40,fallbackPlan.earliestAvailableAt)} busy={fallbackBusy}/>}
+          {!nearbyPandits.length&&fallbackPlan&&!fallbackBookingId&&<AvailabilityFallback plan={fallbackPlan} onStartSearch={()=>void startWiderSearch(fallbackRadius)} onOnlineGuidance={openOnlineGuidance} onReserveEarliest={()=>fallbackPlan.earliestAvailableAt&&void startWiderSearch(40,fallbackPlan.earliestAvailableAt)} busy={fallbackBusy} onlineGuidanceAvailable={onlinePayments}/>}
           {fallbackError&&<div className="alert error">{fallbackError}</div>}
         </section>
       )}
 
-      {match && (
-        <section className="success-panel match-success"><CheckCircle2 size={48}/><span className="eyebrow">{requestType==="SCHEDULED_PUJA"?"Schedule request sent":match.broadcast?"Automatic search started":"Request sent"}</span><h2>{match.broadcast?"We are contacting matching nearby Pandits":`Waiting for ${match.name} to accept`}</h2><p>{match.broadcast?`The search starts at 5 km and expands automatically up to ${match.distanceKm} km every 3 minutes. The first eligible Pandit to accept will be confirmed.`:requestType==="SCHEDULED_PUJA"&&scheduledAt?`Your Puja request for ${new Date(scheduledAt).toLocaleString("en-IN",{dateStyle:"full",timeStyle:"short"})} was sent to a nearby Pandit.`:`Your request was sent to a Pandit ${match.distanceKm} km away.`} The confirmed status will appear below.</p>{match.broadcast&&<button className="btn btn-ghost" onClick={openOnlineGuidance}>Talk to a Pandit online while we search</button>}<button className="btn btn-primary" onClick={()=>{setMatch(null);setRequestType(null);}}>View live status</button></section>
-      )}
-
       <section className="history tracking-history" id="live-requests">
-        <div className="section-title live-request-title"><div><span className="eyebrow">My bookings</span><h2>Your Puja requests</h2><p>See the latest update and what you need to do next.</p></div><button className="icon-button" onClick={refreshBookings} aria-label="Refresh requests"><RefreshCw size={17} /></button></div>
-        {visibleBookings.length ? <div className="tracking-list">{visibleBookings.map((booking) => {
+        <div className="section-title live-request-title"><div><span className="eyebrow">My bookings</span><h2>{bookingView === "ACTIVE" ? "Current bookings" : "Booking history"}</h2><p>{bookingView === "ACTIVE" ? "Only bookings that still need attention appear here." : "Completed and closed bookings are kept here."}</p></div><div className="booking-view-switch"><button className={bookingView === "ACTIVE" ? "active" : ""} onClick={() => setBookingView("ACTIVE")}>Current {activeBookings.length ? `(${activeBookings.length})` : ""}</button><button className={bookingView === "HISTORY" ? "active" : ""} onClick={() => setBookingView("HISTORY")}>History</button></div></div>
+        {bookingsForView.length ? <div className="tracking-list">{bookingsForView.map((booking) => {
           const activeIndex = statusOrder.indexOf(booking.status);
           const isDeclined = booking.status === "DECLINED";
           const isCancelled = booking.status === "CANCELLED";
@@ -810,7 +749,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
               <div className="tracking-head"><div><span className="status">{booking.request_type === "PANDIT_SOS" ? "Urgent replacement" : booking.request_type === "SCHEDULED_PUJA" ? "Scheduled Puja" : "Puja booking"}</span><h3>{booking.service_name}</h3><p>with <strong>{booking.pandit_name ?? "a nearby Pandit"}</strong></p>{booking.scheduled_at && <p><CalendarDays size={15} /> <strong>{new Date(booking.scheduled_at).toLocaleString("en-IN", { dateStyle: "full", timeStyle: "short" })}</strong></p>}</div><div className="tracking-price"><small>Service amount</small><strong>₹{booking.amount.toLocaleString("en-IN")}</strong></div></div>
               {booking.price_change_status==="PENDING"&&<div className="price-change-review"><div><small>Approval required</small><strong>Revised total: ₹{booking.proposed_amount?.toLocaleString("en-IN")}</strong><p>{booking.price_change_reason}</p></div><button onClick={()=>void decidePriceChange(booking.id,"REJECT")}>Keep original</button><button className="approve" onClick={()=>void decidePriceChange(booking.id,"APPROVE")}>Approve ₹{booking.proposed_amount?.toLocaleString("en-IN")}</button></div>}
             {isDeclined&&booking.dispatch_status==="EXHAUSTED" ? <div className="exhausted-search">
-              {fallbackBookingId===booking.id&&fallbackPlan?<AvailabilityFallback compact plan={fallbackPlan} selectedRadius={40} onRadiusChange={()=>undefined} onStartSearch={()=>void reserveEarliestForBooking(booking.id)} onOnlineGuidance={openOnlineGuidance} onReserveEarliest={()=>void reserveEarliestForBooking(booking.id)} busy={fallbackBusy}/>:<><AlertTriangle size={24}/><div><strong>No matching Pandit is available right now</strong><p>The earlier search up to {booking.max_search_radius_km} km ended without confirmation. Availability can change at any time.</p>{rematchErrors[booking.id]&&<small className="rematch-error">{rematchErrors[booking.id]}</small>}<div className="fallback-inline-actions"><button className="btn btn-primary" disabled={rematchingId===booking.id} onClick={()=>void findAnotherPandit(booking.id)}>{rematchingId===booking.id?"Checking live availability…":"Check nearby Pandits again"}</button><button className="btn btn-ghost" disabled={fallbackBusy} onClick={()=>void loadFallbackOptions(null,booking.id)}>See earliest available visit</button><button className="btn btn-ghost" onClick={openOnlineGuidance}>Talk to a Pandit online</button></div></div></>}
+              {fallbackBookingId===booking.id&&fallbackPlan?<AvailabilityFallback compact plan={fallbackPlan} onStartSearch={()=>void reserveEarliestForBooking(booking.id)} onOnlineGuidance={openOnlineGuidance} onReserveEarliest={()=>void reserveEarliestForBooking(booking.id)} busy={fallbackBusy} onlineGuidanceAvailable={onlinePayments}/>:<><AlertTriangle size={24}/><div><strong>No matching Pandit is available right now</strong><p>No suitable Pandit accepted this request. Availability can change at any time.</p>{rematchErrors[booking.id]&&<small className="rematch-error">{rematchErrors[booking.id]}</small>}<div className="fallback-inline-actions"><button className="btn btn-primary" disabled={rematchingId===booking.id} onClick={()=>void findAnotherPandit(booking.id)}>{rematchingId===booking.id?"Checking live availability…":"Check nearby Pandits again"}</button><button className="btn btn-ghost" disabled={fallbackBusy} onClick={()=>void loadFallbackOptions(null,booking.id)}>See earliest available visit</button>{onlinePayments&&<button className="btn btn-ghost" onClick={openOnlineGuidance}>Talk to a Pandit online</button>}</div></div></>}
               {fallbackError&&fallbackBookingId===booking.id&&<div className="alert error">{fallbackError}</div>}
             </div> : isDeclined ? <div className="request-unavailable">
               <AlertTriangle size={22} />
@@ -818,26 +757,25 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
               <button className="btn btn-primary" disabled={rematchingId === booking.id} onClick={() => findAnotherPandit(booking.id)}>{rematchingId === booking.id ? "Searching nearby…" : "Find another Pandit"}</button>
             </div> : isCancelled ? <div className="request-cancelled"><strong>Request cancelled</strong><p>{booking.cancellation_reason??"This request is closed and no booking is active."}</p>{booking.cancellation_fee>0&&<p><b>Cancellation charge: ₹{booking.cancellation_fee} · {booking.cancellation_fee_status.replaceAll("_"," ")}</b></p>}</div> :
             <>
-              {booking.status==="REQUESTED"&&booking.dispatch_status==="SEARCHING"?<div className="dispatch-searching"><span><Search/></span><div><small>Automatic nearby search</small><h4>We are contacting matching Pandits</h4><p>Searching within {booking.search_radius_km} km now. {booking.active_offer_count?`${booking.active_offer_count} approved Pandit${booking.active_offer_count===1?" has":"s have"} 3 minutes to respond.`:"The next approved distance band will be checked automatically."}</p><div className="dispatch-radius-progress">{[5,10,20,40].filter((radius)=>radius<=booking.max_search_radius_km).map((radius)=><i className={radius<=booking.search_radius_km?"done":""} key={radius}>{radius} km</i>)}</div><button className="btn btn-ghost" onClick={openOnlineGuidance}>Talk to a Pandit online while we search</button></div></div>:<div className={`booking-current-state state-${booking.status.toLowerCase()}`}><span>{booking.status === "REQUESTED" ? <Clock3 /> : <CheckCircle2 />}</span><div><small>{statusCopy?.label ?? booking.status.replaceAll("_", " ")}</small><h4>{statusCopy?.title}</h4><p>{statusCopy?.detail}</p></div></div>}
-              <div className="status-track">{journeySteps.map((step, index) => <span className={`${index <= activeIndex ? "done" : ""} ${index === Math.min(activeIndex, journeySteps.length - 1) ? "current" : ""}`} key={step.value}><i />{step.label}</span>)}</div>
+              {booking.status==="REQUESTED"&&booking.dispatch_status==="SEARCHING"?<div className="dispatch-searching"><span><Search/></span><div><small>Finding your Pandit</small><h4>We are contacting suitable nearby Pandits</h4><p>The search expands automatically. We will notify you as soon as a Pandit accepts.</p></div></div>:<div className={`booking-current-state state-${booking.status.toLowerCase()}`}><span>{booking.status === "REQUESTED" ? <Clock3 /> : <CheckCircle2 />}</span><div><small>{statusCopy?.label ?? booking.status.replaceAll("_", " ")}</small><h4>{statusCopy?.title}</h4><p>{statusCopy?.detail}</p></div></div>}
+              <details className="journey-details"><summary>View journey</summary><div className="status-track">{journeySteps.map((step, index) => <span className={`${index <= activeIndex ? "done" : ""} ${index === Math.min(activeIndex, journeySteps.length - 1) ? "current" : ""}`} key={step.value}><i />{step.label}</span>)}</div></details>
               <div className="tracking-facts">
                 <span><PackageCheck size={17} /><small>Materials</small><strong>{materialsLabels[booking.materials_option] ?? "Guidance requested"}</strong></span>
-                {distance != null && <span><MapPin size={17} /><small>Live distance</small><strong>About {distance.toFixed(1)} km away</strong></span>}
+                {distance != null && <span><MapPin size={17} /><small>Live distance</small><strong>{distance < 1 ? "Less than 1 km away" : `About ${Math.round(distance)} km away`}</strong></span>}
                 <span><Clock3 size={17} /><small>Requested on</small><strong>{new Date(booking.created_at).toLocaleDateString("en-IN", { day: "numeric", month: "short" })}</strong></span>
               </div>
               <div className="tracking-actions">
                 {hasLiveLocation && <a className="btn btn-primary" target="_blank" rel="noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${booking.pandit_latitude},${booking.pandit_longitude}`}><MapPin size={16} /> Track Pandit on map</a>}
                 {["REQUESTED","ACCEPTED","ON_THE_WAY","ARRIVED"].includes(booking.status) && <button className="text-button danger" onClick={() => void cancelBooking(booking.id)}>Review cancellation</button>}
               </div>
-              {["ACCEPTED", "ON_THE_WAY"].includes(booking.status) && <div className="arrival-code arrival-code-locked"><ShieldCheck size={18} /><span><strong>Arrival code is protected</strong><small>It will appear after the Pandit marks “Arrived”.</small></span></div>}
               {booking.status === "ARRIVED" && <div className="arrival-code"><span><strong>Share this code with the Pandit</strong><small>Only share it after meeting the Pandit at your address.</small></span><code>{booking.arrival_otp}</code></div>}
+              {["ACCEPTED", "ON_THE_WAY", "ARRIVED"].includes(booking.status) && booking.materials_option === "NEED_GUIDANCE" && <div className="post-acceptance-guide"><button className="btn btn-ghost" disabled={preparationBusy && preparationBookingId === booking.id} onClick={() => void loadPreparationGuide(booking)}><PackageCheck /> {preparationBusy && preparationBookingId === booking.id ? "Preparing guide…" : "See materials and timing guidance"}</button>{preparationError && preparationBookingId === booking.id && <small className="field-error">{preparationError}</small>}{preparationGuide && preparationBookingId === booking.id && <article className="puja-preparation-guide compact" id={`puja-preparation-${booking.id}`}><h4>{preparationGuide.guide.title}</h4><div className="samagri-grid">{preparationGuide.guide.essentials.map((item) => <span key={item}><CheckCircle2 /> {item}</span>)}</div>{preparationGuide.panchang && <div className="panchang-summary"><span><small>Tithi</small><strong>{preparationGuide.panchang.tithi}</strong></span><span><small>Nakshatra</small><strong>{preparationGuide.panchang.nakshatra}</strong></span></div>}<p>Confirm tradition-specific items and final muhurat with {booking.pandit_name ?? "your Pandit"}.</p></article>}</div>}
             </>}
             {booking.status === "COMPLETED" && <div className={`booking-payment ${booking.payment_status === "CONFIRMED" ? "is-confirmed" : "needs-selection"}`}>
               <div><span className="eyebrow">{booking.payment_status === "CONFIRMED" ? "Payment settled" : booking.payment_status === "AWAITING_PANDIT" ? "Waiting for Pandit confirmation" : booking.payment_status === "DISPUTED" ? "Payment disputed" : "Choose payment method"}</span><h4>{booking.payment_status === "CONFIRMED" ? booking.payment_method==="CASH"?"Cash confirmed by both sides":"Online payment confirmed" : booking.payment_status === "AWAITING_PANDIT" ? "You selected cash payment" : booking.payment_status === "DISPUTED" ? "Support review needed" : "How would you like to pay?"}</h4><p>{booking.payment_status === "AWAITING_PANDIT" ? "The Pandit must confirm only after receiving the cash." : booking.payment_status === "DISPUTED" ? "Create a support case and describe what happened." : onlinePayments?"Online payments are confirmed only by the secure provider.":"Online payment is not active yet; cash remains available."}</p></div>
               {booking.payment_status !== "NOT_SELECTED" ? <div className="payment-confirmed">{booking.payment_method==="CASH"?<Banknote size={20}/>:<CreditCard size={20}/>}<span><small>{booking.payment_method==="CASH"?"Cash status":"Online payment"}</small><strong>{booking.payment_status === "CONFIRMED" ? "Confirmed" : booking.payment_status === "DISPUTED" ? "Disputed" : "Awaiting Pandit"}</strong></span>{booking.payment_status === "CONFIRMED" ? <CheckCircle2 size={18} /> : booking.payment_method==="CASH"?<button className="text-button danger" disabled={paymentBusy===booking.id} onClick={()=>void disputeCashPayment(booking.id)}>Report issue</button>:null}</div> : <div className="payment-method-grid">
                 <button disabled={paymentBusy === booking.id} onClick={() => confirmPaymentMethod(booking.id, "CASH")}><Banknote /><span><strong>Cash</strong><small>Pay with cash after Puja</small></span></button>
-                <button disabled={!onlinePayments||paymentBusy===booking.id} title={onlinePayments?"Pay securely using the configured provider":"Available after secure payment setup"} onClick={()=>void startOnlinePayment(booking.id)}><Smartphone /><span><strong>UPI</strong><small>{onlinePayments?"Secure online payment":"Coming soon"}</small></span></button>
-                <button disabled={!onlinePayments||paymentBusy===booking.id} title={onlinePayments?"Pay securely using the configured provider":"Available after secure payment setup"} onClick={()=>void startOnlinePayment(booking.id)}><CreditCard /><span><strong>Card</strong><small>{onlinePayments?"Secure online payment":"Coming soon"}</small></span></button>
+                {onlinePayments && <><button disabled={paymentBusy===booking.id} onClick={()=>void startOnlinePayment(booking.id)}><Smartphone /><span><strong>UPI</strong><small>Secure online payment</small></span></button><button disabled={paymentBusy===booking.id} onClick={()=>void startOnlinePayment(booking.id)}><CreditCard /><span><strong>Card</strong><small>Secure online payment</small></span></button></>}
               </div>}
               {paymentMessages[booking.id] && <small className="payment-error">{paymentMessages[booking.id]}</small>}
             </div>}
@@ -849,9 +787,8 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
               <button className="btn btn-primary" disabled={ratingBusy === booking.id} onClick={() => submitRating(booking.id)}>{ratingBusy === booking.id ? "Saving rating…" : "Submit rating"}</button>
             </div>)}
           </article>;
-        })}</div> : <div className="empty"><Clock3 size={26} /><strong>No Puja requests yet</strong><span>Choose “Help me choose and book” whenever your family needs a Pandit.</span></div>}
+        })}</div> : <div className="empty"><Clock3 size={26} /><strong>{bookingView === "ACTIVE" ? "No active bookings" : "No booking history"}</strong><span>{bookingView === "ACTIVE" ? "When you request a Pandit, the live status will appear here." : "Completed and cancelled bookings will appear here."}</span></div>}
       </section>
-      <Link href="/help" className="customer-help-fab" aria-label="Get help using the app"><HelpCircle /><span>Need help?</span></Link>
       {cancellationReview && <div className="cancellation-overlay" role="dialog" aria-modal="true" aria-labelledby="cancellation-title" onMouseDown={(event) => { if (event.target === event.currentTarget && !cancellationBusy) setCancellationReview(null); }}>
         <section className="cancellation-sheet">
           <header><div className="cancellation-heading-icon"><AlertTriangle /></div><div><span className="eyebrow">Review before cancelling</span><h2 id="cancellation-title">Cancel this Pandit booking?</h2></div><button className="icon-button" aria-label="Close cancellation review" disabled={cancellationBusy} onClick={() => setCancellationReview(null)}><X /></button></header>

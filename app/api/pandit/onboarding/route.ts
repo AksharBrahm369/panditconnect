@@ -31,7 +31,7 @@ const onboardingSchema = z.object({
   experienceYears: z.number().int().min(0).max(80),
   languages: z.array(z.enum(INDIAN_LANGUAGE_VALUES)).min(1).max(INDIAN_LANGUAGE_VALUES.length),
   specialities: z.array(z.string().trim().min(1).max(100)).min(1).max(30),
-  bio: z.string().trim().min(30).max(1500),
+  bio: z.string().trim().max(1500).optional().default(""),
   serviceRadiusKm: z.number().int().min(1).max(100),
   availabilityPreference: z.enum(["AVAILABLE_AFTER_APPROVAL", "OFFLINE"]),
   payoutMethod: z.enum(["BANK", "UPI"]),
@@ -43,13 +43,6 @@ const onboardingSchema = z.object({
   pricing: z.array(pricingSchema).min(1).max(100),
   acceptPlatformRules: z.literal(true),
   submit: z.boolean().default(false),
-}).superRefine((value, context) => {
-  if (value.payoutMethod === "BANK" && (!value.bankAccountName || !value.bankAccountNumber || !value.bankIfsc)) {
-    context.addIssue({ code: "custom", path: ["bankAccountNumber"], message: "Complete all bank account fields" });
-  }
-  if (value.payoutMethod === "UPI" && !/^[\w.-]+@[\w.-]+$/.test(value.upiId)) {
-    context.addIssue({ code: "custom", path: ["upiId"], message: "Enter a valid UPI ID" });
-  }
 });
 
 export async function GET() {
@@ -85,7 +78,7 @@ export async function PUT(request: Request) {
     if (value.submit) {
       const requiredDocuments = await sql<{ document_type: string }>(`SELECT DISTINCT document_type FROM pim_v2.pandit_documents WHERE pandit_id=$1`, [user.id]);
       const types = new Set(requiredDocuments.rows.map((row) => row.document_type));
-      for (const required of ["PROFILE_PHOTO", "GOVERNMENT_ID", "BANK_PROOF"]) {
+      for (const required of ["PROFILE_PHOTO", "GOVERNMENT_ID"]) {
         if (!types.has(required)) return NextResponse.json({ error: `Upload the required ${required.replaceAll("_", " ").toLowerCase()} before submitting` }, { status: 400 });
       }
     }

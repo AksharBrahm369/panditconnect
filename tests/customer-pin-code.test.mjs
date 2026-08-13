@@ -2,9 +2,10 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFile } from "node:fs/promises";
 
-test("customer booking has a dedicated mobile-friendly Indian PIN field", async () => {
+test("customer booking keeps Indian PIN as a mobile-friendly GPS fallback", async () => {
   const customer = await readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8");
-  assert.match(customer, /6-digit PIN code/);
+  assert.match(customer, /Only needed when GPS cannot confirm the area/);
+  assert.match(customer, /locationFailed/);
   assert.match(customer, /inputMode="numeric"/);
   assert.match(customer, /autoComplete="postal-code"/);
   assert.match(customer, /value=\{pinCode\}/);

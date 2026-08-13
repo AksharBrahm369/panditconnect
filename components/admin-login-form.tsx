@@ -59,7 +59,7 @@ export function AdminLoginForm() {
 
   return <div className="auth-shell admin-auth-shell">
     <section className="auth-side">
-      <Link href="/" className="brand brand-light"><span className="brand-mark">ॐ</span><span>Pandit in Minutes</span></Link>
+      <Link href="/" className="brand brand-light"><span className="brand-mark">ॐ</span><span>PanditConnect</span></Link>
       <div><span className="eyebrow eyebrow-light">Authorized operations only</span><h1>Secure administrator access.</h1><p>Review Pandit applications and platform activity from a protected workspace.</p><div className="auth-benefits"><span><ShieldCheck /> Server-verified administrator role</span><span><LockKeyhole /> Time-limited secure session</span></div></div>
       <p><LockKeyhole size={17} /> Access attempts are rate-limited and audited.</p>
     </section>

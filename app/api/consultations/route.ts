@@ -44,7 +44,7 @@ export async function POST(request: Request) {
   }
   const paymentMethod = body.paymentMethod?.trim().toUpperCase() ?? "";
   if (["UPI", "CARD"].includes(paymentMethod)) {
-    return NextResponse.json({ error: `${paymentMethod} payment will be available after the secure payment gateway is configured.` }, { status: 409 });
+    return NextResponse.json({ error: `${paymentMethod} payment is not available right now. Please choose another method.` }, { status: 409 });
   }
   if (paymentMethod !== "CASH") {
     return NextResponse.json({ error: "Choose a payment method before starting the chat." }, { status: 400 });

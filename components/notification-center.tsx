@@ -6,7 +6,6 @@ import { readJson } from "@/lib/http";
 import { connectDeviceToPush } from "@/lib/client-push";
 
 type Item = { id: string; title: string; body: string; url: string; event_type: string; read_at: string | null; created_at: string };
-type Preferences = { booking_updates: boolean; chat_updates: boolean; service_updates: boolean; marketing: boolean };
 type PortalRole = "Customer" | "Pandit" | "Admin";
 
 const ONBOARDING_KEY = "panditconnect-notification-onboarding-v2";
@@ -80,7 +79,6 @@ export function NotificationCenter({ role }: { role: PortalRole }) {
   const [message, setMessage] = useState("");
   const [automaticPrompt, setAutomaticPrompt] = useState(false);
   const [connecting, setConnecting] = useState(false);
-  const [preferences, setPreferences] = useState<Preferences>({ booking_updates: true, chat_updates: true, service_updates: true, marketing: false });
   const [decisionAlert, setDecisionAlert] = useState<Item | null>(null);
   const latestId = useRef<string | null>(null);
   const lastSoundAt = useRef(0);
@@ -128,9 +126,6 @@ export function NotificationCenter({ role }: { role: PortalRole }) {
     };
     const initial = window.setTimeout(() => {
       void load();
-      void fetch("/api/notification-preferences")
-        .then((response) => readJson<{ preferences?: Preferences }>(response))
-        .then((data) => data.preferences && setPreferences(data.preferences));
     }, 0);
     if ("serviceWorker" in navigator) void navigator.serviceWorker.register("/sw.js").then((registration) => registration.update());
     navigator.serviceWorker?.addEventListener("message", onPush);
@@ -180,7 +175,7 @@ export function NotificationCenter({ role }: { role: PortalRole }) {
       }
       const publicKey = await resolvePublicKey();
       if (!publicKey) {
-        setMessage("Device notifications are being configured. Please try again shortly.");
+        setMessage("Notifications are not available on this device right now.");
         return;
       }
       const connected = await connectDeviceToPush(publicKey, true);
@@ -209,22 +204,6 @@ export function NotificationCenter({ role }: { role: PortalRole }) {
     setAutomaticPrompt(false);
   }
 
-  async function testAlert() {
-    setMessage("Sending a test alert…");
-    await playAlertSound();
-    const response = await fetch("/api/notifications/test", { method: "POST" });
-    const result = await readJson<{ delivery?: { pushConfigured?: boolean; subscriptions?: number; delivered?: number } }>(response);
-    setMessage(!response.ok
-      ? "Could not send the test alert yet. Please try again."
-      : !result.delivery?.pushConfigured
-        ? "Push configuration is incomplete. In-app sound works, but background push is unavailable."
-        : !result.delivery?.subscriptions
-          ? "This device has no saved push subscription. Press Enable and allow notifications."
-          : result.delivery.delivered
-            ? "Test push delivered. Background alerts and in-app sound are connected."
-            : "Push delivery failed. The subscription exists; check browser and device notification settings.");
-  }
-
   async function show() {
     setOpen(true);
     if (unread) {
@@ -242,16 +221,6 @@ export function NotificationCenter({ role }: { role: PortalRole }) {
     setDecisionAlert(null);
   }
 
-  async function updatePreference(preferenceKey: keyof Preferences, value: boolean) {
-    const next = { ...preferences, [preferenceKey]: value };
-    setPreferences(next);
-    await fetch("/api/notification-preferences", {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ bookingUpdates: next.booking_updates, chatUpdates: next.chat_updates, serviceUpdates: next.service_updates, marketing: next.marketing }),
-    });
-  }
-
   const promptCopy = onboardingCopy[role];
   return <>
     <div className="notification-center">
@@ -262,9 +231,8 @@ export function NotificationCenter({ role }: { role: PortalRole }) {
         <header><div><strong>Notifications</strong><small>Updates for this account</small></div><button className="icon-button" onClick={() => setOpen(false)} aria-label="Close notifications"><X size={16} /></button></header>
         {!enabled
           ? <div className="notification-permission"><BellRing size={19} /><div><strong>Never miss an urgent update</strong><small>Receive booking, chat and review alerts on this device.</small></div><button onClick={() => void enable()} disabled={connecting}>{connecting ? "Connecting…" : "Enable"}</button></div>
-          : <div className="notification-enabled"><p className="notification-message"><Check size={14} />Device alerts are on.</p><button onClick={() => void testAlert()}>Test alert</button></div>}
+          : <div className="notification-enabled"><p className="notification-message"><Check size={14} />Device alerts are on.</p></div>}
         {message && <p className="notification-message"><Check size={14} />{message}</p>}
-        <div className="notification-preferences"><strong>Alert preferences</strong><label><input type="checkbox" checked={preferences.booking_updates} onChange={(event) => void updatePreference("booking_updates", event.target.checked)} />Booking updates</label><label><input type="checkbox" checked={preferences.chat_updates} onChange={(event) => void updatePreference("chat_updates", event.target.checked)} />Chat updates</label><label><input type="checkbox" checked={preferences.service_updates} onChange={(event) => void updatePreference("service_updates", event.target.checked)} />Account and service updates</label></div>
         <div className="notification-list">{items.length ? items.map((item) => <a href={item.url} key={item.id} className={!item.read_at ? "unread" : ""}><strong>{item.title}</strong><span>{item.body}</span><small>{new Date(item.created_at).toLocaleString("en-IN")}</small></a>) : <p className="notification-empty">No notifications yet.</p>}</div>
       </section>}
     </div>

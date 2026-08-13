@@ -47,13 +47,11 @@ test("customer can request and review samagri, Tithi, Nakshatra and safe muhurta
   const portal = await source("../components/customer-portal.tsx");
   const styles = await source("../app/globals.css");
 
-  assert.match(portal, /Show samagri and Panchang guide/);
+  assert.match(portal, /See materials and timing guidance/);
   assert.match(portal, />Tithi</);
   assert.match(portal, />Nakshatra</);
-  assert.match(portal, /General Abhijit Muhurat/);
-  assert.match(portal, /Avoid · Rahu Kaal/);
-  assert.match(portal, /Final confirmation is required/);
-  assert.match(portal, /confirm the final ritual-specific muhurta with the Pandit/i);
+  assert.doesNotMatch(portal, /General Abhijit Muhurat|Avoid · Rahu Kaal/);
+  assert.match(portal, /Confirm tradition-specific items and final muhurat/i);
   assert.match(styles, /\.puja-preparation-guide/);
   assert.match(styles, /@media \(max-width:700px\)/);
 });

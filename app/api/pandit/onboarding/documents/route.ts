@@ -39,6 +39,6 @@ export async function POST(request: Request) {
     const authResponse = authorizationResponse(error);
     if (authResponse) return authResponse;
     console.error("Pandit document upload failed", error);
-    return NextResponse.json({ error: "Private document upload is not configured or failed" }, { status: 500 });
+    return NextResponse.json({ error: "This document could not be uploaded. Please try again or contact support." }, { status: 500 });
   }
 }

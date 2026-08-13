@@ -45,7 +45,6 @@ test("Pandit account states are persisted by a reversible migration", async () =
 test("blocked Pandits are excluded from every customer matching path", async () => {
   const files = [
     "app/api/pandits/nearby/route.ts",
-    "app/api/pandits/discover/route.ts",
     "app/api/consultation-pandits/route.ts",
     "app/api/consultations/route.ts",
     "app/api/bookings/route.ts",

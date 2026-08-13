@@ -14,7 +14,8 @@ test("admin overview always returns a JSON error and the portal validates its sh
   const route = await readFile(new URL("../app/api/admin/overview/route.ts", import.meta.url), "utf8");
   const portal = await readFile(new URL("../components/admin-portal.tsx", import.meta.url), "utf8");
   assert.match(route, /Unable to load admin overview/);
-  assert.match(route, /Check the database connection and try again/);
+  assert.match(route, /Unable to load the admin workspace\. Please try again/);
+  assert.doesNotMatch(route, /database connection/i);
   assert.match(portal, /!result\.stats \|\| !result\.risk \|\| !result\.funnel/);
   assert.match(portal, /admin workspace could not connect to the server/);
 });

@@ -2,12 +2,13 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-test("admin approval explains missing checks and saves completed evidence before approval", async () => {
+test("admin approval uses the streamlined identity, document and reference checks", async () => {
   const portal = await readFile(new URL("../components/admin-portal.tsx", import.meta.url), "utf8");
   assert.match(portal, /Complete these checks before approval/);
   assert.match(portal, /action: "UPDATE_CHECKLIST"/);
   assert.match(portal, /Choose how the identity was verified/);
-  assert.match(portal, /Choose how the bank or UPI account was verified/);
+  assert.doesNotMatch(portal, /Choose how the bank or UPI account was verified/);
+  assert.doesNotMatch(portal, /Puja knowledge check/);
   assert.match(portal, /Never enter the complete Aadhaar, PAN or document number/);
 });
 

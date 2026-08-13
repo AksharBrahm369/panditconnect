@@ -22,9 +22,9 @@ export default function Home() {
     <main className={`${homeSans.variable} ${homeSerif.variable} public-home`}>
       <header className="home-header">
         <div className="home-header-inner">
-          <Link href="/" className="home-brand" aria-label="Pandit in Minutes home">
+          <Link href="/" className="home-brand" aria-label="PanditConnect home">
             <span className="home-brand-mark">ॐ</span>
-            <span className="home-brand-copy"><strong>Pandit in Minutes</strong><small>Trusted Puja assistance</small></span>
+            <span className="home-brand-copy"><strong>PanditConnect</strong><small>Trusted Puja assistance</small></span>
           </Link>
           <nav className="home-nav" aria-label="Homepage navigation">
             <a href="#services">Services</a>
@@ -114,7 +114,7 @@ export default function Home() {
 
       <footer className="home-footer">
         <div className="home-footer-inner">
-          <div className="home-footer-brand"><span>ॐ</span><div><strong>Pandit in Minutes</strong><small>Trusted religious help, nearby.</small></div></div>
+          <div className="home-footer-brand"><span>ॐ</span><div><strong>PanditConnect</strong><small>Trusted religious help, nearby.</small></div></div>
           <nav aria-label="Legal and partner links"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/cancellation-policy">Cancellation policy</Link><Link href="/login?role=pandit">Join as a Pandit</Link></nav>
           <p>Designed for simple, private and respectful Puja assistance.</p>
         </div>

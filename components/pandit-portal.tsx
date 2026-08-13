@@ -1,13 +1,11 @@
 "use client";
 
-import { useCallback, useEffect, useRef, useState } from "react";
-import { BadgeCheck, BellRing, Check, ChevronRight, Clock3, IndianRupee, KeyRound, MapPin, MessageCircle, Navigation, Power, Star } from "lucide-react";
+import { useEffect, useRef, useState } from "react";
+import { BadgeCheck, BellRing, Check, ChevronRight, Clock3, IndianRupee, KeyRound, MapPin, MessageCircle, Navigation, Power } from "lucide-react";
 import { AppShell } from "./app-shell";
-import { ConsultationPanel } from "./consultation-panel";
 import { readJson } from "@/lib/http";
 import { getCurrentCoordinates, type BrowserCoordinates } from "@/lib/browser-location";
 import { PanditOnboarding } from "./pandit-onboarding";
-import { SupportCenter } from "./support-center";
 import { PanditUrgentAlarm } from "./pandit-urgent-alarm";
 
 type Profile = { name: string | null; city: string | null; experience_years: number; languages: string[]; specialities: string[]; bio: string | null; verification_status: string; review_note?: string | null; is_online: boolean; rating: string; rating_count: number; completed_jobs: number; latitude: number | null; longitude: number | null; consultation_online: boolean; consultation_rate_5min: number };
@@ -31,10 +29,7 @@ export function PanditPortal({ userName, accessNotice }: { userName?: string | n
   const [locationBusy, setLocationBusy] = useState(false);
   const [arrivalOtps, setArrivalOtps] = useState<Record<string, string>>({});
   const [actionErrors, setActionErrors] = useState<Record<string, string>>({});
-  const [consultationRate, setConsultationRate] = useState(99);
-  const [urgentChatIds, setUrgentChatIds] = useState<string[]>([]);
   const [currentTime, setCurrentTime] = useState(() => Date.now());
-  const updateUrgentChats = useCallback((ids: string[]) => setUrgentChatIds(ids), []);
   const knownBookingStatuses = useRef<Map<string, string> | null>(null);
 
   async function loadProfile(syncForm = false) {
@@ -42,7 +37,6 @@ export function PanditPortal({ userName, accessNotice }: { userName?: string | n
     const data = await readJson<{ profile?: Profile & { base_charge?: number } }>(response);
     if (!data.profile) return;
     setProfile(data.profile);
-    setConsultationRate(data.profile.consultation_rate_5min ?? 99);
     void syncForm;
   }
 
@@ -110,39 +104,11 @@ export function PanditPortal({ userName, accessNotice }: { userName?: string | n
     setNotice("");
     try {
       const current = await getCurrentCoordinates();
-      setNotice(`GPS location detected within about ${Math.round(current.accuracy)} metres.`);
+      setNotice("Current location confirmed.");
       return current;
     } catch (error) {
       setNotice(error instanceof Error ? error.message : "Unable to detect your location.");
       return null;
-    } finally {
-      setLocationBusy(false);
-    }
-  }
-
-  async function saveCurrentLocation() {
-    setLocationBusy(true);
-    setNotice("");
-    try {
-      const current = await getCurrentCoordinates();
-      const response = await fetch("/api/pandit/profile", {
-        method: "PUT",
-        headers: { "content-type": "application/json" },
-        body: JSON.stringify({ latitude: current.latitude, longitude: current.longitude }),
-      });
-      const result = await readJson<{ error?: string }>(response);
-      if (!response.ok) {
-        setNotice(result.error ?? "Unable to save your current GPS location.");
-        return;
-      }
-      setProfile((existing) => existing ? {
-        ...existing,
-        latitude: current.latitude,
-        longitude: current.longitude,
-      } : existing);
-      setNotice(`Current GPS location saved within about ${Math.round(current.accuracy)} metres. ${profile?.is_online ? "Live tracking remains active while you are online." : "Go online when you are ready to receive nearby requests."}`);
-    } catch (error) {
-      setNotice(error instanceof Error ? error.message : "Unable to detect your location.");
     } finally {
       setLocationBusy(false);
     }
@@ -193,25 +159,6 @@ export function PanditPortal({ userName, accessNotice }: { userName?: string | n
     setBusy(false);
   }
 
-  async function toggleConsultation() {
-    if (!profile) return;
-    setBusy(true); setNotice("");
-    const response = await fetch("/api/pandit/profile", {
-      method: "PUT",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        consultationOnline: !profile.consultation_online,
-        consultationRate5Min: consultationRate,
-      }),
-    });
-    const data = await readJson<{ error?: string }>(response);
-    setNotice(response.ok
-      ? profile.consultation_online ? "Online guidance is now paused." : "You are now available for live beta guidance."
-      : data.error ?? "Unable to update consultation availability.");
-    setBusy(false);
-    await loadProfile(false);
-  }
-
   async function confirmCash(bookingId:string,action:"CONFIRM_RECEIVED"|"DISPUTE"){
     if(action==="CONFIRM_RECEIVED"&&!window.confirm("Confirm only after you have actually received the cash from the customer."))return;
     if(action==="DISPUTE"&&!window.confirm("Report a cash-payment disagreement to the customer and support?"))return;
@@ -228,33 +175,31 @@ export function PanditPortal({ userName, accessNotice }: { userName?: string | n
   const awaitingReview = ["PENDING", "SUBMITTED", "UNDER_REVIEW"].includes(profile.verification_status);
   const incomplete = ["INCOMPLETE", "CHANGES_REQUESTED", "REJECTED"].includes(profile.verification_status);
   const active = bookings.filter((b) => !["COMPLETED", "DECLINED", "CANCELLED"].includes(b.status));
-  const completed = bookings.filter((b) => b.status === "COMPLETED").slice(0, 6);
-  const cancelled = bookings.filter((b) => b.status === "CANCELLED").slice(0, 5);
-  const waitingRequests = active.filter((booking) => booking.status === "REQUESTED").length;
+  const paymentsNeedingAction = bookings.filter((b) => b.status === "COMPLETED" && ["AWAITING_PANDIT", "DISPUTED"].includes(b.payment_status)).slice(0, 6);
 
   return (
     <AppShell role="Pandit" userName={profile.name ?? userName} title={awaitingReview ? "Application under admin review" : incomplete ? "Complete your verified Pandit profile" : `Namaste, ${profile.name ?? "Pandit ji"}`} subtitle={awaitingReview ? "Your details were submitted successfully. Please check again later." : incomplete ? "A trusted profile helps customers book with confidence." : "See what needs your attention today."}>
       {accessNotice && <div className="alert success" role="status"><BadgeCheck size={18} />{accessNotice}</div>}
       {notice && <div className="alert success">{notice}</div>}
-      {profile.verification_status === "APPROVED" && <PanditUrgentAlarm pujaRequests={bookings.filter((booking) => booking.status === "REQUESTED").length} chatRequests={urgentChatIds.length} />}
+      {profile.verification_status === "APPROVED" && <PanditUrgentAlarm pujaRequests={bookings.filter((booking) => booking.status === "REQUESTED").length} chatRequests={0} />}
       {profile.verification_status === "CHANGES_REQUESTED" && <div className="alert error">Admin requested changes: {profile.review_note ?? "Please review and update your profile."}</div>}
       {profile.verification_status === "REJECTED" && <div className="alert error">Your application was not approved: {profile.review_note ?? "Review your information and contact support if you need help."}</div>}
-      {awaitingReview ? <section className="review-pending-screen" aria-live="polite"><span className="review-pending-icon"><Clock3 /></span><span className="eyebrow">Submitted successfully</span><h2>Your request is pending with Admin</h2><p>The verification team will review your identity, documents, references, knowledge and payout information. Please recheck later.</p><div className="pending-status"><i /><span><strong>{profile.verification_status === "UNDER_REVIEW" ? "Admin review in progress" : "Waiting for admin review"}</strong><small>This page checks for updates automatically every few seconds.</small></span></div><div className="pending-notification-note"><BellRing /><span><strong>Approval or rejection alert</strong><small>Enable notifications from the bell icon above. You will receive an in-app message and notification sound when Admin makes a decision.</small></span></div><button className="btn btn-primary" disabled={busy} onClick={() => void loadProfile(false)}>{busy ? "Checking…" : "Check status now"}</button></section> : incomplete ? <PanditOnboarding status={profile.verification_status} reviewNote={profile.review_note} onSaved={() => void loadProfile(true)} /> : <div className="pandit-workdesk">
+      {awaitingReview ? <section className="review-pending-screen" aria-live="polite"><span className="review-pending-icon"><Clock3 /></span><h2>Your profile is under review</h2><p>We will notify you after the identity, experience and document checks are complete.</p><div className="pending-status"><i /><span><strong>{profile.verification_status === "UNDER_REVIEW" ? "Review in progress" : "Submitted"}</strong><small>No action is needed right now.</small></span></div></section> : incomplete ? <PanditOnboarding status={profile.verification_status} reviewNote={profile.review_note} onSaved={() => void loadProfile(true)} /> : <div className="pandit-workdesk" id="pandit-home">
         <section className={`pandit-command-centre ${profile.is_online ? "is-online" : ""}`} id="pandit-status">
-          <div className="pandit-command-welcome"><span>ॐ</span><div><small>Namaste</small><h1>{profile.name ?? "Pandit ji"}</h1><p>Everything you need for today is on this screen.</p></div></div>
-          <div className="pandit-command-status"><span className="eyebrow">Today&apos;s work</span><strong>{profile.is_online ? "Available for Puja requests" : "Not receiving requests"}</strong><small><MapPin size={15} /> {profile.is_online ? "Live location is active" : profile.latitude != null && profile.longitude != null ? "GPS location saved — update it whenever you move" : "GPS location is required before you can go online"}</small><button type="button" className="pandit-location-button" onClick={() => void saveCurrentLocation()} disabled={locationBusy || busy}><MapPin size={17} /><span><b>{locationBusy ? "Detecting GPS…" : profile.latitude != null && profile.longitude != null ? "Update my GPS location" : "Use my current GPS location"}</b><small>{profile.is_online ? "Nearby customers will receive the latest position" : "Required for accurate nearby matching"}</small></span></button></div>
-          <button className="pandit-presence-button" onClick={toggleOnline} disabled={busy || locationBusy} aria-pressed={profile.is_online}><Power size={24} /><span><strong>{busy || locationBusy ? "Please wait…" : profile.is_online ? "Go offline" : "Go online now"}</strong><small>{profile.is_online ? "Stop receiving new work" : "Start receiving nearby work"}</small></span></button>
+          <div className="pandit-command-welcome"><span>ॐ</span><div><small>Namaste</small><h1>{profile.name ?? "Pandit ji"}</h1><p>{profile.is_online ? "You are ready to receive nearby requests." : "Go online when you are ready to work."}</p></div></div>
+          <div className="pandit-command-status"><span className="eyebrow">Availability</span><strong>{profile.is_online ? "Online" : "Offline"}</strong><small><MapPin size={15} /> {profile.is_online ? "Your location updates automatically while online" : "Your current GPS location will be confirmed when you go online"}</small></div>
+          <button className="pandit-presence-button" onClick={toggleOnline} disabled={busy || locationBusy} aria-pressed={profile.is_online}><Power size={24} /><span><strong>{busy || locationBusy ? "Please wait…" : profile.is_online ? "Go offline" : "Go online"}</strong><small>{profile.is_online ? "Stop new requests" : "Receive nearby requests"}</small></span></button>
         </section>
 
         <section className="pandit-jobs" id="pandit-requests">
-          <header><div><span className="eyebrow">Your next step</span><h2>{active.length ? "What needs your attention" : "You are all caught up"}</h2><p>{active.length ? "Complete only the orange action shown on each request." : profile.is_online ? "Keep this page open. We will alert you about new nearby work." : "Go online above whenever you are ready to receive work."}</p></div><span className={`pandit-job-count ${waitingRequests ? "has-new" : ""}`}><BellRing /> <strong>{active.length}</strong><small>active</small></span></header>
-          {active.length ? <div className="pandit-job-list">{active.map((b) => { const locationVisible = b.status !== "REQUESTED" && b.customer_latitude != null && b.customer_longitude != null; return <article className={`pandit-job status-${b.status.toLowerCase()}`} key={b.id}>
-            <div className="pandit-job-title"><span className="pandit-job-om">ॐ</span><div><small>{b.request_type.replaceAll("_", " ")}</small><h3>{b.service_name}</h3><p>{b.customer_name ?? "Customer"}</p></div><strong>₹{b.amount.toLocaleString("en-IN")}</strong></div>
+          <header><div><span className="eyebrow">Requests</span><h2>{active.length ? "What needs your attention" : "No action needed"}</h2><p>{active.length ? "Each card shows one clear next step." : profile.is_online ? "We will notify you when a new request arrives." : "Go online whenever you are ready."}</p></div></header>
+          {active.length ? <div className="pandit-job-list">{active.map((b) => { const locationVisible = b.status !== "REQUESTED" && b.customer_latitude != null && b.customer_longitude != null; return <article className={`pandit-job status-${b.status.toLowerCase()}`} id={`pandit-job-${b.id}`} key={b.id}>
+            <div className="pandit-job-title"><span className="pandit-job-om">ॐ</span><div><small>{b.request_type === "SCHEDULED_PUJA" ? "Scheduled Puja" : b.request_type === "PANDIT_SOS" ? "Urgent request" : "Home Puja"}</small><h3>{b.service_name}</h3>{b.status !== "REQUESTED" && <p>{b.customer_name ?? "Customer"}</p>}</div><span className="pandit-job-amount"><small>{b.status === "REQUESTED" ? "Initial estimate" : "Agreed amount"}</small><strong>₹{b.amount.toLocaleString("en-IN")}</strong></span></div>
             {b.scheduled_at && <div className="pandit-job-note scheduled"><small>Scheduled date and time</small><p><strong>{new Date(b.scheduled_at).toLocaleString("en-IN", { dateStyle: "full", timeStyle: "short" })}</strong></p></div>}
-            <div className="pandit-job-facts"><span><MessageCircle /><small>Language</small><strong>{b.preferred_language ?? "Any language"}</strong></span><span><BadgeCheck /><small>Materials</small><strong>{b.materials_option.replaceAll("_", " ")}</strong></span></div>
+            <div className="pandit-job-facts"><span><MessageCircle /><small>Language</small><strong>{b.preferred_language ?? "Any language"}</strong></span><span><BadgeCheck /><small>Materials</small><strong>{b.materials_option === "HAVE_MATERIALS" ? "Customer has materials" : b.materials_option === "PANDIT_BRINGS" ? "You will bring materials" : "Customer needs guidance"}</strong></span></div>
             {b.situation && <div className="pandit-job-note"><small>Customer says</small><p>{b.situation}</p></div>}
-            {!["REQUESTED"].includes(b.status)&&<div className="pandit-scope-control"><span><small>Agreed total</small><strong>₹{b.amount.toLocaleString("en-IN")}</strong>{b.price_change_status==="PENDING"&&<em>Waiting for customer approval of ₹{b.proposed_amount?.toLocaleString("en-IN")}</em>}</span>{b.price_change_status!=="PENDING"&&<button disabled={busy} onClick={()=>void proposePriceChange(b.id)}>Request price change</button>}</div>}
-            <div className={`pandit-job-address ${locationVisible ? "is-open" : "is-locked"}`}><MapPin /><div><small>{locationVisible ? "Customer service address" : "Address protected"}</small><strong>{b.address}</strong><p>{locationVisible ? "Use directions when you are ready to leave." : "Accept the request first to see directions."}</p></div>{locationVisible && <a target="_blank" rel="noreferrer" href={`https://www.google.com/maps/dir/?api=1&destination=${b.customer_latitude},${b.customer_longitude}`}><Navigation /> Open directions</a>}</div>
+            {b.status!=="REQUESTED"&&<details className="pandit-more-options"><summary>More options</summary><div className="pandit-scope-control"><span>{b.price_change_status==="PENDING"?<><small>Price change requested</small><em>Waiting for customer approval of ₹{b.proposed_amount?.toLocaleString("en-IN")}</em></>:<small>Use this only when the Puja scope changes.</small>}</span>{b.price_change_status!=="PENDING"&&<button disabled={busy} onClick={()=>void proposePriceChange(b.id)}>Request price change</button>}</div></details>}
+            <div className={`pandit-job-address ${locationVisible ? "is-open" : "is-locked"}`}><MapPin /><div><small>{locationVisible ? "Customer address" : "Address protected"}</small><strong>{locationVisible ? b.address : "Available after you accept"}</strong></div>{locationVisible && <a target="_blank" rel="noreferrer" href={`https://www.google.com/maps/dir/?api=1&destination=${b.customer_latitude},${b.customer_longitude}`}><Navigation /> Directions</a>}</div>
             <div className="pandit-job-next"><div><small>Current step</small><strong>{b.status === "REQUESTED" ? "Decide if you can accept" : b.status === "ACCEPTED" ? "Leave for the customer" : b.status === "ON_THE_WAY" ? "Reach the customer" : b.status === "ARRIVED" ? "Verify arrival code" : "Finish the Puja"}</strong></div>
               {b.status === "REQUESTED" && <div className="pandit-decision"><button disabled={busy} onClick={() => transition(b.id, "DECLINED")}>Not available</button><button className="primary" disabled={busy} onClick={() => transition(b.id, "ACCEPTED")}><Check /> Accept request</button></div>}
               {b.status === "ACCEPTED" && <button className="pandit-next-button" disabled={busy} onClick={() => transition(b.id, "ON_THE_WAY")}><Navigation /> I am leaving now <ChevronRight /></button>}
@@ -266,14 +211,7 @@ export function PanditPortal({ userName, accessNotice }: { userName?: string | n
           </article>; })}</div> : <div className="pandit-rest-state"><span><BellRing /></span><strong>No request needs action</strong><p>{profile.is_online ? "You can keep your phone nearby. New requests will appear here automatically." : "Go online above whenever you are ready."}</p></div>}
         </section>
 
-        <section className="pandit-tools">
-          <article className={`pandit-chat-tool ${profile.consultation_online ? "is-online" : ""}`} id="online-guidance"><span><MessageCircle /></span><div><small>Online guidance</small><h2>{profile.consultation_online ? "Chat is open" : "Answer from home"}</h2><p>Turn on chat only when you can reply.</p></div><label>5-minute rate <b>₹</b><input aria-label="Rate for 5 minutes" type="number" min="20" max="5000" value={consultationRate} onChange={(event) => setConsultationRate(Number(event.target.value))}/></label><button disabled={busy} onClick={toggleConsultation}>{profile.consultation_online ? "Stop chats" : "Start chats"}</button></article>
-          <article className="pandit-scorecard"><span className="eyebrow">Your work record</span><div><span><Star /><strong>{profile.rating_count ? profile.rating : "New"}</strong><small>{profile.rating_count ? `${profile.rating_count} ratings` : "No ratings"}</small></span><span><BadgeCheck /><strong>{profile.completed_jobs}</strong><small>Pujas done</small></span><span><BellRing /><strong>{waitingRequests}</strong><small>New requests</small></span></div></article>
-        </section>
-        <ConsultationPanel role="PANDIT" onUrgentItemsChange={updateUrgentChats} />
-        {cancelled.length > 0 && <section className="pandit-cancelled" id="cancelled-requests"><header><span><BellRing /></span><div><small>Customer updates</small><h2>Recently cancelled requests</h2><p>These requests were cancelled by the customer and no longer need action.</p></div></header><div>{cancelled.map((booking) => <article key={booking.id}><div><strong>{booking.service_name}</strong><span>{booking.customer_name ?? "Customer"}{booking.scheduled_at ? ` · ${new Date(booking.scheduled_at).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}` : ""}</span></div><p><b>Cancelled</b>{booking.cancellation_reason ? ` · ${booking.cancellation_reason}` : ""}{Boolean(booking.cancellation_fee)&&<><br/>Travel compensation pending: ₹{Math.round((booking.cancellation_fee??0)*.8)}</>}</p></article>)}</div></section>}
-        <section className="pandit-money" id="completed-pujas"><header><span><IndianRupee /></span><div><small>Completed work</small><h2>Confirm customer payments</h2><p>Cash requires confirmation from both sides. Online payments are confirmed only by the provider.</p></div></header>{completed.length ? <div className="completed-payment-list">{completed.map((booking) => <article key={booking.id}><div><strong>{booking.service_name}</strong><span>{booking.customer_name ?? "Customer"} · ₹{booking.amount.toLocaleString("en-IN")}</span></div><div className="pandit-payment-action"><span className={`status ${booking.payment_status === "CONFIRMED" ? "paid" : ""}`}>{booking.payment_status === "CONFIRMED" ? booking.payment_method==="CASH"?"Cash confirmed":"Online payment confirmed" : booking.payment_status === "DISPUTED" ? "Payment disputed" : booking.payment_method === "CASH" ? "Customer selected cash" : "Waiting for customer"}</span>{booking.payment_method==="CASH"&&booking.payment_status==="AWAITING_PANDIT"&&<><button disabled={busy} onClick={()=>void confirmCash(booking.id,"CONFIRM_RECEIVED")}>Cash received</button><button className="danger" disabled={busy} onClick={()=>void confirmCash(booking.id,"DISPUTE")}>Report issue</button></>}</div></article>)}</div> : <p className="pandit-no-money">Completed Pujas will appear here.</p>}</section>
-        <SupportCenter bookings={bookings.map(({id,service_name,status})=>({id,service_name,status}))} />
+        {paymentsNeedingAction.length > 0 && <section className="pandit-money" id="pandit-payments"><header><span><IndianRupee /></span><div><h2>Payment action needed</h2><p>Confirm cash only after receiving it.</p></div></header><div className="completed-payment-list">{paymentsNeedingAction.map((booking) => <article key={booking.id}><div><strong>{booking.service_name}</strong><span>₹{booking.amount.toLocaleString("en-IN")}</span></div><div className="pandit-payment-action"><span className="status">{booking.payment_status === "DISPUTED" ? "Payment disputed" : "Customer selected cash"}</span>{booking.payment_method==="CASH"&&booking.payment_status==="AWAITING_PANDIT"&&<><button disabled={busy} onClick={()=>void confirmCash(booking.id,"CONFIRM_RECEIVED")}>Cash received</button><button className="danger" disabled={busy} onClick={()=>void confirmCash(booking.id,"DISPUTE")}>Report issue</button></>}</div></article>)}</div></section>}
       </div>}
     </AppShell>
   );

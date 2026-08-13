@@ -30,10 +30,6 @@ export async function notifyUser(userId: string, message: { title: string; body:
   const notificationId = crypto.randomUUID();
   await sql(`INSERT INTO pim_v2.notifications(id,user_id,title,body,url,event_type) VALUES($1,$2,$3,$4,$5,$6)`,
     [notificationId, userId, message.title, message.body, message.url, message.eventType]);
-  const preference = await sql<{ booking_updates:boolean; chat_updates:boolean; service_updates:boolean }>(`SELECT booking_updates,chat_updates,service_updates FROM pim_v2.notification_preferences WHERE user_id=$1`,[userId]);
-  const selected = preference.rows[0];
-  const pushAllowed = MANDATORY_ACCOUNT_EVENTS.has(message.eventType) || (message.eventType.startsWith("BOOKING_") ? selected?.booking_updates !== false : message.eventType.startsWith("CONSULTATION_") || message.eventType.startsWith("CHAT_") ? selected?.chat_updates !== false : selected?.service_updates !== false);
-  if (!pushAllowed) return { stored: true, pushConfigured: true, subscriptions: 0, delivered: 0, preferenceDisabled: true };
   if (!configureWebPush()) return { stored: true, pushConfigured: false, subscriptions: 0, delivered: 0 };
   const subscriptions = await sql<PushRow>(`SELECT id,endpoint,p256dh,auth FROM pim_v2.push_subscriptions WHERE user_id=$1`, [userId]);
   const deliveries = await Promise.all(subscriptions.rows.map(async (subscription) => {

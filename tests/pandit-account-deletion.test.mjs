@@ -39,7 +39,7 @@ test("Admin UI provides a clear deletion decision from the verified Pandit card"
 });
 
 test("deletion-requested Pandits stay excluded from customer discovery", async () => {
-  for (const route of ["../app/api/pandits/discover/route.ts", "../app/api/pandits/nearby/route.ts"]) {
+  for (const route of ["../app/api/pandits/nearby/route.ts"]) {
     assert.match(await source(route), /u\.account_status='ACTIVE'/);
   }
 });

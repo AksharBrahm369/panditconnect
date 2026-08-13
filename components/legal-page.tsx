@@ -3,7 +3,7 @@ import Link from "next/link";
 export function LegalPage({ title, summary, children }: { title: string; summary: string; children: React.ReactNode }) {
   return <main className="legal-page">
     <nav className="topbar">
-      <Link href="/" className="brand"><span className="brand-mark">ॐ</span><span>Pandit in Minutes</span></Link>
+      <Link href="/" className="brand"><span className="brand-mark">ॐ</span><span>PanditConnect</span></Link>
       <Link href="/" className="btn btn-ghost">Back home</Link>
     </nav>
     <article className="legal-document">

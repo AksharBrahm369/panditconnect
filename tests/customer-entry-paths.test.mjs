@@ -2,19 +2,19 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-test("customer home keeps urgent replacement but removes the duplicate direct-booking card", async () => {
+test("customer home keeps one guided booking path and moves recovery into booking context", async () => {
   const portal = await readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8");
   const homepage = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 
-  assert.match(portal, /My Pandit cancelled/);
+  assert.doesNotMatch(portal, /My Pandit cancelled/);
   assert.match(homepage, /<strong>My Pandit cancelled<\/strong>/);
   assert.doesNotMatch(portal, /<strong>Choose a specific Puja<\/strong>/);
   assert.doesNotMatch(homepage, /<strong>Choose a specific Puja<\/strong>/);
   assert.match(portal, /Help me choose and book/);
-  assert.match(portal, /Chat with a Pandit/);
+  assert.match(portal, /Ask a Pandit online/);
   assert.match(portal, /Direct Puja booking/);
   assert.match(portal, /Compare nearby Pandits/);
-  assert.match(portal, /Find another Pandit/);
+  assert.match(portal, /Check nearby Pandits again/);
   assert.match(portal, /requestType === "KNOWN_PUJA" \? "Selected Puja" : "Recommended"/);
 });
 
@@ -39,7 +39,8 @@ test("beginner help uses distinct guided, walkthrough and app-support paths", as
   assert.match(loginForm, /role === "CUSTOMER" && nextPath/);
   assert.match(customerPage, /initialStart=/);
   assert.match(portal, /initialStart === "guided" \? "NEED_GUIDANCE"/);
-  assert.match(portal, /customer-help-fab/);
+  assert.doesNotMatch(portal, /customer-help-fab/);
+  assert.match(helpPage, /Talk to app support/);
 });
 
 test("public homepage uses the professional human-centred service design", async () => {

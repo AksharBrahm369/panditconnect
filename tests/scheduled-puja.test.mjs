@@ -8,8 +8,9 @@ test("customers can schedule a future Puja with a nearby available Pandit", asyn
   const nearby = await readFile(new URL("../app/api/pandits/nearby/route.ts", import.meta.url), "utf8");
   const pandit = await readFile(new URL("../components/pandit-portal.tsx", import.meta.url), "utf8");
   const migration = await readFile(new URL("../db/migrations/0022_scheduled_puja.sql", import.meta.url), "utf8");
-  assert.match(customer, /Schedule a Puja/);
-  assert.match(customer, /type="datetime-local"/);
+  assert.match(customer, /Schedule for later/);
+  assert.match(customer, /Preferred date/);
+  assert.match(customer, /Let the Pandit recommend/);
   assert.match(customer, /scheduledAt/);
   assert.match(bookings, /SCHEDULED_PUJA/);
   assert.match(bookings, /at least 2 hours/);

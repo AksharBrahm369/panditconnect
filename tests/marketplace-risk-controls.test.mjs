@@ -13,7 +13,8 @@ test("every booking records policy consent and an idempotency key", async () => 
   assert.match(booking, /client_request_id/);
   assert.match(booking, /ON CONFLICT\(customer_id,client_request_id\)/);
   assert.match(migration, /booking_customer_request_key_idx/);
-  assert.match(customer, /I understand and agree to cancellation policy/);
+  assert.match(customer, /I agree to the/);
+  assert.match(customer, /panditconnect:cancellation-policy/);
 });
 
 test("duplicate and overlapping requests are blocked at API and database levels", async () => {
