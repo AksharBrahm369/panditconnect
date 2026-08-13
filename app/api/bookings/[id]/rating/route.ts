@@ -22,21 +22,30 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
        WHERE id=$1 AND customer_id=$2 AND status='COMPLETED' AND customer_rating IS NULL
        RETURNING pandit_id
      ),
+     rating_totals AS (
+       SELECT rb.pandit_id,
+              round(avg(scores.rating)::numeric,1) AS rating,
+              count(*)::int AS rating_count
+       FROM rated_booking rb
+       CROSS JOIN LATERAL (
+         -- Data-modifying CTE results are not visible through a second scan of
+         -- bookings in this statement, so include the newly submitted score
+         -- explicitly alongside all ratings that existed before this update.
+         SELECT b.customer_rating::numeric AS rating
+         FROM pim_v2.bookings b
+         WHERE b.pandit_id=rb.pandit_id AND b.customer_rating IS NOT NULL
+         UNION ALL
+         SELECT $3::numeric
+       ) scores
+       GROUP BY rb.pandit_id
+     ),
      updated_profile AS (
        UPDATE pim_v2.pandit_profiles p
-       SET rating=(
-             SELECT round(avg(b.customer_rating)::numeric,1)
-             FROM pim_v2.bookings b
-             WHERE b.pandit_id=p.user_id AND b.customer_rating IS NOT NULL
-           ),
-           rating_count=(
-             SELECT count(*)::int
-             FROM pim_v2.bookings b
-             WHERE b.pandit_id=p.user_id AND b.customer_rating IS NOT NULL
-           ),
+       SET rating=totals.rating,
+           rating_count=totals.rating_count,
            updated_at=now()
-       FROM rated_booking rb
-       WHERE p.user_id=rb.pandit_id
+       FROM rating_totals totals
+       WHERE p.user_id=totals.pandit_id
        RETURNING p.rating,p.rating_count
      )
      SELECT rating,rating_count FROM updated_profile`,
