@@ -42,21 +42,24 @@ test("beginner help uses distinct guided, walkthrough and app-support paths", as
   assert.match(portal, /customer-help-fab/);
 });
 
-test("public homepage uses the professional human-centred service design", async () => {
-  const [homepage, layout, styles] = await Promise.all([
+test("public homepage uses the Sanskriti cultural service design", async () => {
+  const [homepage, layout, styles, culturalTheme] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/public-home.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/sanskriti-theme.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(homepage, /DM_Sans, Lora/);
-  assert.match(homepage, /A trusted Pandit, when your family needs one\./);
+  assert.match(layout, /Cormorant_Garamond, Noto_Sans/);
+  assert.match(homepage, /Aapki Puja\./);
   assert.match(homepage, /Book a Puja at home/);
   assert.match(homepage, /My Pandit cancelled/);
   assert.match(homepage, /Ask a Pandit online/);
-  assert.match(homepage, /Book with clarity, not guesswork\./);
+  assert.match(homepage, /From need to Seva, without confusion\./);
   assert.match(layout, /import "\.\/public-home\.css"/);
-  assert.match(styles, /--font-home-sans/);
-  assert.match(styles, /--font-home-serif/);
+  assert.match(layout, /import "\.\/sanskriti-theme\.css"/);
+  assert.match(culturalTheme, /--heritage:#731f2b/);
+  assert.match(culturalTheme, /--font-display:var\(--font-heritage\)/);
+  assert.match(culturalTheme, /@media\(prefers-reduced-motion:reduce\)/);
   assert.match(styles, /@media\(max-width:620px\)/);
 });

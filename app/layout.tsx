@@ -1,10 +1,20 @@
 import type { Metadata } from "next";
-import { Geist } from "next/font/google";
+import { Cormorant_Garamond, Noto_Sans } from "next/font/google";
 import "./globals.css";
 import "./mobile.css";
 import "./public-home.css";
+import "./sanskriti-theme.css";
 
-const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });
+const interfaceFont = Noto_Sans({
+  variable: "--font-interface",
+  subsets: ["latin"],
+  weight: ["400", "500", "600", "700", "800"],
+});
+const heritageFont = Cormorant_Garamond({
+  variable: "--font-heritage",
+  subsets: ["latin"],
+  weight: ["500", "600", "700"],
+});
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
@@ -26,5 +36,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="en"><body className={geist.variable}>{children}</body></html>;
+  return <html lang="en"><body className={`${interfaceFont.variable} ${heritageFont.variable}`}>{children}</body></html>;
 }
