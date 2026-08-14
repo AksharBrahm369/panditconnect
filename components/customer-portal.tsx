@@ -13,6 +13,7 @@ import { ConsultationPanel } from "./consultation-panel";
 import { PanditAvatar } from "./pandit-avatar";
 import { AvailabilityFallback, type FallbackPlan } from "./availability-fallback";
 import { BookingChat } from "./booking-chat";
+import { BookingCalendarConsent } from "./booking-calendar-consent";
 import { readJson } from "@/lib/http";
 import { getCurrentCoordinates, type BrowserCoordinates } from "@/lib/browser-location";
 import { recommendRitual, ritualForService, type RequestType, type RitualRecommendation } from "@/lib/ritual-guide";
@@ -172,6 +173,11 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
   const [preparationBookingId, setPreparationBookingId] = useState<string | null>(null);
   const [preparationBusy, setPreparationBusy] = useState(false);
   const [preparationError, setPreparationError] = useState("");
+  const [rescheduleBookingId, setRescheduleBookingId] = useState<string | null>(null);
+  const [rescheduleAt, setRescheduleAt] = useState("");
+  const [rescheduleBusy, setRescheduleBusy] = useState(false);
+  const [rescheduleError, setRescheduleError] = useState("");
+  const [rescheduleMessage, setRescheduleMessage] = useState<Record<string, string>>({});
 
   const refreshBookings = useCallback(async () => {
     const response = await fetch(`/api/bookings?fresh=${Date.now()}`, {
@@ -551,6 +557,44 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
     setRematchingId(null);
   }
 
+  function openReschedule(booking: Booking) {
+    if (!booking.scheduled_at) return;
+    setRescheduleBookingId(booking.id);
+    setRescheduleAt(dateTimeLocalValue(new Date(booking.scheduled_at).getTime()));
+    setRescheduleError("");
+    setRescheduleMessage((current) => ({ ...current, [booking.id]: "" }));
+  }
+
+  async function saveReschedule(bookingId: string) {
+    const nextDate = new Date(rescheduleAt);
+    if (!rescheduleAt || !Number.isFinite(nextDate.getTime())) {
+      setRescheduleError("Choose a valid Puja date and time.");
+      return;
+    }
+    setRescheduleBusy(true);
+    setRescheduleError("");
+    const response = await fetch(`/api/bookings/${bookingId}/schedule`, {
+      method: "PATCH",
+      credentials: "same-origin",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ scheduledAt: nextDate.toISOString() }),
+    });
+    const data = await readJson<{ error?: string; scheduledAt?: string }>(response);
+    if (!response.ok || !data.scheduledAt) {
+      setRescheduleError(data.error ?? "Unable to update the Puja date.");
+      setRescheduleBusy(false);
+      return;
+    }
+    setRescheduleBookingId(null);
+    setRescheduleMessage((current) => ({
+      ...current,
+      [bookingId]: "Puja date updated. Your Pandit has been alerted to recheck the muhurat and samagri.",
+    }));
+    await refreshBookings();
+    setRescheduleBusy(false);
+    window.setTimeout(() => document.getElementById(`booking-${bookingId}`)?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
+  }
+
   async function submitRating(bookingId: string) {
     const rating = ratingDrafts[bookingId] ?? 0;
     if (!rating) {
@@ -782,8 +826,17 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
               </div>
               <div className="tracking-actions">
                 {hasLiveLocation && <a className="btn btn-primary" target="_blank" rel="noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${booking.pandit_latitude},${booking.pandit_longitude}`}><MapPin size={16} /> Track Pandit on map</a>}
+                {booking.request_type === "SCHEDULED_PUJA" && booking.status === "ACCEPTED" && booking.scheduled_at && <button className="btn btn-ghost" type="button" onClick={() => openReschedule(booking)}><CalendarDays size={16} /> Edit Puja date</button>}
                 {["REQUESTED","ACCEPTED","ON_THE_WAY","ARRIVED"].includes(booking.status) && <button className="text-button danger" onClick={() => void cancelBooking(booking.id)}>Review cancellation</button>}
               </div>
+              {rescheduleMessage[booking.id] && <div className="schedule-update-success" role="status"><CheckCircle2 /><span><strong>Date updated on this booking</strong><small>{rescheduleMessage[booking.id]}</small></span></div>}
+              {rescheduleBookingId === booking.id && booking.scheduled_at && <section className="customer-reschedule" aria-labelledby={`reschedule-title-${booking.id}`}>
+                <div><span className="eyebrow">Same booking · no new request</span><h4 id={`reschedule-title-${booking.id}`}>Change the Puja date</h4><p>Your Pandit will receive the revised date and a loud alert. They can confirm the new muhurat and samagri with you in the private chat.</p></div>
+                <label>New date and time<input type="datetime-local" min={dateTimeLocalValue(Date.now() + 2 * 60 * 60 * 1000)} max={dateTimeLocalValue(Date.now() + 180 * 24 * 60 * 60 * 1000)} value={rescheduleAt} onChange={(event) => { setRescheduleAt(event.target.value); setRescheduleError(""); }} /></label>
+                {rescheduleError && <div className="alert error" role="alert">{rescheduleError}</div>}
+                <div className="customer-reschedule-actions"><button className="btn btn-ghost" type="button" disabled={rescheduleBusy} onClick={() => setRescheduleBookingId(null)}>Keep current date</button><button className="btn btn-primary" type="button" disabled={rescheduleBusy || !rescheduleAt} onClick={() => void saveReschedule(booking.id)}>{rescheduleBusy ? "Updating date…" : "Update this booking"}</button></div>
+              </section>}
+              {booking.request_type === "SCHEDULED_PUJA" && booking.status === "ACCEPTED" && booking.scheduled_at && <BookingCalendarConsent bookingId={booking.id} scheduledFor={booking.scheduled_at} audience="CUSTOMER" />}
               {["ACCEPTED", "ON_THE_WAY", "ARRIVED", "IN_PROGRESS"].includes(booking.status) && <BookingChat bookingId={booking.id} participantName={booking.pandit_name ?? "your Pandit"} role="CUSTOMER" phone={booking.pandit_phone} phoneAvailableAt={booking.pandit_phone_available_at} scheduledFor={booking.scheduled_at} guidanceMode={booking.request_type === "SCHEDULED_PUJA"} />}
               {booking.status === "ARRIVED" && <div className="arrival-code"><span><strong>Share this code with the Pandit</strong><small>Only share it after meeting the Pandit at your address.</small></span><code>{booking.arrival_otp}</code></div>}
               {["ACCEPTED", "ON_THE_WAY", "ARRIVED"].includes(booking.status) && booking.materials_option === "NEED_GUIDANCE" && <div className="post-acceptance-guide"><button className="btn btn-ghost" disabled={preparationBusy && preparationBookingId === booking.id} onClick={() => void loadPreparationGuide(booking)}><PackageCheck /> {preparationBusy && preparationBookingId === booking.id ? "Preparing guide…" : "See materials and timing guidance"}</button>{preparationError && preparationBookingId === booking.id && <small className="field-error">{preparationError}</small>}{preparationGuide && preparationBookingId === booking.id && <article className="puja-preparation-guide compact" id={`puja-preparation-${booking.id}`}><h4>{preparationGuide.guide.title}</h4><div className="samagri-grid">{preparationGuide.guide.essentials.map((item) => <span key={item}><CheckCircle2 /> {item}</span>)}</div>{preparationGuide.panchang && <div className="panchang-summary"><span><small>Tithi</small><strong>{preparationGuide.panchang.tithi}</strong></span><span><small>Nakshatra</small><strong>{preparationGuide.panchang.nakshatra}</strong></span></div>}<p>Confirm tradition-specific items and final muhurat with {booking.pandit_name ?? "your Pandit"}.</p></article>}</div>}

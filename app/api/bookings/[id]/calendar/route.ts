@@ -7,6 +7,8 @@ type CalendarBooking = {
   scheduled_at: string;
   duration_minutes: number;
   address: string;
+  customer_id: string;
+  pandit_id: string;
 };
 
 function calendarDate(value: Date) {
@@ -19,15 +21,16 @@ function calendarText(value: string) {
 
 export async function GET(_request: Request, context: { params: Promise<{ id: string }> }) {
   const user = await currentUser();
-  if (!user || user.role !== "PANDIT") return new Response("Unauthorized", { status: 401 });
+  if (!user || (user.role !== "PANDIT" && user.role !== "CUSTOMER")) return new Response("Unauthorized", { status: 401 });
   const { id } = await context.params;
   const result = await sql<CalendarBooking>(
-    `SELECT b.id,s.name AS service_name,b.scheduled_at,s.duration_minutes,b.address
+    `SELECT b.id,s.name AS service_name,b.scheduled_at,s.duration_minutes,b.address,b.customer_id,b.pandit_id
      FROM pim_v2.bookings b
      JOIN pim_v2.services s ON s.id=b.service_id
-     WHERE b.id=$1 AND b.pandit_id=$2 AND b.request_type='SCHEDULED_PUJA'
+     WHERE b.id=$1 AND b.request_type='SCHEDULED_PUJA'
+       AND (($2='CUSTOMER' AND b.customer_id=$3) OR ($2='PANDIT' AND b.pandit_id=$3))
        AND b.scheduled_at IS NOT NULL AND b.status IN ('ACCEPTED','ON_THE_WAY','ARRIVED','IN_PROGRESS')`,
-    [id, user.id],
+    [id, user.role, user.id],
   );
   const booking = result.rows[0];
   if (!booking) return new Response("Calendar event unavailable", { status: 404 });
@@ -47,7 +50,7 @@ export async function GET(_request: Request, context: { params: Promise<{ id: st
     `DTEND:${calendarDate(endsAt)}`,
     `SUMMARY:${calendarText(`${booking.service_name} - PanditConnect`)}`,
     `LOCATION:${calendarText(booking.address)}`,
-    "DESCRIPTION:Open PanditConnect before the Puja to recheck the confirmed muhurat\, samagri\, customer chat and travel plan.",
+    `DESCRIPTION:${calendarText(user.role === "PANDIT" ? "Open PanditConnect before the Puja to recheck the confirmed muhurat, samagri, customer chat and travel plan." : "Open PanditConnect before the Puja to review the confirmed time, samagri guidance and Pandit chat.")}`,
     "BEGIN:VALARM",
     "TRIGGER:-P1D",
     "ACTION:DISPLAY",

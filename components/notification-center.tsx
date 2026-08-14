@@ -11,7 +11,7 @@ type PortalRole = "Customer" | "Pandit" | "Admin";
 const ONBOARDING_KEY = "panditconnect-notification-onboarding-v2";
 const PROMPT_AFTER_KEY = "panditconnect-notification-prompt-after";
 const PANDIT_ALARM_KEY = "panditconnect-pandit-loud-alarm";
-const PANDIT_ALARM_EVENTS = new Set(["BOOKING_REQUESTED", "CONSULTATION_STARTED", "SCHEDULED_PUJA_GUIDANCE_REQUIRED", "SCHEDULED_PUJA_REMINDER", "PANDIT_APPROVED", "PANDIT_REJECTED", "PANDIT_CHANGES_REQUESTED"]);
+const PANDIT_ALARM_EVENTS = new Set(["BOOKING_REQUESTED", "CONSULTATION_STARTED", "SCHEDULED_PUJA_GUIDANCE_REQUIRED", "SCHEDULED_PUJA_REMINDER", "BOOKING_SCHEDULE_UPDATED", "PANDIT_APPROVED", "PANDIT_REJECTED", "PANDIT_CHANGES_REQUESTED"]);
 let alertAudioContext: AudioContext | null = null;
 
 async function playAlertSound() {

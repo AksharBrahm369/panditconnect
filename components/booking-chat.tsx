@@ -44,11 +44,14 @@ export function BookingChat({ bookingId, participantName, role, phone, phoneAvai
 
   useEffect(() => {
     if (!open) return;
-    void loadMessages();
+    const initialLoad = window.setTimeout(() => void loadMessages(), 0);
     const refresh = window.setInterval(() => {
       if (document.visibilityState === "visible") void loadMessages();
     }, 3_000);
-    return () => window.clearInterval(refresh);
+    return () => {
+      window.clearTimeout(initialLoad);
+      window.clearInterval(refresh);
+    };
   }, [loadMessages, open]);
 
   useEffect(() => {
