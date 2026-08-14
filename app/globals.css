@@ -202,6 +202,32 @@ button, a { -webkit-tap-highlight-color: transparent; }
 a { color: inherit; text-decoration: none; }
 button { cursor: pointer; }
 
+/* One restrained interaction language for every portal and public action. */
+button:not(:disabled), a.btn, a.icon-button, [role="button"]:not([aria-disabled="true"]) {
+  transform-origin:center;
+  touch-action:manipulation;
+}
+button:not(:disabled):active, a.btn:active, a.icon-button:active, [role="button"]:not([aria-disabled="true"]):active {
+  transform:translateY(1px) scale(.975);
+  filter:saturate(1.08);
+}
+.has-interaction-effect { position:relative; overflow:hidden; isolation:isolate; }
+.has-interaction-effect > :not(.interaction-ripple) { position:relative; z-index:1; }
+.interaction-ripple {
+  position:absolute;
+  z-index:0;
+  display:block;
+  border-radius:50%;
+  pointer-events:none;
+  background:rgba(191,66,25,.2);
+  background:color-mix(in srgb,currentColor 22%,transparent);
+  transform:scale(0);
+  animation:button-ripple .52s ease-out forwards;
+}
+.interaction-clicked { animation:button-click-pop .3s cubic-bezier(.2,.8,.25,1); }
+@keyframes button-ripple { 0%{opacity:.72;transform:scale(0)} 70%{opacity:.24} 100%{opacity:0;transform:scale(1)} }
+@keyframes button-click-pop { 0%{transform:scale(1)} 42%{transform:scale(.965)} 100%{transform:scale(1)} }
+
 .topbar, .portal-header { height: 74px; display: flex; align-items: center; justify-content: space-between; padding: 0 clamp(22px,5vw,72px); border-bottom: 1px solid var(--line); background: rgba(255,253,249,.94); position: sticky; top: 0; z-index: 30; backdrop-filter: blur(12px); }
 .brand { display: inline-flex; align-items: center; gap: 11px; font-size: 18px; font-weight: 760; letter-spacing: -.3px; }
 .brand-mark { width: 38px; height: 38px; display: grid; place-items: center; border-radius: 12px; color: white; background: var(--saffron); font-weight: 800; }

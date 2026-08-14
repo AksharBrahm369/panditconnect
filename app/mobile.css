@@ -202,4 +202,6 @@
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior:auto !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; transition-duration:.01ms !important; }
+  button:not(:disabled):active, a.btn:active, a.icon-button:active, [role="button"]:not([aria-disabled="true"]):active { transform:none; filter:none; }
+  .interaction-ripple { display:none; }
 }
