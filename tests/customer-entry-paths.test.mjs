@@ -2,16 +2,19 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import { readFile } from "node:fs/promises";
 
-test("customer home keeps one guided booking path and moves recovery into booking context", async () => {
+test("customer home keeps booking, replacement and online guidance visibly distinct", async () => {
   const portal = await readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8");
   const homepage = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 
-  assert.doesNotMatch(portal, /My Pandit cancelled/);
+  assert.match(portal, /My Pandit cancelled/);
   assert.match(homepage, /<strong>My Pandit cancelled<\/strong>/);
   assert.doesNotMatch(portal, /<strong>Choose a specific Puja<\/strong>/);
   assert.doesNotMatch(homepage, /<strong>Choose a specific Puja<\/strong>/);
   assert.match(portal, /Help me choose and book/);
   assert.match(portal, /Ask a Pandit online/);
+  assert.match(portal, /choosePath\("PANDIT_SOS"\)/);
+  assert.match(portal, /onClick=\{openOnlineGuidance\}/);
+  assert.doesNotMatch(portal, /onlinePayments&&<button className="customer-choice-card online"/);
   assert.match(portal, /Direct Puja booking/);
   assert.match(portal, /Compare nearby Pandits/);
   assert.match(portal, /Check nearby Pandits again/);

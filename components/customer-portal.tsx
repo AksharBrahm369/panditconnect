@@ -647,7 +647,8 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
 
           <div className="customer-choice-grid customer-home-actions" id="request-assistance">
             <button className="customer-choice-card schedule" onClick={() => choosePath("SCHEDULED_PUJA")}><span><CalendarDays /></span><div><small>{tr("Plan ahead")}</small><strong>{tr("Schedule for later")}</strong><p>Choose a date; the Pandit can confirm the right time.</p></div><ChevronRight /></button>
-            {onlinePayments&&<button className="customer-choice-card online" onClick={() => setConsultationMode(true)}><span><BadgeHelp /></span><div><small>{tr("Private guidance")}</small><strong>{tr("Ask a Pandit online")}</strong><p>{tr("Use this when you need advice instead of a home visit.")}</p></div><ChevronRight /></button>}
+            <button className="customer-choice-card urgent" onClick={() => choosePath("PANDIT_SOS")}><span><AlertTriangle /></span><div><small>{tr("Urgent help")}</small><strong>{tr("My Pandit cancelled")}</strong><p>{tr("Quickly find another approved Pandit nearby.")}</p></div><ChevronRight /></button>
+            <button className="customer-choice-card online" onClick={openOnlineGuidance}><span><BadgeHelp /></span><div><small>{tr("Online guidance")}</small><strong>{tr("Ask a Pandit online")}</strong><p>{tr("Ask a religious question privately online.")}</p></div><ChevronRight /></button>
           </div>
           {activeBookingStatuses.size > 0 && bookings.some((booking) => activeBookingStatuses.has(booking.status)) && <button className="customer-active-booking-link" onClick={() => document.getElementById("live-requests")?.scrollIntoView({ behavior: "smooth" })}><Clock3 /> You have an active booking <ChevronRight /></button>}
         </section>

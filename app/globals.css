@@ -2889,7 +2889,7 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .customer-help-fab:hover { background:#5e1920; transform:translateY(-1px); }
 
 /* Progressive workspaces: essential choices first, secondary detail on demand. */
-.customer-home-actions { max-width:820px; margin:24px auto 0; grid-template-columns:repeat(2,minmax(0,1fr)); }
+.customer-home-actions { width:100%; max-width:1120px; margin:24px auto 0; grid-template-columns:repeat(3,minmax(0,1fr)); }
 .customer-active-booking-link { width:100%; max-width:820px; margin:14px auto 0; display:flex; align-items:center; justify-content:center; gap:9px; min-height:48px; color:#174e40; border:1px solid #bcded2; border-radius:14px; background:#edf8f4; font-weight:800; }
 .request-summary-row { display:flex; align-items:center; justify-content:space-between; gap:16px; padding:13px 15px; border:1px solid #e5d9ca; border-radius:14px; background:#fffaf2; }
 .request-summary-row span { display:grid; gap:2px; }
