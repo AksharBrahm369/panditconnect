@@ -6,10 +6,20 @@ test("customer booking keeps Indian PIN as a mobile-friendly GPS fallback", asyn
   const customer = await readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8");
   assert.match(customer, /Only needed when GPS cannot confirm the area/);
   assert.match(customer, /locationFailed/);
+  assert.match(customer, /onClick=\{\(\) => void selectCurrentLocation\(\)\}/);
+  assert.match(customer, /Try GPS again/);
   assert.match(customer, /inputMode="numeric"/);
   assert.match(customer, /autoComplete="postal-code"/);
   assert.match(customer, /value=\{pinCode\}/);
   assert.match(customer, /postalCode: pinCode/);
+});
+
+test("GPS retries with a mobile-friendly fallback and explains blocked permission", async () => {
+  const location = await readFile(new URL("../lib/browser-location.ts", import.meta.url), "utf8");
+  assert.match(location, /enableHighAccuracy: true/);
+  assert.match(location, /enableHighAccuracy: false/);
+  assert.match(location, /site-settings icon near the address bar/);
+  assert.match(location, /window\.isSecureContext/);
 });
 
 test("booking API accepts a separate PIN and safely appends it to the stored address", async () => {

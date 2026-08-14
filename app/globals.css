@@ -2907,6 +2907,9 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .location-confirmed span { display:grid; gap:2px; min-width:0; }
 .location-confirmed small { overflow:hidden; color:#477067; text-overflow:ellipsis; white-space:nowrap; }
 .location-confirmed button { color:#176c55; border:0; background:transparent; font-weight:800; }
+.location-permission-help { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0; }
+.location-permission-help span { line-height:1.45; }
+.location-permission-help .text-button { flex:0 0 auto; margin:0; }
 .optional-note, .journey-details, .pandit-more-options { border:1px solid #e7ded2; border-radius:13px; background:#fff; }
 .optional-note summary, .journey-details summary, .pandit-more-options summary { padding:13px 15px; cursor:pointer; font-weight:800; }
 .optional-note summary span { color:var(--muted); font-size:11px; font-weight:600; }

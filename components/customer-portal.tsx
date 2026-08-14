@@ -139,6 +139,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
   const [busy, setBusy] = useState(false);
   const [locationBusy, setLocationBusy] = useState(false);
   const [locationFailed, setLocationFailed] = useState(false);
+  const [locationError, setLocationError] = useState("");
   const [listening, setListening] = useState(false);
   const [nearbyPandits, setNearbyPandits] = useState<NearbyPandit[] | null>(null);
   const [nearbyPage, setNearbyPage] = useState(1);
@@ -278,6 +279,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
   async function detectLocation() {
     setLocationBusy(true);
     setMessage("");
+    setLocationError("");
     try {
       const current = await getCurrentCoordinates();
       setCoordinates(current);
@@ -293,12 +295,20 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
       }).catch(() => undefined);
       return current;
     } catch (error) {
-      setMessage(error instanceof Error ? error.message : "Unable to detect your location.");
+      const errorMessage = error instanceof Error ? error.message : "Unable to detect your location.";
+      setLocationError(errorMessage);
       setLocationFailed(true);
       return null;
     } finally {
       setLocationBusy(false);
     }
+  }
+
+  async function selectCurrentLocation() {
+    setAddressMode("CURRENT");
+    setLocationFailed(false);
+    setLocationError("");
+    await detectLocation();
   }
 
   function getGuidance() {
@@ -706,9 +716,10 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
               {showLanguagePicker && <label>Language for the Puja<IndianLanguageSelect value={language} onChange={setLanguage} /><small className="field-hint">Only Pandits who speak this language will be matched.</small></label>}
               <fieldset className="materials-choice"><legend>Who will arrange Puja materials?</legend>{Object.entries(materialsLabels).map(([value, label]) => <label className={materialsOption === value ? "selected" : ""} key={value}><input type="radio" name="materials" value={value} checked={materialsOption === value} onChange={(event) => setMaterialsOption(event.target.value)} /><span>{label}</span></label>)}</fieldset>
               {requestType === "SCHEDULED_PUJA" && <div className="schedule-choice"><label>Preferred date<input type="date" value={scheduleDate} min={dateTimeLocalValue(Date.now() + 24 * 60 * 60 * 1000).slice(0, 10)} max={dateTimeLocalValue(Date.now() + 180 * 24 * 60 * 60 * 1000).slice(0, 10)} onChange={(event) => { const nextDate = event.target.value; setScheduleDate(nextDate); setScheduledAt(scheduleAt(nextDate, scheduleWindow)); }} /></label><label>Preferred time<select value={scheduleWindow} onChange={(event) => { const nextWindow = event.target.value; setScheduleWindow(nextWindow); setScheduledAt(scheduleAt(scheduleDate, nextWindow)); }}><option value="PANDIT_RECOMMENDS">Let the Pandit recommend</option><option value="MORNING">Morning</option><option value="AFTERNOON">Afternoon</option><option value="EVENING">Evening</option></select></label><small>The Pandit will confirm the final muhurat after accepting.</small></div>}
-              <fieldset className="address-choice"><legend>Where is the Puja?</legend><button type="button" className={addressMode === "CURRENT" ? "selected" : ""} onClick={() => { setAddressMode("CURRENT"); setLocationFailed(false); }}><MapPin /> Current location</button>{savedAddress&&<button type="button" className={addressMode === "SAVED" ? "selected" : ""} onClick={() => { setAddressMode("SAVED"); setAddress(savedAddress); setLocationFailed(false); }}><Home /> Saved address</button>}<button type="button" className={addressMode === "OTHER" ? "selected" : ""} onClick={() => { setAddressMode("OTHER"); setCoordinates(null); setLocationSource(null); setLocationFailed(true); setAddress(""); setPinCode(""); }}>Other address</button></fieldset>
+              <fieldset className="address-choice"><legend>Where is the Puja?</legend><button type="button" className={addressMode === "CURRENT" ? "selected" : ""} aria-pressed={addressMode === "CURRENT" && Boolean(coordinates)} onClick={() => void selectCurrentLocation()} disabled={locationBusy}><MapPin /> {locationBusy && addressMode === "CURRENT" ? "Finding location..." : coordinates && addressMode === "CURRENT" ? "Current location ready" : "Use current location"}</button>{savedAddress&&<button type="button" className={addressMode === "SAVED" ? "selected" : ""} onClick={() => { setAddressMode("SAVED"); setAddress(savedAddress); setLocationFailed(false); setLocationError(""); }}><Home /> Saved address</button>}<button type="button" className={addressMode === "OTHER" ? "selected" : ""} onClick={() => { setAddressMode("OTHER"); setCoordinates(null); setLocationSource(null); setLocationFailed(true); setLocationError(""); setAddress(""); setPinCode(""); }}>Other address</button></fieldset>
               {!coordinates && addressMode !== "OTHER" && <button className="btn btn-primary btn-block" onClick={detectLocation} disabled={locationBusy}>{locationBusy ? "Finding your location…" : <><MapPin size={16} /> Confirm location with GPS</>}</button>}
-              {coordinates && <div className="location-confirmed"><CheckCircle2 /><span><strong>Location ready</strong><small>{address || "Current GPS location"}</small></span><button type="button" onClick={() => { setCoordinates(null); setLocationSource(null); }}>Change</button></div>}
+              {locationError && <div className="alert error location-permission-help" role="alert"><span>{locationError}</span><button type="button" className="text-button" disabled={locationBusy} onClick={() => void selectCurrentLocation()}>Try GPS again</button></div>}
+              {coordinates && <div className="location-confirmed"><CheckCircle2 /><span><strong>Location ready</strong><small>{address || "Current GPS location"}</small></span><button type="button" onClick={() => { setCoordinates(null); setLocationSource(null); setLocationError(""); }}>Change</button></div>}
               {locationFailed && <><label>Service address<textarea rows={2} value={address} onChange={(event) => { const nextAddress=event.target.value;setAddress(nextAddress);const detectedPin=nextAddress.match(/(?:^|\D)([1-9]\d{2}[\s-]?\d{3})(?!\d)/)?.[1]?.replace(/\D/g,"");if(detectedPin)setPinCode(detectedPin); }} placeholder="House or building, street and area" /></label><label>PIN code <small>Only needed when GPS cannot confirm the area</small><input inputMode="numeric" autoComplete="postal-code" maxLength={6} value={pinCode} onChange={(event)=>setPinCode(event.target.value.replace(/\D/g,"").slice(0,6))} placeholder="6-digit PIN"/></label>{addressMode === "OTHER" && !coordinates && <button className="btn btn-ghost btn-block" type="button" onClick={detectLocation} disabled={locationBusy}>{locationBusy ? "Checking GPS…" : "Use GPS for this address"}</button>}</>}
               <details className="optional-note"><summary>Add a note <span>Optional</span></summary><label>Anything the Pandit should know<textarea rows={2} value={notes} onChange={(event) => setNotes(event.target.value)} /></label></details>
               {!policyAccepted&&<label className="simple-policy-consent"><input type="checkbox" checked={policyAccepted} onChange={(event)=>{const accepted=event.target.checked;setPolicyAccepted(accepted);if(accepted)window.localStorage.setItem("panditconnect:cancellation-policy",cancellationPolicyVersion);}}/><span>I agree to the <a href="/cancellation-policy" target="_blank">cancellation policy</a>.</span></label>}
