@@ -11,7 +11,7 @@ type PortalRole = "Customer" | "Pandit" | "Admin";
 const ONBOARDING_KEY = "panditconnect-notification-onboarding-v2";
 const PROMPT_AFTER_KEY = "panditconnect-notification-prompt-after";
 const PANDIT_ALARM_KEY = "panditconnect-pandit-loud-alarm";
-const PANDIT_DECISION_EVENTS = new Set(["PANDIT_APPROVED", "PANDIT_REJECTED", "PANDIT_CHANGES_REQUESTED"]);
+const PANDIT_ALARM_EVENTS = new Set(["BOOKING_REQUESTED", "CONSULTATION_STARTED", "SCHEDULED_PUJA_GUIDANCE_REQUIRED", "SCHEDULED_PUJA_REMINDER", "PANDIT_APPROVED", "PANDIT_REJECTED", "PANDIT_CHANGES_REQUESTED"]);
 let alertAudioContext: AudioContext | null = null;
 
 async function playAlertSound() {
@@ -87,7 +87,7 @@ export function NotificationCenter({ role }: { role: PortalRole }) {
     if (localStorage.getItem("panditconnect-notification-sound") !== "on" || Date.now() - lastSoundAt.current < 1500) return;
     lastSoundAt.current = Date.now();
     if ("vibrate" in navigator) navigator.vibrate([180, 80, 180]);
-    await (role === "Pandit" && eventType && PANDIT_DECISION_EVENTS.has(eventType) ? playPanditDecisionAlarm() : playAlertSound());
+    await (role === "Pandit" && eventType && PANDIT_ALARM_EVENTS.has(eventType) ? playPanditDecisionAlarm() : playAlertSound());
   }, [role]);
 
   const load = useCallback(async () => {
@@ -112,7 +112,7 @@ export function NotificationCenter({ role }: { role: PortalRole }) {
     const nextItems = data.notifications ?? [];
     if (latestId.current && nextItems[0]?.id && latestId.current !== nextItems[0].id) void alertDevice(nextItems[0].event_type);
     latestId.current = nextItems[0]?.id ?? latestId.current;
-    setDecisionAlert(role === "Pandit" ? nextItems.find((item) => !item.read_at && PANDIT_DECISION_EVENTS.has(item.event_type)) ?? null : null);
+    setDecisionAlert(role === "Pandit" ? nextItems.find((item) => !item.read_at && PANDIT_ALARM_EVENTS.has(item.event_type)) ?? null : null);
     setItems(nextItems);
     setUnread(data.unread ?? 0);
     setKey((current) => data.vapidPublicKey || publicKey || current);

@@ -16,6 +16,7 @@ const MANDATORY_ACCOUNT_EVENTS = new Set([
 ]);
 
 function pushTtl(eventType: string) {
+  if (eventType === "SCHEDULED_PUJA_REMINDER") return 2 * 24 * 60 * 60;
   return MANDATORY_ACCOUNT_EVENTS.has(eventType) ? 7 * 24 * 60 * 60 : 300;
 }
 

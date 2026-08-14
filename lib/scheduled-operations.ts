@@ -51,12 +51,12 @@ async function rematchExpiredRequest(booking: ExpiredRequest) {
 export async function runScheduledOperations(){
   await advanceDueBookingDispatches();
   const cleanup=await sql<{sessions:string;otps:string;typing:string;limits:string}>(`WITH sessions AS (DELETE FROM pim_v2.sessions WHERE expires_at<now()-interval '7 days' RETURNING 1),otps AS (DELETE FROM pim_v2.otp_challenges WHERE created_at<now()-interval '2 days' RETURNING 1),typing AS (DELETE FROM pim_v2.consultation_typing WHERE expires_at<now()-interval '1 hour' RETURNING 1),limits AS (DELETE FROM pim_v2.api_rate_limits WHERE updated_at<now()-interval '2 days' RETURNING 1) SELECT (SELECT count(*) FROM sessions)::text AS sessions,(SELECT count(*) FROM otps)::text AS otps,(SELECT count(*) FROM typing)::text AS typing,(SELECT count(*) FROM limits)::text AS limits`);
-  const reminders=await sql<Reminder>(`UPDATE pim_v2.bookings b SET reminder_sent_at=now() FROM pim_v2.services s WHERE b.service_id=s.id AND b.status='ACCEPTED' AND b.scheduled_at BETWEEN now()+interval '90 minutes' AND now()+interval '3 hours' AND b.reminder_sent_at IS NULL RETURNING b.id,b.customer_id,b.pandit_id,s.name AS service_name,b.scheduled_at`);
+  const reminders=await sql<Reminder>(`UPDATE pim_v2.bookings b SET reminder_sent_at=now() FROM pim_v2.services s WHERE b.service_id=s.id AND b.status='ACCEPTED' AND b.scheduled_at BETWEEN now() AND now()+interval '48 hours' AND b.reminder_sent_at IS NULL RETURNING b.id,b.customer_id,b.pandit_id,s.name AS service_name,b.scheduled_at`);
   for(const reminder of reminders.rows){
     const when=new Date(reminder.scheduled_at).toLocaleString("en-IN",{timeZone:"Asia/Kolkata",dateStyle:"medium",timeStyle:"short"});
     await Promise.all([
-      notifyUser(reminder.customer_id,{title:"Upcoming scheduled Puja",body:`${reminder.service_name} is scheduled for ${when}. Keep your phone available.`,url:"/customer#live-requests",eventType:"BOOKING_REMINDER"}),
-      notifyUser(reminder.pandit_id,{title:"Scheduled Puja reminder",body:`${reminder.service_name} is scheduled for ${when}. Review the address before travelling.`,url:"/pandit#pandit-requests",eventType:"BOOKING_REMINDER"}),
+      notifyUser(reminder.customer_id,{title:"Your scheduled Puja is approaching",body:`${reminder.service_name} is scheduled for ${when}. Check the confirmed muhurat and samagri guidance in your booking.`,url:`/customer#booking-${reminder.id}`,eventType:"SCHEDULED_PUJA_REMINDER"}),
+      notifyUser(reminder.pandit_id,{title:"Puja reminder: prepare now",body:`${reminder.service_name} is scheduled for ${when}. Recheck the muhurat, samagri, customer chat and travel plan.`,url:`/pandit/schedule#scheduled-booking-${reminder.id}`,eventType:"SCHEDULED_PUJA_REMINDER"}),
     ]);
   }
   const expired=await sql<ExpiredRequest>(`SELECT id,customer_id,pandit_id,service_id,request_type,preferred_language,latitude,longitude,scheduled_at,amount,auto_rematch_count FROM pim_v2.bookings WHERE status='REQUESTED' AND request_expires_at<=now() ORDER BY request_expires_at LIMIT 40`);
