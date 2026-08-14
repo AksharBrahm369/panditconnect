@@ -85,10 +85,12 @@ async function offerRadius(booking: DispatchBooking, radiusKm: number) {
     });
   }
   await Promise.all(offered.map((candidate) => notifyUser(candidate.id, {
-    title: booking.request_type === "SCHEDULED_PUJA" ? "New scheduled Puja offer" : "New nearby Puja offer",
-    body: `A matching request is ${candidate.distance_km} km away. Accept within ${OFFER_WINDOW_MINUTES} minutes if you are available.`,
+    title: booking.request_type === "SCHEDULED_PUJA" ? "Scheduled Puja needs your guidance" : "New nearby Puja offer",
+    body: booking.request_type === "SCHEDULED_PUJA" && booking.scheduled_at
+      ? `A Puja is requested for ${new Date(booking.scheduled_at).toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "full", timeStyle: "short" })}. Accept if the date is suitable, then confirm the muhurat and samagri in private chat.`
+      : `A matching request is ${candidate.distance_km} km away. Accept within ${OFFER_WINDOW_MINUTES} minutes if you are available.`,
     url: "/pandit#pandit-requests",
-    eventType: "BOOKING_REQUESTED",
+    eventType: booking.request_type === "SCHEDULED_PUJA" ? "SCHEDULED_PUJA_GUIDANCE_REQUIRED" : "BOOKING_REQUESTED",
   })));
   return offered.length;
 }

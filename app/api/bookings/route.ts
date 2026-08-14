@@ -48,7 +48,17 @@ export async function GET() {
         b.customer_rating,b.rating_comment,b.rated_at,b.payment_method,b.payment_status,b.payment_confirmed_at,
         b.cancellation_fee,b.cancellation_fee_status,b.cancellation_reason,b.cancelled_at,b.proposed_amount,b.price_change_reason,b.price_change_status,
         s.name AS service_name,pu.name AS pandit_name,
-        CASE WHEN b.status IN ('ACCEPTED','ON_THE_WAY','ARRIVED','IN_PROGRESS') THEN pu.phone ELSE NULL END AS pandit_phone,
+        CASE
+          WHEN b.request_type='SCHEDULED_PUJA' AND b.scheduled_at IS NOT NULL
+            THEN b.scheduled_at-interval '2 days'
+          ELSE NULL
+        END AS pandit_phone_available_at,
+        CASE
+          WHEN b.status IN ('ACCEPTED','ON_THE_WAY','ARRIVED','IN_PROGRESS')
+            AND (b.request_type<>'SCHEDULED_PUJA' OR b.scheduled_at IS NULL OR now()>=b.scheduled_at-interval '2 days')
+            THEN pu.phone
+          ELSE NULL
+        END AS pandit_phone,
         p.latitude AS pandit_latitude,
         p.longitude AS pandit_longitude,p.updated_at AS location_updated_at
        FROM pim_v2.bookings b
@@ -245,7 +255,14 @@ export async function POST(request: Request) {
   await recordBookingEvent({ bookingId:id,actorId:user.id,actorRole:user.role,eventType:isBroadcast?"BOOKING_BROADCAST_STARTED":"BOOKING_CREATED",toStatus:"REQUESTED",metadata:{ requestType,scheduledAt:scheduledAt?.toISOString() ?? null,policyVersion:CANCELLATION_POLICY_VERSION,panditId:pandit.id,amount:pandit.charge,maxRadiusKm:body.dispatchMaxRadiusKm } });
   const scheduleCopy = scheduledAt ? ` for ${scheduledAt.toLocaleString("en-IN", { timeZone: "Asia/Kolkata", dateStyle: "medium", timeStyle: "short" })}` : "";
   const dispatch = isBroadcast ? await startBookingDispatch(id) : null;
-  if (!isBroadcast && pandit.id) await notifyUser(pandit.id, { title: isScheduled ? "New scheduled Puja request" : "New urgent Puja request", body: `${body.serviceId.replaceAll("-", " ")} request${scheduleCopy} is waiting for your response.`, url: "/pandit#pandit-requests", eventType: "BOOKING_REQUESTED" });
+  if (!isBroadcast && pandit.id) await notifyUser(pandit.id, {
+    title: isScheduled ? "Scheduled Puja needs your guidance" : "New urgent Puja request",
+    body: isScheduled
+      ? `${body.serviceId.replaceAll("-", " ")} is requested${scheduleCopy}. Review the date, confirm the right muhurat${materialsOption === "NEED_GUIDANCE" ? ", and send the customer a samagri list in private chat after accepting" : materialsOption === "PANDIT_BRINGS" ? ", and prepare to bring the requested samagri" : ", and confirm any remaining preparation in private chat"}.`
+      : `${body.serviceId.replaceAll("-", " ")} request is waiting for your response.`,
+    url: `/pandit#pandit-job-${id}`,
+    eventType: isScheduled ? "SCHEDULED_PUJA_GUIDANCE_REQUIRED" : "BOOKING_REQUESTED",
+  });
   await notifyAdmins({ title: isBroadcast ? "Wider Pandit search started" : "New Puja request", body: isBroadcast ? `A customer approved an automatic nearby search up to ${body.dispatchMaxRadiusKm} km.` : `${pandit.name} received a nearby ${body.serviceId.replaceAll("-", " ")} request.`, url: "/admin#admin-bookings", eventType: "BOOKING_REQUESTED" });
   return NextResponse.json({
     success: true,

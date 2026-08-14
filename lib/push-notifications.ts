@@ -12,6 +12,7 @@ const MANDATORY_ACCOUNT_EVENTS = new Set([
   "PANDIT_BLOCKED",
   "PANDIT_RESTRICTED",
   "PANDIT_UNBLOCKED",
+  "SCHEDULED_PUJA_GUIDANCE_REQUIRED",
 ]);
 
 function pushTtl(eventType: string) {

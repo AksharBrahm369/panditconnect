@@ -4,7 +4,7 @@ self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim(
 self.addEventListener("push", (event) => {
   let data = { title: "PanditConnect", body: "You have a new update.", url: "/" };
   try { data = { ...data, ...event.data.json() }; } catch {}
-  const persistentEvents = ["BOOKING_REQUESTED", "BOOKING_CANCELLED", "CONSULTATION_STARTED", "PANDIT_APPROVED", "PANDIT_REJECTED", "PANDIT_CHANGES_REQUESTED", "PANDIT_BLOCKED", "PANDIT_RESTRICTED", "PANDIT_UNBLOCKED"];
+  const persistentEvents = ["BOOKING_REQUESTED", "SCHEDULED_PUJA_GUIDANCE_REQUIRED", "BOOKING_CANCELLED", "CONSULTATION_STARTED", "PANDIT_APPROVED", "PANDIT_REJECTED", "PANDIT_CHANGES_REQUESTED", "PANDIT_BLOCKED", "PANDIT_RESTRICTED", "PANDIT_UNBLOCKED"];
   const isPanditDecision = ["PANDIT_APPROVED", "PANDIT_REJECTED", "PANDIT_CHANGES_REQUESTED"].includes(data.eventType);
   event.waitUntil(Promise.all([
     self.registration.showNotification(data.title, {

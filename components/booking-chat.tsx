@@ -14,11 +14,14 @@ type BookingMessage = {
   sender_role: string;
 };
 
-export function BookingChat({ bookingId, participantName, role, phone }: {
+export function BookingChat({ bookingId, participantName, role, phone, phoneAvailableAt, scheduledFor, guidanceMode = false }: {
   bookingId: string;
   participantName: string;
   role: "CUSTOMER" | "PANDIT";
   phone?: string | null;
+  phoneAvailableAt?: string | null;
+  scheduledFor?: string | null;
+  guidanceMode?: boolean;
 }) {
   const [open, setOpen] = useState(false);
   const [messages, setMessages] = useState<BookingMessage[]>([]);
@@ -89,14 +92,29 @@ export function BookingChat({ bookingId, participantName, role, phone }: {
   }
 
   const cleanPhone = phone?.replace(/[^+\d]/g, "") ?? "";
+  const phoneUnlockLabel = phoneAvailableAt ? new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "numeric",
+    minute: "2-digit",
+    hour12: true,
+  }).format(new Date(phoneAvailableAt)) : null;
+  const scheduledLabel = scheduledFor ? new Intl.DateTimeFormat("en-IN", {
+    timeZone: "Asia/Kolkata",
+    dateStyle: "full",
+    timeStyle: "short",
+  }).format(new Date(scheduledFor)) : null;
 
   return <section className={styles.contactCard}>
     <div className={styles.contactCopy}>
       <span className={styles.contactIcon}><Sparkles aria-hidden="true" /></span>
       <span className={styles.contactText}>
-        <small>{role === "CUSTOMER" ? "Booking support" : "Customer question"}</small>
-        <strong>{role === "CUSTOMER" ? `Ask ${participantName}` : `Chat with ${participantName}`}</strong>
-        <span>{role === "CUSTOMER" ? "Confirm samagri, muhurat or Puja preparation directly." : "Answer preparation questions for this booking."}</span>
+        <small>{guidanceMode ? "Scheduled Puja planning" : role === "CUSTOMER" ? "Booking support" : "Customer question"}</small>
+        <strong>{role === "CUSTOMER" ? `Plan with ${participantName}` : `Guide ${participantName}`}</strong>
+        <span>{guidanceMode ? role === "CUSTOMER" ? "Ask your confirmed Pandit about the final muhurat, samagri and preparation." : `Review the requested date${scheduledLabel ? ` (${scheduledLabel})` : ""}, then confirm the muhurat and samagri here.` : role === "CUSTOMER" ? "Confirm samagri, muhurat or Puja preparation directly." : "Answer preparation questions for this booking."}</span>
       </span>
     </div>
 
@@ -105,7 +123,8 @@ export function BookingChat({ bookingId, participantName, role, phone }: {
       {role === "CUSTOMER" && cleanPhone && <a className={styles.callButton} href={`tel:${cleanPhone}`} aria-label={`Call ${participantName} at ${phone}`}><Phone aria-hidden="true" /><span><small>Call your Pandit</small><strong>{phone}</strong></span></a>}
     </div>
 
-    {role === "CUSTOMER" && cleanPhone && <p className={styles.contactNote}><LockKeyhole aria-hidden="true" /> Contact details stay visible only while this booking is active.</p>}
+    {role === "CUSTOMER" && cleanPhone && <p className={styles.contactNote}><LockKeyhole aria-hidden="true" /> {phoneAvailableAt ? "The phone number is available now because the Puja is within two days." : "Contact details are available for this confirmed booking."} It stays visible only while this booking is active.</p>}
+    {role === "CUSTOMER" && !cleanPhone && phoneUnlockLabel && <div className={styles.phoneLocked}><LockKeyhole aria-hidden="true" /><span><strong>Phone number unlocks on {phoneUnlockLabel}</strong><small>This is exactly two days before the scheduled Puja. Until then, use the private chat above.</small></span></div>}
 
     {open && <div className={styles.overlay} role="dialog" aria-modal="true" aria-label={`Chat with ${participantName}`} onMouseDown={(event) => { if (event.target === event.currentTarget) setOpen(false); }}>
       <div className={styles.chatSheet}>
