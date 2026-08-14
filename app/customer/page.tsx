@@ -9,5 +9,8 @@ export default async function CustomerPage({ searchParams }: { searchParams: Pro
   if (!user) redirect("/login?role=customer");
   if (user.role !== "CUSTOMER") redirect("/pandit");
   const params = await searchParams;
-  return <CustomerPortal key={user.id} customerId={user.id} customerName={user.name} initialStart={params.start === "guided" ? "guided" : undefined} />;
+  const initialStart = params.start === "guided" || params.start === "sos" || params.start === "online"
+    ? params.start
+    : undefined;
+  return <CustomerPortal key={`${user.id}:${initialStart ?? "home"}`} customerId={user.id} customerName={user.name} initialStart={initialStart} />;
 }

@@ -55,9 +55,27 @@ test("public homepage uses the professional human-centred service design", async
   assert.match(homepage, /Book a Puja at home/);
   assert.match(homepage, /My Pandit cancelled/);
   assert.match(homepage, /Ask a Pandit online/);
+  assert.match(homepage, /next=%2Fcustomer%3Fstart%3Dguided/);
+  assert.match(homepage, /next=%2Fcustomer%3Fstart%3Dsos/);
+  assert.match(homepage, /next=%2Fcustomer%3Fstart%3Donline/);
   assert.match(homepage, /Book with clarity, not guesswork\./);
   assert.match(layout, /import "\.\/public-home\.css"/);
   assert.match(styles, /--font-home-sans/);
   assert.match(styles, /--font-home-serif/);
   assert.match(styles, /@media\(max-width:620px\)/);
+});
+
+test("public service choices retain their destination through sign-in", async () => {
+  const [loginPage, loginForm, customerPage, portal] = await Promise.all([
+    readFile(new URL("../app/login/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/login-form.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/customer/page.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(loginPage, /params\.next\?\.startsWith\("\/customer"\)/);
+  assert.match(loginForm, /role === "CUSTOMER" && nextPath \? nextPath : data\.redirectTo/);
+  assert.match(customerPage, /params\.start === "guided" \|\| params\.start === "sos" \|\| params\.start === "online"/);
+  assert.match(portal, /initialStart === "sos" \? "PANDIT_SOS"/);
+  assert.match(portal, /useState\(initialStart === "online"\)/);
 });

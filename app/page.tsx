@@ -68,17 +68,17 @@ export default function Home() {
           <p>You do not need to know religious terminology. Choose the situation that feels closest.</p>
         </div>
         <div className="home-service-grid">
-          <Link href="/login?role=customer" className="home-service-card">
+          <Link href="/login?role=customer&next=%2Fcustomer%3Fstart%3Dguided" className="home-service-card">
             <span className="home-service-icon"><CalendarDays /></span>
             <div><small>Most requested</small><strong>Book a Puja at home</strong><p>For today or a future date. We will help you choose the appropriate Puja.</p></div>
             <span className="home-card-action">Start booking <ArrowRight /></span>
           </Link>
-          <Link href="/login?role=customer" className="home-service-card">
+          <Link href="/login?role=customer&next=%2Fcustomer%3Fstart%3Dsos" className="home-service-card">
             <span className="home-service-icon"><CalendarX2 /></span>
             <div><small>Urgent help</small><strong>My Pandit cancelled</strong><p>Find another approved Pandit near your location without starting over.</p></div>
             <span className="home-card-action">Find a replacement <ArrowRight /></span>
           </Link>
-          <Link href="/login?role=customer" className="home-service-card">
+          <Link href="/login?role=customer&next=%2Fcustomer%3Fstart%3Donline" className="home-service-card">
             <span className="home-service-icon"><MessageCircle /></span>
             <div><small>Private guidance</small><strong>Ask a Pandit online</strong><p>Chat privately when you need religious guidance rather than a home visit.</p></div>
             <span className="home-card-action">Ask online <ArrowRight /></span>

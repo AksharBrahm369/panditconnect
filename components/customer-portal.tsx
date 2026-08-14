@@ -107,12 +107,14 @@ function scheduleAt(date: string, window: string) {
   return `${date}T${time}`;
 }
 
-export function CustomerPortal({ customerId, customerName, initialStart }: { customerId: string; customerName?: string | null; initialStart?: "guided" }) {
+type CustomerStart = "guided" | "sos" | "online";
+
+export function CustomerPortal({ customerId, customerName, initialStart }: { customerId: string; customerName?: string | null; initialStart?: CustomerStart }) {
   const [appLanguage] = usePortalLanguage();
   const tr = useCallback((text: string) => translatePortalText(text, appLanguage), [appLanguage]);
   const [services, setServices] = useState<Service[]>([]);
   const [bookings, setBookings] = useState<Booking[]>([]);
-  const [requestType, setRequestType] = useState<RequestType | null>(initialStart === "guided" ? "NEED_GUIDANCE" : null);
+  const [requestType, setRequestType] = useState<RequestType | null>(initialStart === "guided" ? "NEED_GUIDANCE" : initialStart === "sos" ? "PANDIT_SOS" : null);
   const [serviceId, setServiceId] = useState("");
   const [situation, setSituation] = useState("");
   const [language, setLanguage] = useState("Hindi");
@@ -143,7 +145,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
   const [nearbyHasMore, setNearbyHasMore] = useState(false);
   const [rematchingId, setRematchingId] = useState<string | null>(null);
   const [rematchErrors, setRematchErrors] = useState<Record<string, string>>({});
-  const [consultationMode, setConsultationMode] = useState(false);
+  const [consultationMode, setConsultationMode] = useState(initialStart === "online");
   const [ratingDrafts, setRatingDrafts] = useState<Record<string, number>>({});
   const [ratingComments, setRatingComments] = useState<Record<string, string>>({});
   const [ratingBusy, setRatingBusy] = useState<string | null>(null);
