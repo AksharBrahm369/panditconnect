@@ -19,7 +19,11 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
     `WITH rated_booking AS (
        UPDATE pim_v2.bookings
        SET customer_rating=$3,rating_comment=$4,rated_at=now()
-       WHERE id=$1 AND customer_id=$2 AND status='COMPLETED' AND customer_rating IS NULL
+       WHERE id=$1
+         AND customer_id=$2
+         AND status='COMPLETED'
+         AND payment_status='CONFIRMED'
+         AND customer_rating IS NULL
        RETURNING pandit_id
      ),
      rating_totals AS (
@@ -53,7 +57,7 @@ export async function POST(request: Request, { params }: { params: Promise<{ id:
   );
   if (!result.rows[0]) {
     return NextResponse.json(
-      { error: "Only a completed Puja can be rated, and each booking can be rated once." },
+      { error: "Confirm the payment first. A completed Puja can be rated only once after payment is confirmed." },
       { status: 409 },
     );
   }

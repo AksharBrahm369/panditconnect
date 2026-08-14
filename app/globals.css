@@ -1983,6 +1983,23 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .payment-confirmed { display: flex; align-items: center; gap: 10px; padding: 13px; border-radius: 12px; color: #08774c; background: #e8f7ef; }
 .payment-confirmed span { display: grid; gap: 2px; }
 .payment-error { color: #ae2d1c; }
+.post-puja-checkout { display:grid; gap:16px; margin-top:18px; }
+.checkout-progress { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:5px; border:1px solid #ead5b9; border-radius:14px; background:#fffaf2; }
+.checkout-progress span { position:relative; display:grid; grid-template-columns:34px minmax(0,1fr); align-items:center; gap:9px; min-height:54px; padding:8px 12px; border-radius:10px; color:#8a796d; }
+.checkout-progress span i { grid-row:1/3; display:grid; place-items:center; width:34px; height:34px; border-radius:50%; color:#8a796d; background:#f0ebe5; font-style:normal; }
+.checkout-progress span i svg { width:17px; height:17px; }
+.checkout-progress span b { align-self:end; color:inherit; font-size:11px; line-height:1; }
+.checkout-progress span small { align-self:start; font-size:12px; font-weight:750; }
+.checkout-progress span.done,.checkout-progress span.active { color:#714121; background:#fff0d7; }
+.checkout-progress span.done i { color:white; background:#16805e; }
+.checkout-progress span.active i { color:white; background:#c54824; }
+.rating-locked { display:grid; grid-template-columns:46px minmax(0,1fr); gap:13px; align-items:center; padding:17px 18px; border:1px dashed #d8cabc; border-radius:16px; color:#786b63; background:#faf7f2; }
+.rating-locked > span { display:grid; place-items:center; width:46px; height:46px; border-radius:14px; background:#eee8e1; }
+.rating-locked svg { width:21px; }
+.rating-locked div { display:grid; gap:3px; }
+.rating-locked small { color:#9a7e6e; font-size:10px; font-weight:800; letter-spacing:.08em; text-transform:uppercase; }
+.rating-locked strong { color:#4e4038; font-size:15px; }
+.rating-locked p { margin:0; color:#786b63; font-size:12px; }
 .completed-payment-list { display: grid; gap: 9px; }
 .completed-payment-list article { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 14px; border: 1px solid var(--line); border-radius: 12px; background: white; }
 .completed-payment-list article > div { min-width: 0; display: grid; gap: 3px; }

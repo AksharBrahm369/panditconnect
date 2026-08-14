@@ -140,6 +140,10 @@
   .request-unavailable .btn, .customer-location-card .btn, .request-top > :last-child,
   .approved-head > :last-child, .onboarding-status-card > strong { grid-column: 1/-1; width: 100%; }
   .payment-method-grid { grid-template-columns: minmax(0,1fr); }
+  .checkout-progress { grid-template-columns:minmax(0,1fr); }
+  .checkout-progress span { min-height:48px; }
+  .rating-locked { grid-template-columns:40px minmax(0,1fr); padding:14px; }
+  .rating-locked > span { width:40px; height:40px; }
   .completed-payment-list article { align-items: stretch; flex-direction: column; }
 
   .onboarding-header { align-items: flex-start; gap: 10px; }

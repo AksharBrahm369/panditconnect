@@ -92,9 +92,10 @@ test("support abuse is limited while Admin retains fair waiver and uphold contro
   assert.match(admin, /recordAdminAction/);
 });
 
-test("ratings remain one-per-completed-booking and aggregate without double counting", async () => {
+test("ratings require confirmed payment, remain one-per-completed-booking and aggregate without double counting", async () => {
   const rating = await source("../app/api/bookings/[id]/rating/route.ts");
-  assert.match(rating, /status='COMPLETED' AND customer_rating IS NULL/);
+  assert.match(rating, /status='COMPLETED'[\s\S]*payment_status='CONFIRMED'[\s\S]*customer_rating IS NULL/);
+  assert.match(rating, /Confirm the payment first/);
   assert.match(rating, /round\(avg\(scores\.rating\)::numeric,1\)/);
   assert.match(rating, /UNION ALL\s+SELECT \$3::numeric/);
   assert.match(rating, /CUSTOMER_RATING_SUBMITTED/);

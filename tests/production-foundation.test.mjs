@@ -168,7 +168,7 @@ test("mobile navigation and core workspaces use responsive phone layouts", async
   assert.match(admin, /data-label="Status"/);
 });
 
-test("completed Puja payment choice is persisted without pretending to process online payments", async () => {
+test("completed Puja requires confirmed payment before review and presents secure online choices honestly", async () => {
   const migration = await readFile(new URL("../db/migrations/0017_booking_payment_method.sql", import.meta.url), "utf8");
   const route = await readFile(new URL("../app/api/bookings/[id]/payment/route.ts", import.meta.url), "utf8");
   const customer = await readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8");
@@ -181,7 +181,9 @@ test("completed Puja payment choice is persisted without pretending to process o
   assert.match(customer, />Cash</);
   assert.match(customer, />UPI</);
   assert.match(customer, />Card</);
-  assert.match(customer, /onlinePayments &&/);
+  assert.match(customer, /Pay before leaving a review/);
+  assert.match(customer, /booking\.payment_status === "CONFIRMED" \? <div className="rate-puja">/);
+  assert.match(customer, /disabled=\{!onlinePayments \|\| paymentBusy===booking\.id\}/);
   assert.doesNotMatch(customer, /confirmPaymentMethod\(booking\.id, "OTHER"\)/);
 });
 

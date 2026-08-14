@@ -12,7 +12,8 @@ test("customer live requests prioritise current status, next action and safe arr
   assert.match(portal, /Track Pandit on map/);
   assert.match(portal, /\["ACCEPTED", "ON_THE_WAY", "ARRIVED"\]\.includes\(booking\.status\)/);
   assert.match(portal, /Puja completed successfully/);
-  assert.match(portal, /Payment settled/);
+  assert.match(portal, /Pay before leaving a review/);
+  assert.match(portal, /Payment is complete\. You can now share your experience\./);
   assert.match(portal, /value: "COMPLETED", label: "Completed"/);
   assert.match(portal, /booking\.status === "ARRIVED"/);
   assert.doesNotMatch(portal, /!\["REQUESTED", "DECLINED", "CANCELLED"\]\.includes\(booking\.status\).*arrival-code/);
