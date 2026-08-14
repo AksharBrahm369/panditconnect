@@ -1,0 +1,276 @@
+.contactCard {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 16px 22px;
+  margin-top: 16px;
+  padding: 18px;
+  overflow: hidden;
+  border: 1px solid #e9d4ba;
+  border-radius: 18px;
+  background: linear-gradient(135deg, #fffaf1 0%, #fffdf9 60%, #fff5e8 100%);
+  box-shadow: 0 10px 28px rgba(90, 49, 25, 0.07);
+}
+
+.contactCopy { display: flex; align-items: center; gap: 13px; min-width: 0; }
+
+.contactIcon,
+.chatAvatar,
+.empty > span {
+  display: grid;
+  flex: 0 0 auto;
+  place-items: center;
+  width: 46px;
+  height: 46px;
+  color: #a63822;
+  border: 1px solid #f1cbb5;
+  border-radius: 14px;
+  background: #ffeadc;
+}
+
+.contactIcon svg,
+.chatAvatar svg,
+.empty svg { width: 21px; height: 21px; }
+.contactText { display: grid; gap: 3px; min-width: 0; }
+
+.contactText > small,
+.chatHeader small {
+  color: #b54728;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+}
+
+.contactText > strong {
+  overflow: hidden;
+  color: #3b221d;
+  font-size: 17px;
+  line-height: 1.25;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.contactText > span { color: #746158; font-size: 12px; line-height: 1.45; }
+.contactActions { display: flex; align-items: stretch; gap: 9px; }
+
+.chatButton,
+.callButton,
+.sendButton,
+.closeButton { appearance: none; border: 0; font: inherit; cursor: pointer; }
+
+.chatButton,
+.callButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  min-height: 48px;
+  padding: 0 16px;
+  border-radius: 13px;
+  font-size: 12px;
+  font-weight: 800;
+  text-decoration: none;
+  transition: transform 150ms ease, box-shadow 150ms ease, background 150ms ease;
+}
+
+.chatButton { color: #fff; background: #bd4324; box-shadow: 0 7px 16px rgba(171, 57, 29, 0.2); }
+.callButton { color: #3f2b24; border: 1px solid #dfd1c3; background: #fff; }
+.chatButton:hover,
+.callButton:hover { transform: translateY(-1px); }
+.chatButton:hover { background: #a8371c; }
+.callButton:hover { border-color: #c58b6d; background: #fffaf5; }
+.chatButton svg,
+.callButton > svg { width: 18px; height: 18px; flex: 0 0 auto; }
+.callButton > span { display: grid; gap: 1px; text-align: left; }
+.callButton small { color: #8b7569; font-size: 9px; font-weight: 700; }
+.callButton strong { color: #3f2b24; font-size: 12px; }
+
+.contactNote {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin: -2px 0 0;
+  color: #79675f;
+  font-size: 10px;
+  line-height: 1.45;
+}
+
+.contactNote svg { width: 14px; height: 14px; flex: 0 0 auto; color: #26745e; }
+
+.overlay {
+  position: fixed;
+  z-index: 1300;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 20px;
+  background: rgba(31, 18, 15, 0.58);
+  backdrop-filter: blur(6px);
+}
+
+.chatSheet {
+  display: grid;
+  grid-template-rows: auto minmax(280px, 1fr) auto auto;
+  width: min(620px, 100%);
+  max-height: min(760px, 90dvh);
+  overflow: hidden;
+  border: 1px solid #e6d1b8;
+  border-radius: 24px;
+  background: #fffdf9;
+  box-shadow: 0 30px 90px rgba(38, 19, 14, 0.34);
+}
+
+.chatHeader {
+  display: grid;
+  grid-template-columns: 46px minmax(0, 1fr) 42px;
+  align-items: center;
+  gap: 13px;
+  padding: 18px 20px;
+  border-bottom: 1px solid #eadbc9;
+  background: linear-gradient(135deg, #fff7e9, #fffdf9);
+}
+
+.chatHeader > div { min-width: 0; }
+.chatHeader h3 { margin: 3px 0 2px; overflow: hidden; color: #40221d; font: 700 23px/1.15 Georgia, "Times New Roman", serif; text-overflow: ellipsis; white-space: nowrap; }
+.chatHeader p { margin: 0; color: #7a675e; font-size: 11px; line-height: 1.4; }
+
+.closeButton {
+  display: grid;
+  place-items: center;
+  width: 42px;
+  height: 42px;
+  color: #503832;
+  border: 1px solid #e4d6c6;
+  border-radius: 12px;
+  background: #fff;
+}
+
+.closeButton:hover { color: #9e321f; border-color: #d7a88c; background: #fff8f1; }
+.closeButton svg { width: 20px; height: 20px; }
+
+.messages {
+  min-height: 300px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 18px;
+  overscroll-behavior: contain;
+  background: #f7f3ed;
+}
+
+.bubble {
+  align-self: flex-start;
+  max-width: min(82%, 430px);
+  padding: 10px 12px 8px;
+  border: 1px solid #e3d8cb;
+  border-radius: 5px 16px 16px 16px;
+  background: #fff;
+  box-shadow: 0 3px 10px rgba(60, 38, 26, 0.05);
+}
+
+.bubble.mine { align-self: flex-end; color: #fff; border-color: #76282a; border-radius: 16px 5px 16px 16px; background: #76282a; }
+.bubble small,
+.bubble time { display: block; color: #927e73; font-size: 9px; }
+.bubble.mine small,
+.bubble.mine time { color: #f3d4ca; }
+.bubble p { margin: 4px 0; font-size: 13px; line-height: 1.48; overflow-wrap: anywhere; white-space: pre-wrap; }
+.bubble time { text-align: right; }
+
+.empty {
+  display: grid;
+  justify-items: center;
+  align-content: center;
+  gap: 8px;
+  max-width: 330px;
+  min-height: 240px;
+  margin: auto;
+  padding: 24px;
+  color: #7a6a62;
+  text-align: center;
+}
+
+.empty > span { width: 52px; height: 52px; border-radius: 16px; }
+.empty strong { color: #402b25; font-size: 17px; }
+.empty p { margin: 0; font-size: 12px; line-height: 1.55; }
+
+.error { margin: 10px 16px 0; padding: 11px 13px; color: #a1261d; border: 1px solid #efb9b1; border-radius: 11px; background: #fff0ee; font-size: 12px; }
+
+.composer {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 10px;
+  padding: 14px;
+  border-top: 1px solid #e6d9ca;
+  background: #fff;
+}
+
+.composer textarea {
+  width: 100%;
+  min-height: 52px;
+  max-height: 130px;
+  padding: 13px 14px;
+  resize: vertical;
+  color: #34251f;
+  border: 1px solid #dcd4cb;
+  border-radius: 13px;
+  outline: 0;
+  background: #fffdfb;
+  font: inherit;
+  font-size: 13px;
+  line-height: 1.45;
+}
+
+.composer textarea:focus { border-color: #c85a36; box-shadow: 0 0 0 3px rgba(200, 90, 54, 0.12); }
+.composer textarea::placeholder { color: #9b8c84; }
+
+.sendButton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 108px;
+  min-height: 52px;
+  padding: 0 16px;
+  color: #fff;
+  border-radius: 13px;
+  background: #bd4324;
+  font-size: 12px;
+  font-weight: 800;
+}
+
+.sendButton:disabled { cursor: not-allowed; opacity: 0.48; }
+.sendButton:not(:disabled):hover { background: #a8371c; }
+.sendButton svg { width: 17px; height: 17px; }
+
+@media (max-width: 760px) {
+  .contactCard { grid-template-columns: 1fr; gap: 14px; padding: 15px; border-radius: 16px; }
+  .contactActions { display: grid; grid-template-columns: 1fr; }
+  .chatButton,
+  .callButton { width: 100%; min-height: 50px; }
+  .contactNote { grid-column: auto; align-items: flex-start; }
+  .overlay { align-items: end; padding: 0; }
+  .chatSheet { width: 100%; max-height: 94dvh; border-radius: 22px 22px 0 0; }
+  .chatHeader { grid-template-columns: 42px minmax(0, 1fr) 40px; padding: 15px; }
+  .chatAvatar { width: 42px; height: 42px; border-radius: 13px; }
+  .chatHeader h3 { font-size: 20px; }
+  .messages { min-height: 46dvh; padding: 14px 11px; }
+  .composer { padding: 11px; }
+}
+
+@media (max-width: 420px) {
+  .contactCopy { align-items: flex-start; }
+  .contactIcon { width: 42px; height: 42px; border-radius: 13px; }
+  .contactText > strong { font-size: 15px; white-space: normal; }
+  .composer { grid-template-columns: minmax(0, 1fr) 52px; gap: 8px; }
+  .sendButton { min-width: 52px; width: 52px; padding: 0; }
+  .sendButton span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0, 0, 0, 0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .chatButton,
+  .callButton { transition: none; }
+}
