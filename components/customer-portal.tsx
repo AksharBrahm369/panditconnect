@@ -12,6 +12,7 @@ import { IndianLanguageSelect } from "./indian-language-fields";
 import { ConsultationPanel } from "./consultation-panel";
 import { PanditAvatar } from "./pandit-avatar";
 import { AvailabilityFallback, type FallbackPlan } from "./availability-fallback";
+import { BookingChat } from "./booking-chat";
 import { readJson } from "@/lib/http";
 import { getCurrentCoordinates, type BrowserCoordinates } from "@/lib/browser-location";
 import { recommendRitual, ritualForService, type RequestType, type RitualRecommendation } from "@/lib/ritual-guide";
@@ -44,6 +45,7 @@ type Booking = {
   proposed_amount:number|null;price_change_reason:string|null;price_change_status:"NONE"|"PENDING"|"APPROVED"|"REJECTED";
   payment_method: "CASH" | "UPI" | "CARD" | "OTHER" | null; payment_status: "NOT_SELECTED" | "AWAITING_PANDIT" | "CONFIRMED" | "DISPUTED"; payment_confirmed_at: string | null;
   service_id:string;dispatch_status:"NONE"|"SEARCHING"|"ASSIGNED"|"EXHAUSTED";search_radius_km:number;max_search_radius_km:number;travel_surcharge:number;next_expansion_at:string|null;active_offer_count:number;available_now_count:number;
+  pandit_phone: string | null;
 };
 type SpeechRecognitionLike = {
   lang: string; interimResults: boolean; continuous: boolean;
@@ -759,7 +761,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
           const hasLiveLocation = booking.pandit_latitude != null && booking.pandit_longitude != null && ["ACCEPTED", "ON_THE_WAY", "ARRIVED"].includes(booking.status);
           const distance = hasLiveLocation ? distanceKm(booking.latitude, booking.longitude, booking.pandit_latitude!, booking.pandit_longitude!) : null;
           const statusCopy = bookingStatusCopy[booking.status];
-          return <article className={`tracking-card status-${booking.status.toLowerCase()}`} key={booking.id}>
+          return <article className={`tracking-card status-${booking.status.toLowerCase()}`} id={`booking-${booking.id}`} key={booking.id}>
               <div className="tracking-head"><div><span className="status">{booking.request_type === "PANDIT_SOS" ? "Urgent replacement" : booking.request_type === "SCHEDULED_PUJA" ? "Scheduled Puja" : "Puja booking"}</span><h3>{booking.service_name}</h3><p>with <strong>{booking.pandit_name ?? "a nearby Pandit"}</strong></p>{booking.scheduled_at && <p><CalendarDays size={15} /> <strong>{new Date(booking.scheduled_at).toLocaleString("en-IN", { dateStyle: "full", timeStyle: "short" })}</strong></p>}</div><div className="tracking-price"><small>Service amount</small><strong>₹{booking.amount.toLocaleString("en-IN")}</strong></div></div>
               {booking.price_change_status==="PENDING"&&<div className="price-change-review"><div><small>Approval required</small><strong>Revised total: ₹{booking.proposed_amount?.toLocaleString("en-IN")}</strong><p>{booking.price_change_reason}</p></div><button onClick={()=>void decidePriceChange(booking.id,"REJECT")}>Keep original</button><button className="approve" onClick={()=>void decidePriceChange(booking.id,"APPROVE")}>Approve ₹{booking.proposed_amount?.toLocaleString("en-IN")}</button></div>}
             {isDeclined&&booking.dispatch_status==="EXHAUSTED" ? <div className="exhausted-search">
@@ -782,6 +784,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
                 {hasLiveLocation && <a className="btn btn-primary" target="_blank" rel="noreferrer" href={`https://www.google.com/maps/search/?api=1&query=${booking.pandit_latitude},${booking.pandit_longitude}`}><MapPin size={16} /> Track Pandit on map</a>}
                 {["REQUESTED","ACCEPTED","ON_THE_WAY","ARRIVED"].includes(booking.status) && <button className="text-button danger" onClick={() => void cancelBooking(booking.id)}>Review cancellation</button>}
               </div>
+              {["ACCEPTED", "ON_THE_WAY", "ARRIVED", "IN_PROGRESS"].includes(booking.status) && <BookingChat bookingId={booking.id} participantName={booking.pandit_name ?? "your Pandit"} role="CUSTOMER" phone={booking.pandit_phone} />}
               {booking.status === "ARRIVED" && <div className="arrival-code"><span><strong>Share this code with the Pandit</strong><small>Only share it after meeting the Pandit at your address.</small></span><code>{booking.arrival_otp}</code></div>}
               {["ACCEPTED", "ON_THE_WAY", "ARRIVED"].includes(booking.status) && booking.materials_option === "NEED_GUIDANCE" && <div className="post-acceptance-guide"><button className="btn btn-ghost" disabled={preparationBusy && preparationBookingId === booking.id} onClick={() => void loadPreparationGuide(booking)}><PackageCheck /> {preparationBusy && preparationBookingId === booking.id ? "Preparing guide…" : "See materials and timing guidance"}</button>{preparationError && preparationBookingId === booking.id && <small className="field-error">{preparationError}</small>}{preparationGuide && preparationBookingId === booking.id && <article className="puja-preparation-guide compact" id={`puja-preparation-${booking.id}`}><h4>{preparationGuide.guide.title}</h4><div className="samagri-grid">{preparationGuide.guide.essentials.map((item) => <span key={item}><CheckCircle2 /> {item}</span>)}</div>{preparationGuide.panchang && <div className="panchang-summary"><span><small>Tithi</small><strong>{preparationGuide.panchang.tithi}</strong></span><span><small>Nakshatra</small><strong>{preparationGuide.panchang.nakshatra}</strong></span></div>}<p>Confirm tradition-specific items and final muhurat with {booking.pandit_name ?? "your Pandit"}.</p></article>}</div>}
             </>}

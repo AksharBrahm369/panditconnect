@@ -47,7 +47,9 @@ export async function GET() {
         ) ELSE 0 END AS available_now_count,
         b.customer_rating,b.rating_comment,b.rated_at,b.payment_method,b.payment_status,b.payment_confirmed_at,
         b.cancellation_fee,b.cancellation_fee_status,b.cancellation_reason,b.cancelled_at,b.proposed_amount,b.price_change_reason,b.price_change_status,
-        s.name AS service_name,pu.name AS pandit_name,p.latitude AS pandit_latitude,
+        s.name AS service_name,pu.name AS pandit_name,
+        CASE WHEN b.status IN ('ACCEPTED','ON_THE_WAY','ARRIVED','IN_PROGRESS') THEN pu.phone ELSE NULL END AS pandit_phone,
+        p.latitude AS pandit_latitude,
         p.longitude AS pandit_longitude,p.updated_at AS location_updated_at
        FROM pim_v2.bookings b
        JOIN pim_v2.services s ON s.id=b.service_id

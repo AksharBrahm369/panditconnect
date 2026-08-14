@@ -2910,6 +2910,38 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .location-permission-help { display:flex; align-items:center; justify-content:space-between; gap:12px; margin:0; }
 .location-permission-help span { line-height:1.45; }
 .location-permission-help .text-button { flex:0 0 auto; margin:0; }
+.booking-contact-card { display:grid; grid-template-columns:minmax(0,1fr) auto; align-items:center; gap:14px; margin-top:13px; padding:15px 16px; border:1px solid #ead9c2; border-radius:16px; background:#fffaf2; }
+.booking-contact-copy { display:flex; align-items:center; gap:11px; min-width:0; }
+.booking-contact-copy > svg { flex:0 0 auto; width:20px; color:#a84223; }
+.booking-contact-copy span { display:grid; gap:3px; min-width:0; }
+.booking-contact-copy strong { color:#43241e; font-size:14px; }
+.booking-contact-copy small { color:#7f6b61; font-size:11px; line-height:1.4; }
+.booking-contact-actions { display:flex; align-items:stretch; gap:9px; }
+.booking-contact-actions .btn { min-height:44px; }
+.booking-call-button span { display:grid; justify-items:start; gap:1px; }
+.booking-call-button small { color:#7f6b61; font-size:8px; font-weight:700; text-transform:uppercase; }
+.booking-call-button strong { color:#43241e; font-size:12px; }
+.booking-contact-note { grid-column:1/-1; margin:0; color:#806f65; font-size:10px; line-height:1.45; }
+.booking-chat-overlay { position:fixed; z-index:1300; inset:0; display:grid; place-items:center; padding:20px; background:rgba(35,21,17,.54); backdrop-filter:blur(4px); }
+.booking-chat-sheet { display:grid; grid-template-rows:auto minmax(240px,1fr) auto auto; width:min(600px,100%); max-height:min(760px,90dvh); overflow:hidden; border:1px solid #e5d4be; border-radius:24px; background:#fffdf9; box-shadow:0 28px 80px rgba(47,23,16,.28); }
+.booking-chat-sheet > header { display:flex; justify-content:space-between; gap:16px; padding:20px; border-bottom:1px solid #eadfce; background:#fff8eb; }
+.booking-chat-sheet h3 { margin:3px 0; color:#42211c; font:700 23px/1.1 Georgia,"Times New Roman",serif; }
+.booking-chat-sheet header p { margin:0; color:#806d63; font-size:11px; }
+.booking-chat-messages { min-height:280px; overflow-y:auto; display:flex; flex-direction:column; gap:10px; padding:18px; background:#f7f4ef; }
+.booking-chat-bubble { align-self:flex-start; max-width:82%; padding:10px 12px; border:1px solid #e2d7ca; border-radius:5px 15px 15px 15px; background:#fff; }
+.booking-chat-bubble.mine { align-self:flex-end; color:#fff; border-color:#7c2826; border-radius:15px 5px 15px 15px; background:#7c2826; }
+.booking-chat-bubble small,.booking-chat-bubble time { display:block; color:#917f75; font-size:8px; }
+.booking-chat-bubble.mine small,.booking-chat-bubble.mine time { color:#f0cfc3; }
+.booking-chat-bubble p { margin:4px 0; font-size:13px; line-height:1.45; white-space:pre-wrap; overflow-wrap:anywhere; }
+.booking-chat-bubble time { text-align:right; }
+.booking-chat-empty { margin:auto; display:grid; justify-items:center; gap:6px; max-width:290px; color:#8a786e; text-align:center; }
+.booking-chat-empty svg { color:#b34b29; }
+.booking-chat-empty strong { color:#4d3730; }
+.booking-chat-empty span { font-size:11px; line-height:1.45; }
+.booking-chat-sheet > .alert { margin:10px 16px 0; }
+.booking-chat-composer { display:grid; grid-template-columns:minmax(0,1fr) auto; gap:10px; align-items:end; padding:14px; border-top:1px solid #e4d8ca; background:#fff; }
+.booking-chat-composer textarea { min-height:48px; max-height:120px; resize:vertical; }
+.booking-chat-composer .btn { min-height:48px; }
 .optional-note, .journey-details, .pandit-more-options { border:1px solid #e7ded2; border-radius:13px; background:#fff; }
 .optional-note summary, .journey-details summary, .pandit-more-options summary { padding:13px 15px; cursor:pointer; font-weight:800; }
 .optional-note summary span { color:var(--muted); font-size:11px; font-weight:600; }
@@ -2992,6 +3024,16 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
   .help-start { width:100%; }
   .help-privacy { align-items:flex-start; line-height:1.4; }
   .customer-help-fab { right:14px; bottom:88px; min-width:48px; padding:0 13px; }
+  .booking-contact-card { grid-template-columns:1fr; padding:14px; }
+  .booking-contact-actions { display:grid; grid-template-columns:1fr; }
+  .booking-contact-actions .btn { width:100%; justify-content:center; }
+  .booking-contact-note { grid-column:auto; }
+  .booking-chat-overlay { align-items:end; padding:0; }
+  .booking-chat-sheet { width:100%; max-height:92dvh; border-radius:22px 22px 0 0; }
+  .booking-chat-sheet > header { padding:16px; }
+  .booking-chat-messages { min-height:45dvh; padding:14px 10px; }
+  .booking-chat-composer { grid-template-columns:1fr; padding:12px; }
+  .booking-chat-composer .btn { width:100%; justify-content:center; }
 }
 .pandit-access-page{display:grid;gap:22px;max-width:920px;margin:0 auto}.pandit-access-card{display:flex;flex-direction:column;align-items:center;text-align:center;gap:12px;padding:48px clamp(22px,6vw,72px);border:1px solid #ead7c5;border-radius:28px;background:linear-gradient(145deg,#fffdf9,#fff7ee);box-shadow:0 18px 55px rgba(80,38,20,.08)}.pandit-access-icon{display:grid;place-items:center;width:68px;height:68px;border-radius:22px;color:#a52d20;background:#ffe7df}.pandit-access-icon svg{width:32px;height:32px}.pandit-access-card h2{max-width:680px;margin:2px 0 0;font-size:clamp(28px,4vw,44px);line-height:1.08}.pandit-access-card>p{max-width:650px;margin:0;color:#655a52;font-size:17px;line-height:1.65}.pandit-access-reason{display:grid;gap:5px;width:min(620px,100%);margin-top:8px;padding:16px 18px;text-align:left;border:1px solid #ebc6b9;border-radius:14px;background:#fff}.pandit-access-reason span{color:#5f5149;line-height:1.5}.pandit-access-help{display:flex;gap:12px;align-items:flex-start;width:min(620px,100%);padding:16px 18px;text-align:left;border-radius:14px;background:#f4eee7}.pandit-access-help svg{flex:0 0 auto;color:#9b3f28}.pandit-access-help div{display:grid;gap:3px}.pandit-access-help span{color:#675b53;font-size:14px;line-height:1.45}.admin-access-status{padding:5px 9px;border-radius:999px;font-size:11px;letter-spacing:.07em}.admin-access-status.active{color:#087b58;background:#e8f7f0}.admin-access-status.restricted{color:#956000;background:#fff3ce}.admin-access-status.blocked{color:#a42a21;background:#ffe9e5}.admin-access-reason{margin:0;padding:10px 12px;border-radius:10px;background:#fff5ed;color:#694e42;font-size:13px;line-height:1.45}.admin-access-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}.admin-access-actions>.btn:only-child{grid-column:1/-1}
 

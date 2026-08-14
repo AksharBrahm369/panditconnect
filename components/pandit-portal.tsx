@@ -7,6 +7,7 @@ import { readJson } from "@/lib/http";
 import { getCurrentCoordinates, type BrowserCoordinates } from "@/lib/browser-location";
 import { PanditOnboarding } from "./pandit-onboarding";
 import { PanditUrgentAlarm } from "./pandit-urgent-alarm";
+import { BookingChat } from "./booking-chat";
 
 type Profile = { name: string | null; city: string | null; experience_years: number; languages: string[]; specialities: string[]; bio: string | null; verification_status: string; review_note?: string | null; is_online: boolean; rating: string; rating_count: number; completed_jobs: number; latitude: number | null; longitude: number | null; consultation_online: boolean; consultation_rate_5min: number };
 type Booking = {
@@ -200,6 +201,7 @@ export function PanditPortal({ userName, accessNotice }: { userName?: string | n
             {b.situation && <div className="pandit-job-note"><small>Customer says</small><p>{b.situation}</p></div>}
             {b.status!=="REQUESTED"&&<details className="pandit-more-options"><summary>More options</summary><div className="pandit-scope-control"><span>{b.price_change_status==="PENDING"?<><small>Price change requested</small><em>Waiting for customer approval of ₹{b.proposed_amount?.toLocaleString("en-IN")}</em></>:<small>Use this only when the Puja scope changes.</small>}</span>{b.price_change_status!=="PENDING"&&<button disabled={busy} onClick={()=>void proposePriceChange(b.id)}>Request price change</button>}</div></details>}
             <div className={`pandit-job-address ${locationVisible ? "is-open" : "is-locked"}`}><MapPin /><div><small>{locationVisible ? "Customer address" : "Address protected"}</small><strong>{locationVisible ? b.address : "Available after you accept"}</strong></div>{locationVisible && <a target="_blank" rel="noreferrer" href={`https://www.google.com/maps/dir/?api=1&destination=${b.customer_latitude},${b.customer_longitude}`}><Navigation /> Directions</a>}</div>
+            {b.status !== "REQUESTED" && <BookingChat bookingId={b.id} participantName={b.customer_name ?? "Customer"} role="PANDIT" />}
             <div className="pandit-job-next"><div><small>Current step</small><strong>{b.status === "REQUESTED" ? "Decide if you can accept" : b.status === "ACCEPTED" ? "Leave for the customer" : b.status === "ON_THE_WAY" ? "Reach the customer" : b.status === "ARRIVED" ? "Verify arrival code" : "Finish the Puja"}</strong></div>
               {b.status === "REQUESTED" && <div className="pandit-decision"><button disabled={busy} onClick={() => transition(b.id, "DECLINED")}>Not available</button><button className="primary" disabled={busy} onClick={() => transition(b.id, "ACCEPTED")}><Check /> Accept request</button></div>}
               {b.status === "ACCEPTED" && <button className="pandit-next-button" disabled={busy} onClick={() => transition(b.id, "ON_THE_WAY")}><Navigation /> I am leaving now <ChevronRight /></button>}
