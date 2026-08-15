@@ -11,6 +11,10 @@ test("customers can discover nearby Pandits and open privacy-safe profiles", asy
   assert.match(portal, /nearbySearchLocation \?\? coordinates/);
   assert.match(portal, /nearby-request-feedback/);
   assert.match(portal, /Request not sent/);
+  assert.match(portal, /Outstanding payment:/);
+  assert.match(portal, /Pay outstanding with UPI/);
+  assert.match(portal, /NEXT_PUBLIC_SUPPORT_EMAIL/);
+  assert.match(portal, /nearbyRequestErrorCode === "OUTSTANDING_BALANCE"/);
   assert.match(portal, /type="button" className="btn btn-primary btn-block nearby-request-button"/);
   assert.doesNotMatch(portal, /if \(!confirmedLocation \|\| !requestType\) return/);
   assert.match(portal, /\/api\/pandits\/nearby/);

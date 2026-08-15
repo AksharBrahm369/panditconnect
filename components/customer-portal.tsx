@@ -4,7 +4,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import Image from "next/image";
 import {
   AlertTriangle, ArrowLeft, BadgeCheck, BadgeHelp, CheckCircle2, ChevronRight, Clock3,
-  Banknote, CalendarDays, CreditCard, Home, MapPin, Mic, PackageCheck, Search, ShieldCheck, Smartphone, Sparkles, Star, X,
+  Banknote, CalendarDays, CreditCard, Home, Mail, MapPin, Mic, PackageCheck, Search, ShieldCheck, Smartphone, Sparkles, Star, X,
 } from "lucide-react";
 import { AppShell } from "./app-shell";
 import { usePortalLanguage } from "./portal-language-switcher";
@@ -79,6 +79,7 @@ const materialsLabels: Record<string, string> = {
   NEED_GUIDANCE: "Help me understand what is needed",
 };
 const cancellationPolicyVersion = "2026-08-v1";
+const customerCareEmail = process.env.NEXT_PUBLIC_SUPPORT_EMAIL?.trim() || "darshanzala369@gmail.com";
 const activeBookingStatuses = new Set(["REQUESTED", "ACCEPTED", "ON_THE_WAY", "ARRIVED", "IN_PROGRESS"]);
 const cancellationReasons = [
   "My plans changed",
@@ -111,6 +112,33 @@ function scheduleAt(date: string, window: string) {
 }
 
 type CustomerStart = "guided" | "sos" | "online";
+
+function OutstandingBalanceNotice({ amount, booking, canPayOnline, paying, paymentMessage, onPay }: {
+  amount: number;
+  booking: Booking | undefined;
+  canPayOnline: boolean;
+  paying: boolean;
+  paymentMessage?: string;
+  onPay: () => void;
+}) {
+  const supportHref = `mailto:${customerCareEmail}?subject=${encodeURIComponent("PanditConnect outstanding payment support")}&body=${encodeURIComponent(`Hello PanditConnect Support,\n\nI need help with my outstanding payment of ₹${amount.toLocaleString("en-IN")}.\n\nThank you.`)}`;
+  return <section className="outstanding-balance-notice" aria-label="Outstanding payment">
+    <div className="outstanding-balance-icon"><AlertTriangle /></div>
+    <div className="outstanding-balance-copy">
+      <span>Payment required</span>
+      <h3>Outstanding payment: ₹{amount.toLocaleString("en-IN")}</h3>
+      <p>New bookings are paused until this balance is paid or resolved by support.</p>
+      <a className="outstanding-support-email" href={supportHref}><Mail /> {customerCareEmail}</a>
+    </div>
+    <div className="outstanding-balance-actions">
+      <button type="button" className="btn btn-primary" disabled={!booking || !canPayOnline || paying} onClick={onPay}>
+        <Smartphone /> {paying ? "Opening UPI…" : "Pay outstanding with UPI"}
+      </button>
+      {!canPayOnline && <small>Secure UPI payment is being configured. Please contact support meanwhile.</small>}
+      {paymentMessage && <small className="payment-error" role="status">{paymentMessage}</small>}
+    </div>
+  </section>;
+}
 
 export function CustomerPortal({ customerId, customerName, initialStart }: { customerId: string; customerName?: string | null; initialStart?: CustomerStart }) {
   const [appLanguage] = usePortalLanguage();
@@ -150,6 +178,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
   const [nearbyHasMore, setNearbyHasMore] = useState(false);
   const [requestingPanditId, setRequestingPanditId] = useState<string | null>(null);
   const [nearbyRequestError, setNearbyRequestError] = useState("");
+  const [nearbyRequestErrorCode, setNearbyRequestErrorCode] = useState("");
   const [rematchingId, setRematchingId] = useState<string | null>(null);
   const [rematchErrors, setRematchErrors] = useState<Record<string, string>>({});
   const [consultationMode, setConsultationMode] = useState(initialStart === "online");
@@ -257,6 +286,10 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
     () => [...(nearbyPandits ?? [])].sort((a, b) => Number(a.distance_km) - Number(b.distance_km)),
     [nearbyPandits],
   );
+  const outstandingBooking = useMemo(
+    () => bookings.find((booking) => booking.cancellation_fee_status === "OUTSTANDING"),
+    [bookings],
+  );
   const visibleBookings = useMemo(() => bookings.filter((booking) => !(
       booking.status === "DECLINED" &&
       booking.dispatch_status === "EXHAUSTED" &&
@@ -278,6 +311,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
     setNearbyHasMore(false);
     setRequestingPanditId(null);
     setNearbyRequestError("");
+    setNearbyRequestErrorCode("");
     setMessage("");
     setScheduledAt("");
     setScheduleDate("");
@@ -466,6 +500,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
     const eligible = data.pandits ?? [];
     setNearbySearchLocation(current);
     setNearbyRequestError("");
+    setNearbyRequestErrorCode("");
     setNearbyPage(page);
     setNearbyHasMore(Boolean(data.hasMore));
     if (preferredPandit) {
@@ -519,6 +554,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
 
     setRequestingPanditId(panditId);
     setNearbyRequestError("");
+    setNearbyRequestErrorCode("");
     setMessage("");
     try {
       const response = await fetch("/api/bookings", {
@@ -534,9 +570,10 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
           latitude: requestLocation.latitude, longitude: requestLocation.longitude,
         }),
       });
-      const data = await readJson<{ error?: string; matchedPandit?: { name: string; distanceKm: string; etaMinutes: number } }>(response);
+      const data = await readJson<{ error?: string; code?: string; matchedPandit?: { name: string; distanceKm: string; etaMinutes: number } }>(response);
       if (!response.ok) {
         setNearbyRequestError(data.error ?? "We could not send this request. Please try again.");
+        setNearbyRequestErrorCode(data.code ?? "");
         window.setTimeout(() => document.getElementById("nearby-request-feedback")?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
         return;
       }
@@ -546,6 +583,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
       setMessage(data.matchedPandit ? `Request sent to ${data.matchedPandit.name}. We will notify you when the Pandit responds.` : "Your request was sent.");
     } catch {
       setNearbyRequestError("Your connection was interrupted. Please tap the button again—no duplicate request will be created.");
+      setNearbyRequestErrorCode("");
       window.setTimeout(() => document.getElementById("nearby-request-feedback")?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
     } finally {
       setRequestingPanditId(null);
@@ -666,7 +704,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
     const idempotencyKey=`${purpose}:${bookingId}:${crypto.randomUUID()}`;
     const response=await fetch("/api/payments/orders",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({bookingId,purpose,idempotencyKey})});const data=await readJson<{error?:string;orderId?:string;amount?:number;keyId?:string}>(response);if(!response.ok||!data.orderId||!data.keyId){setPaymentMessages(current=>({...current,[bookingId]:data.error??"Unable to start secure payment."}));setPaymentBusy(null);return;}
     if(!window.Razorpay){await new Promise<void>((resolve,reject)=>{const script=document.createElement("script");script.src="https://checkout.razorpay.com/v1/checkout.js";script.onload=()=>resolve();script.onerror=()=>reject(new Error("Payment checkout could not load"));document.head.appendChild(script);}).catch(error=>setPaymentMessages(current=>({...current,[bookingId]:error instanceof Error?error.message:"Payment checkout could not load"})));}
-    if(!window.Razorpay){setPaymentBusy(null);return;}const checkout=new window.Razorpay({key:data.keyId,amount:(data.amount??0)*100,currency:"INR",name:"PanditConnect",description:purpose==="CANCELLATION_FEE"?"Cancellation balance":"Completed Puja payment",order_id:data.orderId,handler:()=>{setPaymentMessages(current=>({...current,[bookingId]:"Payment submitted securely. Waiting for confirmation…"}));setPaymentBusy(null);window.setTimeout(()=>void refreshBookings(),2500);},modal:{ondismiss:()=>setPaymentBusy(null)},theme:{color:"#c54824"}});checkout.on("payment.failed",()=>{setPaymentMessages(current=>({...current,[bookingId]:"Payment failed or was cancelled. No success was recorded."}));setPaymentBusy(null);});checkout.open();
+    if(!window.Razorpay){setPaymentBusy(null);return;}const checkout=new window.Razorpay({key:data.keyId,amount:(data.amount??0)*100,currency:"INR",name:"PanditConnect",description:purpose==="CANCELLATION_FEE"?"Outstanding cancellation payment":"Completed Puja payment",order_id:data.orderId,...(purpose==="CANCELLATION_FEE"?{method:{upi:true,card:false,netbanking:false,wallet:false}}:{}),handler:()=>{setPaymentMessages(current=>({...current,[bookingId]:"UPI payment submitted securely. Waiting for confirmation…"}));setPaymentBusy(null);window.setTimeout(()=>void refreshBookings(),2500);},modal:{ondismiss:()=>setPaymentBusy(null)},theme:{color:"#c54824"}});checkout.on("payment.failed",()=>{setPaymentMessages(current=>({...current,[bookingId]:"Payment failed or was cancelled. No success was recorded."}));setPaymentBusy(null);});checkout.open();
   }
   async function disputeCashPayment(bookingId:string){if(!window.confirm("Report a cash-payment disagreement? Please also create a support case with the facts."))return;setPaymentBusy(bookingId);const response=await fetch(`/api/bookings/${bookingId}/payment`,{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({action:"DISPUTE"})});const data=await readJson<{error?:string}>(response);setPaymentMessages(current=>({...current,[bookingId]:response.ok?"Payment marked disputed. Open Help and safety to submit evidence.":data.error??"Unable to report payment issue."}));await refreshBookings();setPaymentBusy(null);}
   async function decidePriceChange(bookingId:string,decision:"APPROVE"|"REJECT"){if(!window.confirm(decision==="APPROVE"?"Approve this revised total? The new amount will replace the original booking amount.":"Reject this change? The previously agreed amount and scope will remain."))return;const response=await fetch(`/api/bookings/${bookingId}/price-change`,{method:"PATCH",headers:{"content-type":"application/json"},body:JSON.stringify({decision})});const data=await readJson<{error?:string}>(response);if(!response.ok)setMessage(data.error??"Unable to update the price request.");await refreshBookings();}
@@ -714,7 +752,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
   return (
     <AppShell role="Customer" userName={customerName} title="Puja help for your family" subtitle="Book a verified nearby Pandit in a few simple steps.">
       {message && <div className="alert error">{message}</div>}
-      {outstandingBalance>0&&<div className="alert error"><strong>Outstanding cancellation balance: ₹{outstandingBalance.toLocaleString("en-IN")}</strong> New bookings are paused. You can dispute an incorrect charge through Help and safety.{onlinePayments&&bookings.find(item=>item.cancellation_fee_status==="OUTSTANDING")&&<button className="btn btn-primary" disabled={Boolean(paymentBusy)} onClick={()=>void startOnlinePayment(bookings.find(item=>item.cancellation_fee_status==="OUTSTANDING")!.id,"CANCELLATION_FEE")}>Pay balance securely</button>}</div>}
+      {outstandingBalance > 0 && <OutstandingBalanceNotice amount={outstandingBalance} booking={outstandingBooking} canPayOnline={onlinePayments} paying={paymentBusy === outstandingBooking?.id} paymentMessage={outstandingBooking ? paymentMessages[outstandingBooking.id] : undefined} onPay={() => outstandingBooking && void startOnlinePayment(outstandingBooking.id, "CANCELLATION_FEE")} />}
 
       {!requestType && !consultationMode && (
         <section className="customer-home" id="customer-home">
@@ -810,7 +848,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
             <div><span className="eyebrow">Nearby and available</span><h2>Choose your Pandit</h2><p>{nearbyPandits.length} approved Pandit{nearbyPandits.length === 1 ? "" : "s"} can serve this Puja near your location.</p></div>
             <button className="btn btn-ghost" onClick={() => setNearbyPandits(null)}><ArrowLeft size={16} /> Edit request</button>
           </div>
-          {nearbyPandits.length ? <><p className="nearby-scope-note"><MapPin size={15} /> Matched for your Puja, language and current location.</p>{nearbyRequestError && <div className="alert error nearby-request-feedback" id="nearby-request-feedback" role="alert"><AlertTriangle size={18} /><span><strong>Request not sent</strong>{nearbyRequestError}</span></div>}<div className="nearby-pandit-grid">{sortedNearbyPandits.map((pandit) => (
+          {nearbyPandits.length ? <><p className="nearby-scope-note"><MapPin size={15} /> Matched for your Puja, language and current location.</p>{nearbyRequestError && <><div className="alert error nearby-request-feedback" id="nearby-request-feedback" role="alert"><AlertTriangle size={18} /><span><strong>Request not sent</strong>{nearbyRequestError}</span></div>{nearbyRequestErrorCode === "OUTSTANDING_BALANCE" && outstandingBalance > 0 && <OutstandingBalanceNotice amount={outstandingBalance} booking={outstandingBooking} canPayOnline={onlinePayments} paying={paymentBusy === outstandingBooking?.id} paymentMessage={outstandingBooking ? paymentMessages[outstandingBooking.id] : undefined} onPay={() => outstandingBooking && void startOnlinePayment(outstandingBooking.id, "CANCELLATION_FEE")} />}</>}<div className="nearby-pandit-grid">{sortedNearbyPandits.map((pandit) => (
             <article className="nearby-pandit-card" key={pandit.id}>
               <div className="nearby-pandit-head"><PanditAvatar panditId={pandit.id} name={pandit.name} className="pandit-avatar" /><div><h3>{pandit.name}</h3><span className="online-label">Online now</span></div><strong>₹{pandit.charge.toLocaleString("en-IN")}</strong></div>
               <div className="nearby-pandit-stats"><span><MapPin size={16} /><b>{Number(pandit.distance_km) < 1 ? "Within 1 km" : `About ${Math.round(Number(pandit.distance_km))} km`}</b><small>away</small></span><span><Clock3 size={16} /><b>{pandit.eta_minutes} min</b><small>estimated</small></span><span><Star size={16} fill="currentColor" /><b>{pandit.rating_count ? Number(pandit.rating).toFixed(1) : "New"}</b><small>{pandit.rating_count ? `${pandit.rating_count} ratings` : "not rated"}</small></span></div>

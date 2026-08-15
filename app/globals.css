@@ -2013,6 +2013,19 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 .payment-confirmed { display: flex; align-items: center; gap: 10px; padding: 13px; border-radius: 12px; color: #08774c; background: #e8f7ef; }
 .payment-confirmed span { display: grid; gap: 2px; }
 .payment-error { color: #ae2d1c; }
+.outstanding-balance-notice { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:14px; margin-bottom:18px; padding:17px; border:1px solid #efb7a6; border-radius:16px; color:#6f2419; background:#fff4f0; box-shadow:0 8px 22px rgba(127,42,24,.07); }
+.outstanding-balance-icon { display:grid; place-items:center; width:44px; height:44px; border-radius:13px; color:#bd3f22; background:#ffe0d6; }
+.outstanding-balance-icon svg { width:21px; height:21px; }
+.outstanding-balance-copy { min-width:0; display:grid; gap:4px; }
+.outstanding-balance-copy > span { color:#b43f24; font-size:10px; font-weight:850; letter-spacing:.1em; text-transform:uppercase; }
+.outstanding-balance-copy h3 { margin:0; color:#511e17; font-size:17px; }
+.outstanding-balance-copy p { margin:0; color:#855248; font-size:12px; line-height:1.45; }
+.outstanding-support-email { width:max-content; max-width:100%; display:inline-flex; align-items:center; gap:6px; margin-top:3px; color:#8a2d1f; font-size:12px; font-weight:800; overflow-wrap:anywhere; }
+.outstanding-support-email svg { flex:0 0 auto; width:15px; height:15px; }
+.outstanding-balance-actions { min-width:220px; display:grid; justify-items:stretch; gap:6px; }
+.outstanding-balance-actions .btn { min-height:46px; justify-content:center; }
+.outstanding-balance-actions .btn svg { width:18px; height:18px; }
+.outstanding-balance-actions small { max-width:260px; color:#855248; font-size:10px; line-height:1.4; text-align:center; }
 .post-puja-checkout { display:grid; gap:16px; margin-top:18px; }
 .checkout-progress { display:grid; grid-template-columns:1fr 1fr; gap:8px; padding:5px; border:1px solid #ead5b9; border-radius:14px; background:#fffaf2; }
 .checkout-progress span { position:relative; display:grid; grid-template-columns:34px minmax(0,1fr); align-items:center; gap:9px; min-height:54px; padding:8px 12px; border-radius:10px; color:#8a796d; }
@@ -2040,6 +2053,9 @@ button, a, input, select, textarea { -webkit-tap-highlight-color: transparent; }
 @media (max-width: 700px) {
   .payment-method-grid { grid-template-columns: 1fr 1fr; }
   .completed-payment-list article { align-items: flex-start; flex-direction: column; }
+  .outstanding-balance-notice { grid-template-columns:auto minmax(0,1fr); align-items:start; padding:15px; }
+  .outstanding-balance-actions { grid-column:1/-1; min-width:0; width:100%; }
+  .outstanding-balance-actions small { max-width:none; }
 }
 
 @media (max-width: 390px) {
