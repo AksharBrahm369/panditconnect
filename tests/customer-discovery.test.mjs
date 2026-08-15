@@ -8,6 +8,11 @@ test("customers can discover nearby Pandits and open privacy-safe profiles", asy
   const profile = await readFile(new URL("../app/customer/pandits/[id]/page.tsx", import.meta.url), "utf8");
   assert.match(portal, /Compare nearby Pandits/);
   assert.match(portal, /Send request to/);
+  assert.match(portal, /nearbySearchLocation \?\? coordinates/);
+  assert.match(portal, /nearby-request-feedback/);
+  assert.match(portal, /Request not sent/);
+  assert.match(portal, /type="button" className="btn btn-primary btn-block nearby-request-button"/);
+  assert.doesNotMatch(portal, /if \(!confirmedLocation \|\| !requestType\) return/);
   assert.match(portal, /\/api\/pandits\/nearby/);
   assert.doesNotMatch(portal, /\/api\/pandits\/discover/);
   assert.match(nearby, /verification_status='APPROVED'/);

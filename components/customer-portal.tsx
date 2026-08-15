@@ -145,8 +145,11 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
   const [locationError, setLocationError] = useState("");
   const [listening, setListening] = useState(false);
   const [nearbyPandits, setNearbyPandits] = useState<NearbyPandit[] | null>(null);
+  const [nearbySearchLocation, setNearbySearchLocation] = useState<BrowserCoordinates | null>(null);
   const [nearbyPage, setNearbyPage] = useState(1);
   const [nearbyHasMore, setNearbyHasMore] = useState(false);
+  const [requestingPanditId, setRequestingPanditId] = useState<string | null>(null);
+  const [nearbyRequestError, setNearbyRequestError] = useState("");
   const [rematchingId, setRematchingId] = useState<string | null>(null);
   const [rematchErrors, setRematchErrors] = useState<Record<string, string>>({});
   const [consultationMode, setConsultationMode] = useState(initialStart === "online");
@@ -270,8 +273,11 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
     setRecommendation(null);
     setGuidanceError("");
     setNearbyPandits(null);
+    setNearbySearchLocation(null);
     setNearbyPage(1);
     setNearbyHasMore(false);
+    setRequestingPanditId(null);
+    setNearbyRequestError("");
     setMessage("");
     setScheduledAt("");
     setScheduleDate("");
@@ -458,6 +464,8 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
       return;
     }
     const eligible = data.pandits ?? [];
+    setNearbySearchLocation(current);
+    setNearbyRequestError("");
     setNearbyPage(page);
     setNearbyHasMore(Boolean(data.hasMore));
     if (preferredPandit) {
@@ -470,6 +478,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
         return;
       }
       await sendRequest(selected.id, current);
+      setBusy(false);
       return;
     }
     setNearbyPandits((currentPandits) => append && currentPandits ? [...currentPandits, ...eligible] : eligible);
@@ -496,32 +505,51 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
     window.setTimeout(() => document.getElementById(`puja-preparation-${booking.id}`)?.scrollIntoView({ behavior: "smooth", block: "nearest" }), 0);
   }
 
-  async function sendRequest(panditId: string, confirmedLocation = coordinates) {
-    if (!confirmedLocation || !requestType) return;
-    setBusy(true);
-    setMessage("");
-    const response = await fetch("/api/bookings", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({
-        panditId, serviceId, address, postalCode: pinCode, notes, requestType, situation, preferredLanguage: language,
-        materialsOption, scheduledAt: requestType === "SCHEDULED_PUJA" ? new Date(scheduledAt).toISOString() : undefined,
-        policyAccepted, policyVersion: cancellationPolicyVersion,
-        clientRequestId,
-        latitude: confirmedLocation.latitude, longitude: confirmedLocation.longitude,
-      }),
-    });
-    const data = await readJson<{ error?: string; matchedPandit?: { name: string; distanceKm: string; etaMinutes: number } }>(response);
-    if (!response.ok) {
-      setMessage(data.error ?? "Unable to send the request.");
-      setBusy(false);
+  async function sendRequest(panditId: string, confirmedLocation?: BrowserCoordinates | null) {
+    if (requestingPanditId) return;
+    const requestLocation = confirmedLocation ?? nearbySearchLocation ?? coordinates;
+    if (!requestType) {
+      setNearbyRequestError("Your Puja details are no longer available. Tap Edit request and confirm them again.");
       return;
     }
+    if (!requestLocation) {
+      setNearbyRequestError("Your location needs to be confirmed again before sending this request.");
+      return;
+    }
+
+    setRequestingPanditId(panditId);
+    setNearbyRequestError("");
+    setMessage("");
+    try {
+      const response = await fetch("/api/bookings", {
+        method: "POST",
+        cache: "no-store",
+        credentials: "same-origin",
+        headers: { "content-type": "application/json" },
+        body: JSON.stringify({
+          panditId, serviceId, address, postalCode: pinCode, notes, requestType, situation, preferredLanguage: language,
+          materialsOption, scheduledAt: requestType === "SCHEDULED_PUJA" ? new Date(scheduledAt).toISOString() : undefined,
+          policyAccepted, policyVersion: cancellationPolicyVersion,
+          clientRequestId,
+          latitude: requestLocation.latitude, longitude: requestLocation.longitude,
+        }),
+      });
+      const data = await readJson<{ error?: string; matchedPandit?: { name: string; distanceKm: string; etaMinutes: number } }>(response);
+      if (!response.ok) {
+        setNearbyRequestError(data.error ?? "We could not send this request. Please try again.");
+        window.setTimeout(() => document.getElementById("nearby-request-feedback")?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
+        return;
+      }
       setNearbyPandits(null);
-      setBusy(false);
       await refreshBookings();
       setRequestType(null);
       setMessage(data.matchedPandit ? `Request sent to ${data.matchedPandit.name}. We will notify you when the Pandit responds.` : "Your request was sent.");
+    } catch {
+      setNearbyRequestError("Your connection was interrupted. Please tap the button again—no duplicate request will be created.");
+      window.setTimeout(() => document.getElementById("nearby-request-feedback")?.scrollIntoView({ behavior: "smooth", block: "center" }), 0);
+    } finally {
+      setRequestingPanditId(null);
+    }
   }
 
   async function findAnotherPandit(bookingId: string) {
@@ -782,13 +810,13 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
             <div><span className="eyebrow">Nearby and available</span><h2>Choose your Pandit</h2><p>{nearbyPandits.length} approved Pandit{nearbyPandits.length === 1 ? "" : "s"} can serve this Puja near your location.</p></div>
             <button className="btn btn-ghost" onClick={() => setNearbyPandits(null)}><ArrowLeft size={16} /> Edit request</button>
           </div>
-          {nearbyPandits.length ? <><p className="nearby-scope-note"><MapPin size={15} /> Matched for your Puja, language and current location.</p><div className="nearby-pandit-grid">{sortedNearbyPandits.map((pandit) => (
+          {nearbyPandits.length ? <><p className="nearby-scope-note"><MapPin size={15} /> Matched for your Puja, language and current location.</p>{nearbyRequestError && <div className="alert error nearby-request-feedback" id="nearby-request-feedback" role="alert"><AlertTriangle size={18} /><span><strong>Request not sent</strong>{nearbyRequestError}</span></div>}<div className="nearby-pandit-grid">{sortedNearbyPandits.map((pandit) => (
             <article className="nearby-pandit-card" key={pandit.id}>
               <div className="nearby-pandit-head"><PanditAvatar panditId={pandit.id} name={pandit.name} className="pandit-avatar" /><div><h3>{pandit.name}</h3><span className="online-label">Online now</span></div><strong>₹{pandit.charge.toLocaleString("en-IN")}</strong></div>
               <div className="nearby-pandit-stats"><span><MapPin size={16} /><b>{Number(pandit.distance_km) < 1 ? "Within 1 km" : `About ${Math.round(Number(pandit.distance_km))} km`}</b><small>away</small></span><span><Clock3 size={16} /><b>{pandit.eta_minutes} min</b><small>estimated</small></span><span><Star size={16} fill="currentColor" /><b>{pandit.rating_count ? Number(pandit.rating).toFixed(1) : "New"}</b><small>{pandit.rating_count ? `${pandit.rating_count} ratings` : "not rated"}</small></span></div>
               <p><b>{pandit.experience_years} years</b> experience · {pandit.completed_jobs} completed Puja{pandit.completed_jobs === 1 ? "" : "s"}</p>
               <div className="pandit-language-list">{pandit.languages.map((item) => <span key={item}>{item}</span>)}</div>
-              <button className="btn btn-primary btn-block" disabled={busy} onClick={() => sendRequest(pandit.id)}>{busy ? "Sending request…" : `Send request to ${pandit.name}`} <ChevronRight size={17} /></button>
+              <button type="button" className="btn btn-primary btn-block nearby-request-button" disabled={requestingPanditId !== null} aria-busy={requestingPanditId === pandit.id} onClick={() => void sendRequest(pandit.id, nearbySearchLocation)}>{requestingPanditId === pandit.id ? "Sending your request…" : requestingPanditId ? "Please wait…" : `Send request to ${pandit.name}`} <ChevronRight size={17} /></button>
             </article>
           ))}</div>{nearbyHasMore && <button className="btn btn-ghost btn-block" disabled={busy} onClick={() => void findNearbyPandits(nearbyPage + 1, true)}>{busy ? "Loading nearby Pandits…" : "Show more nearby Pandits"}</button>}</> : <div className="empty"><MapPin size={26} /><strong>No approved Pandit is online nearby</strong><span>Try again in a few minutes or edit the Puja and location details.</span><button className="btn btn-ghost" onClick={() => setNearbyPandits(null)}>Edit request</button></div>}
           {!nearbyPandits.length&&fallbackPlan&&!fallbackBookingId&&<AvailabilityFallback plan={fallbackPlan} onStartSearch={()=>void startWiderSearch(fallbackRadius)} onOnlineGuidance={openOnlineGuidance} onReserveEarliest={()=>fallbackPlan.earliestAvailableAt&&void startWiderSearch(40,fallbackPlan.earliestAvailableAt)} busy={fallbackBusy} onlineGuidanceAvailable={onlinePayments}/>}
