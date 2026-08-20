@@ -185,6 +185,43 @@
   .chat-composer { position:sticky; bottom:0; grid-template-columns:minmax(0,1fr); padding:9px; }
   .chat-composer .btn { width:100%; }
   .legal-document { width:calc(100% - 20px); padding:20px 16px; }
+
+  /* Shared overflow and stacking rules for transactional screens. */
+  .table-wrap:not(.admin-bookings-table) { width:100%; max-width:100%; overflow-x:auto; overscroll-behavior-inline:contain; -webkit-overflow-scrolling:touch; }
+  .table-wrap:not(.admin-bookings-table) table { min-width:620px; }
+  .nearby-pandit-grid, .samagri-grid, .stat-grid, .admin-stats,
+  .booking-facts, .pandit-job-facts, .consultation-list, .support-grid,
+  .privacy-action-grid, .profile-summary-grid { grid-template-columns:minmax(0,1fr); }
+  .tracking-head, .section-heading, .directory-heading, .admin-section-heading,
+  .consultation-chat > header, .booking-chat-panel > header {
+    align-items:flex-start;
+    flex-wrap:wrap;
+    gap:10px;
+  }
+  .tracking-head > *, .section-heading > *, .directory-heading > *,
+  .admin-section-heading > *, .consultation-chat > header > *,
+  .booking-chat-panel > header > * { min-width:0; }
+  .drawer-actions { flex:0 0 auto; }
+  .button-row, .card-actions, .booking-actions, .pandit-job-actions,
+  .drawer-actions-wide, .support-actions { align-items:stretch; flex-direction:column; }
+  .card-actions .btn, .booking-actions .btn, .pandit-job-actions .btn,
+  .drawer-actions-wide .btn, .support-actions .btn { width:100%; justify-content:center; }
+
+  dialog, .modal, .dialog, .sheet, .popover-card {
+    max-width:calc(100vw - 20px);
+    max-height:calc(100dvh - 20px);
+  }
+  .modal-backdrop, .dialog-backdrop { padding:10px; }
+
+  .consultation-chat, .booking-chat-panel, .private-booking-chat {
+    width:100%;
+    max-width:100%;
+    overflow:hidden;
+  }
+  .consultation-chat > header h2, .booking-chat-panel > header h2,
+  .private-booking-chat h2 { font-size:clamp(20px,6.5vw,26px); overflow-wrap:anywhere; }
+  .chat-messages { overscroll-behavior:contain; -webkit-overflow-scrolling:touch; }
+  .chat-composer textarea { min-height:80px; resize:vertical; }
 }
 
 @media (max-width: 370px) {
@@ -192,6 +229,13 @@
   .portal-header .portal-brand > span:last-child, .topbar .brand span:last-child { display:none; }
   .portal-mobile-nav a { font-size:8px; }
   .stat-grid, .admin-stats { grid-template-columns:minmax(0,1fr); }
+  .portal-account .notification-button, .portal-account .account-menu-trigger,
+  .portal-account > .icon-button { width:40px; height:40px; }
+  .nearby-pandit-card, .approved-card, .tracking-card,
+  .pandit-job-list > article { padding:13px; }
+  .live-pandit-card .mini-card { grid-template-columns:46px minmax(0,1fr); }
+  .live-pandit-card .mini-card .avatar { width:46px; height:46px; }
+  .live-pandit-card .mini-card > :last-child { grid-column:2; justify-self:start; }
 }
 
 @media (max-height: 520px) and (orientation: landscape) {

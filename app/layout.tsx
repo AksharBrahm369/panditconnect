@@ -1,10 +1,12 @@
 import type { Metadata } from "next";
 import { Geist } from "next/font/google";
 import "./globals.css";
-import "./mobile.css";
 import "./public-home.css";
 import "./pujaone-v2.css";
 import "./pujaone-signature.css";
+// Keep the responsive layer last so desktop theme rules can never override
+// phone layouts on customer, Pandit, admin, auth or settings screens.
+import "./mobile.css";
 import { ButtonInteractions } from "@/components/button-interactions";
 
 const geist = Geist({ variable: "--font-geist", subsets: ["latin"] });

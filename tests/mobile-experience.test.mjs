@@ -9,6 +9,10 @@ test("the complete app has a final mobile-first layout authority", async () => {
   ]);
 
   assert.match(layout, /import "\.\/mobile\.css"/);
+  assert.ok(
+    layout.indexOf('import "./mobile.css"') > layout.indexOf('import "./pujaone-signature.css"'),
+    "the mobile authority must load after every visual theme",
+  );
   assert.match(css, /@media \(max-width: 760px\)/);
   assert.match(css, /env\(safe-area-inset-bottom\)/);
   assert.match(css, /min-height: 44px/);
@@ -22,6 +26,9 @@ test("the complete app has a final mobile-first layout authority", async () => {
   assert.match(css, /\.auth-side \{ display:none/);
   assert.match(css, /\.nearby-pandit-head \{ grid-template-columns/);
   assert.match(css, /\.payment-method-grid \{ grid-template-columns/);
+  assert.match(css, /\.table-wrap:not\(\.admin-bookings-table\)/);
+  assert.match(css, /\.nearby-pandit-grid, \.samagri-grid/);
+  assert.match(css, /\.consultation-chat, \.booking-chat-panel, \.private-booking-chat/);
   assert.match(css, /prefers-reduced-motion/);
 });
 
