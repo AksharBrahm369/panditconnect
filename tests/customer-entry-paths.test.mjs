@@ -87,3 +87,17 @@ test("public service choices retain their destination through sign-in", async ()
   assert.match(portal, /initialStart === "sos" \? "PANDIT_SOS"/);
   assert.match(portal, /useState\(initialStart === "online"\)/);
 });
+
+test("every customer booking path receives a valid confirmation id", async () => {
+  const [portal, bookingRoute] = await Promise.all([
+    readFile(new URL("../components/customer-portal.tsx", import.meta.url), "utf8"),
+    readFile(new URL("../app/api/bookings/route.ts", import.meta.url), "utf8"),
+  ]);
+
+  assert.match(portal, /useState\(\(\) => crypto\.randomUUID\(\)\)/);
+  assert.match(portal, /const bookingRequestId=clientRequestId\|\|crypto\.randomUUID\(\)/);
+  assert.match(portal, /const bookingRequestId = clientRequestId \|\| crypto\.randomUUID\(\)/);
+  assert.match(portal, /clientRequestId:bookingRequestId/);
+  assert.match(portal, /clientRequestId: bookingRequestId/);
+  assert.doesNotMatch(bookingRoute, /Booking confirmation expired/);
+});

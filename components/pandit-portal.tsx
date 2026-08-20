@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { BadgeCheck, BellRing, Check, ChevronRight, Clock3, IndianRupee, KeyRound, MapPin, MessageCircle, Navigation, Power } from "lucide-react";
+import { BadgeCheck, BellRing, Check, ChevronRight, Clock3, IndianRupee, KeyRound, MapPin, MessageCircle, Navigation, PackageCheck, Power } from "lucide-react";
 import { AppShell } from "./app-shell";
 import { readJson } from "@/lib/http";
 import { getCurrentCoordinates, type BrowserCoordinates } from "@/lib/browser-location";
@@ -20,6 +20,24 @@ type Booking = {
   cancellation_reason: string | null; cancelled_at: string | null; cancellation_fee?:number; cancellation_fee_status?:string;
   arrived_at?:string|null;
   proposed_amount?:number|null;price_change_reason?:string|null;price_change_status?:"NONE"|"PENDING"|"APPROVED"|"REJECTED";
+};
+
+const materialInstructions: Record<string, { title: string; detail: string; tone: string }> = {
+  HAVE_MATERIALS: {
+    title: "Customer already has Puja materials",
+    detail: "You do not need to arrange samagri unless something is missing. Confirm the final list in chat after accepting.",
+    tone: "customer-ready",
+  },
+  PANDIT_BRINGS: {
+    title: "You need to bring the Puja materials",
+    detail: "Accept only if you can arrange and carry the required samagri. Confirm any extra material charge with the customer in chat.",
+    tone: "pandit-brings",
+  },
+  NEED_GUIDANCE: {
+    title: "Customer needs help with materials",
+    detail: "After accepting, send a short urgent samagri list in the private chat before you start travelling.",
+    tone: "needs-guidance",
+  },
 };
 
 export function PanditPortal({ userName, accessNotice }: { userName?: string | null; accessNotice?: string | null }) {
@@ -194,9 +212,10 @@ export function PanditPortal({ userName, accessNotice }: { userName?: string | n
 
         <section className="pandit-jobs" id="pandit-requests">
           <header><div><span className="eyebrow">Requests</span><h2>{active.length ? "What needs your attention" : "No action needed"}</h2><p>{active.length ? "Each card shows one clear next step." : profile.is_online ? "We will notify you when a new request arrives." : "Go online whenever you are ready."}</p></div></header>
-          {active.length ? <div className="pandit-job-list">{active.map((b) => { const locationVisible = b.status !== "REQUESTED" && b.customer_latitude != null && b.customer_longitude != null; return <article className={`pandit-job status-${b.status.toLowerCase()}`} id={`pandit-job-${b.id}`} key={b.id}>
+          {active.length ? <div className="pandit-job-list">{active.map((b) => { const locationVisible = b.status !== "REQUESTED" && b.customer_latitude != null && b.customer_longitude != null; const materialInstruction = materialInstructions[b.materials_option] ?? materialInstructions.NEED_GUIDANCE; return <article className={`pandit-job status-${b.status.toLowerCase()}`} id={`pandit-job-${b.id}`} key={b.id}>
             <div className="pandit-job-title"><span className="pandit-job-om">ॐ</span><div><small>{b.request_type === "SCHEDULED_PUJA" ? "Scheduled Puja" : b.request_type === "PANDIT_SOS" ? "Urgent request" : "Home Puja"}</small><h3>{b.service_name}</h3>{b.status !== "REQUESTED" && <p>{b.customer_name ?? "Customer"}</p>}</div><span className="pandit-job-amount"><small>{b.status === "REQUESTED" ? "Initial estimate" : "Agreed amount"}</small><strong>₹{b.amount.toLocaleString("en-IN")}</strong></span></div>
             {b.scheduled_at && <div className="pandit-job-note scheduled"><small>Scheduled date and time</small><p><strong>{new Date(b.scheduled_at).toLocaleString("en-IN", { dateStyle: "full", timeStyle: "short" })}</strong></p></div>}
+            {b.request_type === "PANDIT_SOS" && b.status === "REQUESTED" && <div className={`pandit-material-alert ${materialInstruction.tone}`}><span><PackageCheck /></span><div><small>Customer&apos;s material choice</small><strong>{materialInstruction.title}</strong><p>{materialInstruction.detail}</p></div></div>}
             <div className="pandit-job-facts"><span><MessageCircle /><small>Language</small><strong>{b.preferred_language ?? "Any language"}</strong></span><span><BadgeCheck /><small>Materials</small><strong>{b.materials_option === "HAVE_MATERIALS" ? "Customer has materials" : b.materials_option === "PANDIT_BRINGS" ? "You will bring materials" : "Customer needs guidance"}</strong></span></div>
             {b.situation && <div className="pandit-job-note"><small>Customer says</small><p>{b.situation}</p></div>}
             {b.status!=="REQUESTED"&&<details className="pandit-more-options"><summary>More options</summary><div className="pandit-scope-control"><span>{b.price_change_status==="PENDING"?<><small>Price change requested</small><em>Waiting for customer approval of ₹{b.proposed_amount?.toLocaleString("en-IN")}</em></>:<small>Use this only when the Puja scope changes.</small>}</span>{b.price_change_status!=="PENDING"&&<button disabled={busy} onClick={()=>void proposePriceChange(b.id)}>Request price change</button>}</div></details>}

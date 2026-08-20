@@ -136,7 +136,7 @@ export async function POST(request: Request) {
   if (body.policyAccepted !== true || body.policyVersion !== CANCELLATION_POLICY_VERSION) {
     return NextResponse.json({ error: "Review and accept the cancellation policy before booking" }, { status: 400 });
   }
-  if(!body.clientRequestId||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.clientRequestId))return NextResponse.json({error:"Booking confirmation expired. Go back and start the request again."},{status:400});
+  if(!body.clientRequestId||!/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(body.clientRequestId))return NextResponse.json({error:"We could not verify this booking request. Review the details and try again."},{status:400});
   const isBroadcast = body.dispatchMode === "BROADCAST";
   if (isBroadcast && ![5,10,20,40].includes(Number(body.dispatchMaxRadiusKm))) {
     return NextResponse.json({ error: "Choose a maximum search distance of 5, 10, 20 or 40 km" }, { status: 400 });

@@ -160,7 +160,10 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleWindow, setScheduleWindow] = useState("PANDIT_RECOMMENDS");
   const [policyAccepted, setPolicyAccepted] = useState(false);
-  const [clientRequestId, setClientRequestId] = useState(() => initialStart === "guided" ? crypto.randomUUID() : "");
+  // Every booking path needs an idempotency key. Previously only the guided
+  // path created one, so urgent and direct-Pandit requests were rejected as
+  // an "expired" confirmation even though the customer had just submitted it.
+  const [clientRequestId, setClientRequestId] = useState(() => crypto.randomUUID());
   const [outstandingBalance, setOutstandingBalance] = useState(0);
   const [coordinates, setCoordinates] = useState<BrowserCoordinates | null>(null);
   const [locationSource, setLocationSource] = useState<"GPS" | null>(null);
@@ -434,10 +437,12 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
     if(!coordinates||!requestType)return;
     setFallbackBusy(true);setFallbackError("");setMessage("");
     const scheduledVisit=Boolean(visitAt);
+    const bookingRequestId=clientRequestId||crypto.randomUUID();
+    if(!clientRequestId)setClientRequestId(bookingRequestId);
     const response=await fetch("/api/bookings",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({
       dispatchMode:"BROADCAST",dispatchMaxRadiusKm:maxRadiusKm,serviceId,address,postalCode:pinCode,notes,
       requestType:scheduledVisit?"SCHEDULED_PUJA":requestType,situation,preferredLanguage:language,materialsOption,
-      scheduledAt:visitAt,policyAccepted,policyVersion:cancellationPolicyVersion,clientRequestId,
+      scheduledAt:visitAt,policyAccepted,policyVersion:cancellationPolicyVersion,clientRequestId:bookingRequestId,
       latitude:coordinates.latitude,longitude:coordinates.longitude,
     })});
     const data=await readJson<{error?:string;dispatch?:{status:string;radiusKm:number;offeredCount:number}}>(response);
@@ -556,6 +561,8 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
     setNearbyRequestError("");
     setNearbyRequestErrorCode("");
     setMessage("");
+    const bookingRequestId = clientRequestId || crypto.randomUUID();
+    if (!clientRequestId) setClientRequestId(bookingRequestId);
     try {
       const response = await fetch("/api/bookings", {
         method: "POST",
@@ -566,7 +573,7 @@ export function CustomerPortal({ customerId, customerName, initialStart }: { cus
           panditId, serviceId, address, postalCode: pinCode, notes, requestType, situation, preferredLanguage: language,
           materialsOption, scheduledAt: requestType === "SCHEDULED_PUJA" ? new Date(scheduledAt).toISOString() : undefined,
           policyAccepted, policyVersion: cancellationPolicyVersion,
-          clientRequestId,
+          clientRequestId: bookingRequestId,
           latitude: requestLocation.latitude, longitude: requestLocation.longitude,
         }),
       });
