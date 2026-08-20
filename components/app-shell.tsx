@@ -74,7 +74,7 @@ export function AppShell({ role, userName, title, subtitle, children, showHeadin
   return (
     <div className={`portal portal-${role.toLowerCase()}`}>
       <header className="portal-header">
-        <Link href={`/${role.toLowerCase()}`} className="brand portal-brand" aria-label={`PanditConnect ${role} home`}><span className="brand-mark">ॐ</span><span><strong>Pandit</strong>Connect</span></Link>
+        <Link href={`/${role.toLowerCase()}`} className="brand portal-brand" aria-label={`PujaOne ${role} home`}><span className="brand-mark">ॐ</span><span><strong>Puja</strong>One</span></Link>
         <nav className="portal-tabs" aria-label={`${role} navigation`}>
           {navigation.map(({ label, href, icon: Icon }) => { const translated = label === "Home" ? copy.home : label === "Book Pandit" ? copy.bookPandit : label === "My bookings" ? copy.myBookings : label === "Requests" ? copy.requests : label; return <a className={activeHref === href ? "active" : ""} href={href} key={href} aria-current={activeHref === href ? "page" : undefined}><Icon size={17} /><span>{translated}</span></a>; })}
         </nav>

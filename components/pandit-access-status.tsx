@@ -19,13 +19,13 @@ export function PanditAccessStatus({
       role="Pandit"
       userName={userName}
       title={blocked ? "Account blocked" : "Account restricted"}
-      subtitle="Your account status is controlled by the PanditConnect operations team."
+      subtitle="Your account status is controlled by the PujaOne operations team."
     >
       <main className={`pandit-access-page ${blocked ? "is-blocked" : "is-restricted"}`}>
         <section className="pandit-access-card" aria-live="assertive">
           <span className="pandit-access-icon">{blocked ? <LockKeyhole /> : <ShieldAlert />}</span>
           <span className="eyebrow">Pandit account notice</span>
-          <h2>{blocked ? "You have been blocked by the Admin" : "You are restricted from PanditConnect"}</h2>
+          <h2>{blocked ? "You have been blocked by the Admin" : "You are restricted from PujaOne"}</h2>
           <p>{blocked
             ? "Your Pandit account and marketplace access are currently blocked. You cannot receive Puja or online guidance requests."
             : "You cannot receive Puja or online guidance requests while this restriction is active."}</p>

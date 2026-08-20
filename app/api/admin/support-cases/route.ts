@@ -46,7 +46,7 @@ export async function PATCH(request: Request) {
     forgetUserSessionCache(body.panditId);
     await recordAdminAction(request,auth.admin!.id,`PANDIT_${action}`,"PANDIT",body.panditId,{ accountStatus:status,reason });
     const title = action==="BLOCK" ? "You have been blocked by Admin" : action==="RESTRICT" ? "Your Pandit account is restricted" : "Your Pandit account has been unblocked";
-    const copy = action==="BLOCK" ? "You have been blocked from PanditConnect by an administrator. Open the app to contact support." : action==="RESTRICT" ? "You are restricted from PanditConnect and cannot receive requests. Open the app to contact support." : "You have been unblocked. Sign in and switch availability on when you are ready.";
+    const copy = action==="BLOCK" ? "You have been blocked from PujaOne by an administrator. Open the app to contact support." : action==="RESTRICT" ? "You are restricted from PujaOne and cannot receive requests. Open the app to contact support." : "You have been unblocked. Sign in and switch availability on when you are ready.";
     const eventType = action === "BLOCK" ? "PANDIT_BLOCKED" : action === "RESTRICT" ? "PANDIT_RESTRICTED" : "PANDIT_UNBLOCKED";
     await notifyUser(body.panditId, { title, body:copy, url:"/pandit", eventType });
     return NextResponse.json({ success: true, accountStatus: status });

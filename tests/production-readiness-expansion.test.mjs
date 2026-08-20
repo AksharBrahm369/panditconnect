@@ -98,5 +98,7 @@ test("CI, backups, staging, uptime and load testing are automated", async () => 
 test("customer retries receive a fresh provider idempotency key", async () => {
   const customer = await source("../components/customer-portal.tsx");
   assert.match(customer, /crypto\.randomUUID\(\)/);
-  assert.match(customer, /setPaymentBusy\(null\);window\.setTimeout/);
+  assert.match(customer, /\/api\/payments\/verify/);
+  assert.match(customer, /Payment received\. Bank confirmation is pending/);
+  assert.match(customer, /window\.setTimeout\(\(\)=>void refreshBookings\(\),2500\)/);
 });

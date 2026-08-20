@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { ArrowLeft, BadgeCheck, Banknote, Clock3, CreditCard, MessageCircle, Send, Smartphone, Star, Wifi } from "lucide-react";
+import { ArrowLeft, BadgeCheck, Clock3, CreditCard, MessageCircle, Send, Smartphone, Star, Wifi } from "lucide-react";
 import { readJson } from "@/lib/http";
+import { ensureRazorpayCheckout, type RazorpayCheckoutSuccess } from "@/lib/razorpay-client";
 import { PanditAvatar } from "./pandit-avatar";
 
 type ConsultationPandit = {
@@ -34,6 +35,7 @@ export function ConsultationPanel({ role, onBack, onUrgentItemsChange }: { role:
   const [now, setNow] = useState(0);
   const [otherTyping, setOtherTyping] = useState<{ typing: boolean; name?: string | null; role?: string }>({ typing: false });
   const [checkoutPandit, setCheckoutPandit] = useState<ConsultationPandit | null>(null);
+  const [paymentsEnabled, setPaymentsEnabled] = useState(false);
   const lastTypingSentAt = useRef(0);
   const messageListRef = useRef<HTMLDivElement | null>(null);
   const previousChatIdRef = useRef<string | null>(null);
@@ -45,6 +47,7 @@ export function ConsultationPanel({ role, onBack, onUrgentItemsChange }: { role:
     const data = await readJson<{ userId?: string; consultations?: Consultation[]; paymentsEnabled?: boolean }>(response);
     if (response.ok) {
       setUserId(data.userId ?? "");
+      setPaymentsEnabled(Boolean(data.paymentsEnabled));
       setConsultations(data.consultations ?? []);
       setSelected((current) => current ? (data.consultations ?? []).find((item) => item.id === current.id) ?? current : current);
     }
@@ -109,29 +112,51 @@ export function ConsultationPanel({ role, onBack, onUrgentItemsChange }: { role:
     await loadMessages(consultation.id);
   }
 
-  async function startChat(pandit: ConsultationPandit, paymentMethod: "CASH") {
+  async function startPaidChat(pandit: ConsultationPandit, preferredMethod: "UPI" | "CARD") {
     setBusy(true); setError("");
-    const response = await fetch("/api/consultations", {
+    const response = await fetch("/api/payments/orders", {
       method: "POST",
       headers: { "content-type": "application/json" },
       body: JSON.stringify({
+        purpose: "CONSULTATION",
         panditId: pandit.id,
         topic: topic.trim() || "General Puja and religious guidance",
         blocks,
-        paymentMethod,
+        idempotencyKey: `CONSULTATION:${pandit.id}:${crypto.randomUUID()}`,
       }),
     });
-    const data = await readJson<{ consultation?: Consultation; error?: string }>(response);
-    if (!response.ok || !data.consultation) setError(data.error ?? "Unable to start the consultation.");
-    else {
-      const opened = { ...data.consultation, participant_name: pandit.name };
-      setSelected(opened);
-      setTopic("");
-      setCheckoutPandit(null);
-      await loadMessages(opened.id);
-      await loadConsultations();
-    }
-    setBusy(false);
+    const data = await readJson<{ error?: string; transactionId?: string; consultationId?: string; orderId?: string; amount?: number; keyId?: string; checkoutName?: string; prefill?: { name?: string; email?: string; contact?: string } }>(response);
+    if (!response.ok || !data.transactionId || !data.orderId || !data.keyId) { setError(data.error ?? "Unable to start secure payment."); setBusy(false); return; }
+    try { await ensureRazorpayCheckout(); } catch (loadError) { setError(loadError instanceof Error ? loadError.message : "Secure checkout could not load."); setBusy(false); return; }
+    if (!window.Razorpay) { setError("Secure checkout is unavailable. Please retry."); setBusy(false); return; }
+    const checkout = new window.Razorpay({
+      key: data.keyId,
+      amount: (data.amount ?? 0) * 100,
+      currency: "INR",
+      name: data.checkoutName ?? "PujaOne",
+      description: `${blocks * 5}-minute private Pandit guidance`,
+      order_id: data.orderId,
+      prefill: data.prefill,
+      method: { upi: preferredMethod === "UPI", card: preferredMethod === "CARD", netbanking: false, wallet: false },
+      handler: async (result: RazorpayCheckoutSuccess) => {
+        setError("Verifying your payment securely…");
+        const verifiedResponse = await fetch("/api/payments/verify", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ transactionId: data.transactionId, ...result }) });
+        const verified = await readJson<{ success?: boolean; status?: string; consultation?: Consultation; error?: string }>(verifiedResponse);
+        if (verifiedResponse.ok && verified.success && verified.consultation) {
+          const opened = { ...verified.consultation, participant_name: pandit.name };
+          setSelected(opened); setTopic(""); setCheckoutPandit(null); setError("");
+          await loadMessages(opened.id); await loadConsultations();
+        } else if (verifiedResponse.ok && verified.status === "PENDING") {
+          setError("Payment received. Bank confirmation is pending; the chat will appear automatically once confirmed.");
+          window.setTimeout(() => void loadConsultations(), 2500);
+        } else setError(verified.error ?? "Payment could not be verified. If money was deducted, it will be reconciled automatically.");
+        setBusy(false);
+      },
+      modal: { ondismiss: () => setBusy(false) },
+      theme: { color: "#c54824" },
+    });
+    checkout.on("payment.failed", () => { setError("Payment failed or was cancelled. The chat was not started."); setBusy(false); });
+    checkout.open();
   }
 
   async function sendMessage() {
@@ -245,13 +270,12 @@ export function ConsultationPanel({ role, onBack, onUrgentItemsChange }: { role:
       {error && <div className="alert error consultation-error">{error}</div>}
       {checkoutPandit && <div className="consultation-payment" role="dialog" aria-label="Choose chat payment method">
         <div><button className="icon-button" onClick={() => setCheckoutPandit(null)} aria-label="Back to Pandit list"><ArrowLeft size={17} /></button><span><small>Payment before chat</small><strong>{checkoutPandit.name} · {blocks * 5} minutes</strong></span><b>₹{checkoutPandit.consultation_rate_5min * blocks}</b></div>
-        <p>Select how you want to pay before starting the timed consultation.</p>
+        <p>Complete secure payment to unlock this timed consultation.</p>
         <div className="payment-method-grid">
-          <button disabled={busy} onClick={() => startChat(checkoutPandit, "CASH")}><Banknote /><span><strong>Cash</strong><small>Confirm cash payment</small></span></button>
-          <button disabled title="Available after secure payment setup"><Smartphone /><span><strong>UPI</strong><small>Coming soon</small></span></button>
-          <button disabled title="Available after secure payment setup"><CreditCard /><span><strong>Card</strong><small>Coming soon</small></span></button>
+          <button disabled={busy || !paymentsEnabled} onClick={() => void startPaidChat(checkoutPandit, "UPI")}><Smartphone /><span><strong>UPI</strong><small>{paymentsEnabled ? "Pay using any UPI app" : "Secure setup pending"}</small></span></button>
+          <button disabled={busy || !paymentsEnabled} onClick={() => void startPaidChat(checkoutPandit, "CARD")}><CreditCard /><span><strong>Card</strong><small>{paymentsEnabled ? "Debit or credit card" : "Secure setup pending"}</small></span></button>
         </div>
-        <small>The chat starts only after you confirm a currently available payment method.</small>
+        <small>The chat and timer start only after Razorpay confirms the payment.</small>
       </div>}
       <div className="consultation-list">
         {pandits.length ? pandits.map((pandit) => <article className="consultation-pandit" key={pandit.id}>

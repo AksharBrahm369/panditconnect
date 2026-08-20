@@ -2,7 +2,6 @@ import { NextResponse } from "next/server";
 import { currentUser } from "@/lib/auth";
 import { sql } from "@/lib/db";
 import { paymentsEnabled } from "@/lib/payments";
-import { notifyUser } from "@/lib/push-notifications";
 import { enforceRateLimit, rateLimitResponse } from "@/lib/rate-limit";
 
 export const dynamic = "force-dynamic";
@@ -20,7 +19,7 @@ export async function GET() {
      FROM pim_v2.consultations c
      JOIN pim_v2.users cu ON cu.id=c.customer_id
      JOIN pim_v2.users pu ON pu.id=c.pandit_id
-     WHERE c.${column}=$1
+     WHERE c.${column}=$1 AND c.status<>'AWAITING_PAYMENT'
      ORDER BY c.started_at DESC LIMIT 20`,
     [user.id, user.role],
   );
@@ -36,38 +35,6 @@ export async function POST(request: Request) {
     return NextResponse.json({ error: "Customer login required" }, { status: 401 });
   }
   try { await enforceRateLimit(request,"consultation:create",user.id,10,3_600,900); } catch(error) { return rateLimitResponse(error)!; }
-  const body = await request.json() as { panditId?: string; topic?: string; blocks?: number; paymentMethod?: string };
-  const topic = body.topic?.trim().slice(0, 500) || "General Puja and religious guidance";
-  const blocks = Math.min(6, Math.max(1, Math.floor(Number(body.blocks) || 1)));
-  if (!body.panditId) {
-    return NextResponse.json({ error: "Choose an available Pandit to begin." }, { status: 400 });
-  }
-  const paymentMethod = body.paymentMethod?.trim().toUpperCase() ?? "";
-  if (["UPI", "CARD"].includes(paymentMethod)) {
-    return NextResponse.json({ error: `${paymentMethod} payment is not available right now. Please choose another method.` }, { status: 409 });
-  }
-  if (paymentMethod !== "CASH") {
-    return NextResponse.json({ error: "Choose a payment method before starting the chat." }, { status: 400 });
-  }
-  const pandit = await sql<{ consultation_rate_5min: number }>(
-    `SELECT p.consultation_rate_5min FROM pim_v2.pandit_profiles p
-     JOIN pim_v2.users u ON u.id=p.user_id AND u.account_status='ACTIVE'
-     WHERE p.user_id=$1 AND p.user_id<>$2 AND p.verification_status='APPROVED' AND p.consultation_online=true`,
-    [body.panditId, user.id],
-  );
-  const available = pandit.rows[0];
-  if (!available) return NextResponse.json({ error: "This Pandit is no longer available for chat." }, { status: 409 });
-  const id = crypto.randomUUID();
-  const billingEnabled = paymentsEnabled();
-  const amount = available.consultation_rate_5min * blocks;
-  const paymentStatus = "CASH_SELECTED";
-  const result = await sql(
-    `INSERT INTO pim_v2.consultations(
-       id,customer_id,pandit_id,topic,rate_5min,blocks,amount,payment_status,payment_method,ends_at
-     ) VALUES($1,$2,$3,$4,$5,$6::int,$7,$8,$9,now()+($6::int*interval '5 minutes'))
-     RETURNING id,topic,status,rate_5min,blocks,amount,payment_status,payment_method,started_at,ends_at`,
-    [id, user.id, body.panditId, topic, available.consultation_rate_5min, blocks, amount, paymentStatus, paymentMethod],
-  );
-  await notifyUser(body.panditId, { title: "New live guidance request", body: `A customer started a ${blocks * 5}-minute guidance chat.`, url: "/pandit#online-guidance", eventType: "CONSULTATION_STARTED" });
-  return NextResponse.json({ consultation: result.rows[0], paymentsEnabled: billingEnabled });
+  await request.text().catch(() => "");
+  return NextResponse.json({ error: "Start a paid consultation through secure Razorpay checkout." }, { status: 409 });
 }

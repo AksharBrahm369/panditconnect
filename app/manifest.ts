@@ -3,8 +3,8 @@ import type { MetadataRoute } from "next";
 export default function manifest(): MetadataRoute.Manifest {
   return {
     id: "/",
-    name: "PanditConnect",
-    short_name: "PanditConnect",
+    name: "PujaOne",
+    short_name: "PujaOne",
     description: "Urgent Puja help from verified nearby Pandits.",
     start_url: "/",
     scope: "/",

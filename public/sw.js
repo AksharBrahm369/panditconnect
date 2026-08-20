@@ -2,7 +2,7 @@ self.addEventListener("install", () => self.skipWaiting());
 self.addEventListener("activate", (event) => event.waitUntil(self.clients.claim()));
 
 self.addEventListener("push", (event) => {
-  let data = { title: "PanditConnect", body: "You have a new update.", url: "/" };
+  let data = { title: "PujaOne", body: "You have a new update.", url: "/" };
   try { data = { ...data, ...event.data.json() }; } catch {}
   const persistentEvents = ["BOOKING_REQUESTED", "SCHEDULED_PUJA_GUIDANCE_REQUIRED", "SCHEDULED_PUJA_REMINDER", "BOOKING_SCHEDULE_UPDATED", "BOOKING_CANCELLED", "CONSULTATION_STARTED", "PANDIT_APPROVED", "PANDIT_REJECTED", "PANDIT_CHANGES_REQUESTED", "PANDIT_BLOCKED", "PANDIT_RESTRICTED", "PANDIT_UNBLOCKED"];
   const isLoudAlert = ["BOOKING_REQUESTED", "CONSULTATION_STARTED", "SCHEDULED_PUJA_GUIDANCE_REQUIRED", "SCHEDULED_PUJA_REMINDER", "BOOKING_SCHEDULE_UPDATED", "PANDIT_APPROVED", "PANDIT_REJECTED", "PANDIT_CHANGES_REQUESTED"].includes(data.eventType);

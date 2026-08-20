@@ -1,122 +1,161 @@
 import Link from "next/link";
-import { DM_Sans, Lora } from "next/font/google";
 import {
-  ArrowRight, BadgeCheck, CalendarDays, CalendarX2, Check,
-  ChevronRight, Clock3, MapPin, MessageCircle, ShieldCheck,
+  ArrowRight,
+  BadgeCheck,
+  CalendarCheck2,
+  CalendarDays,
+  CalendarX2,
+  CheckCircle2,
+  Clock3,
+  MapPin,
+  MessageCircle,
+  ShieldCheck,
+  Sparkles,
 } from "lucide-react";
 
-const homeSans = DM_Sans({
-  subsets: ["latin"],
-  variable: "--font-home-sans",
-  weight: ["400", "500", "600", "700"],
-});
-
-const homeSerif = Lora({
-  subsets: ["latin"],
-  variable: "--font-home-serif",
-  weight: ["500", "600", "700"],
-});
+const entryPoints = [
+  {
+    icon: CalendarDays,
+    number: "01",
+    label: "At home",
+    title: "Book a Pandit",
+    detail: "Tell us the occasion. We’ll guide the Puja, timing and next steps.",
+    action: "Start a booking",
+    href: "/login?role=customer&next=%2Fcustomer%3Fstart%3Dguided",
+    tone: "saffron",
+  },
+  {
+    icon: CalendarX2,
+    number: "02",
+    label: "Urgent help",
+    title: "Find a replacement",
+    detail: "Your Pandit cancelled? Search nearby without repeating everything.",
+    action: "Search nearby",
+    href: "/login?role=customer&next=%2Fcustomer%3Fstart%3Dsos",
+    tone: "rose",
+  },
+  {
+    icon: MessageCircle,
+    number: "03",
+    label: "Online guidance",
+    title: "Ask a Pandit",
+    detail: "Chat privately about samagri, timing or religious guidance.",
+    action: "See online Pandits",
+    href: "/login?role=customer&next=%2Fcustomer%3Fstart%3Donline",
+    tone: "green",
+  },
+] as const;
 
 export default function Home() {
   return (
-    <main className={`${homeSans.variable} ${homeSerif.variable} public-home`}>
+    <main className="public-home public-home-v3">
+      <div className="home-notice"><span>ॐ</span> Puja assistance for today or a future date <Link href="/login?role=customer">Get help <ArrowRight /></Link></div>
+
       <header className="home-header">
         <div className="home-header-inner">
-          <Link href="/" className="home-brand" aria-label="PanditConnect home">
-            <span className="home-brand-mark">ॐ</span>
-            <span className="home-brand-copy"><strong>PanditConnect</strong><small>Trusted Puja assistance</small></span>
+          <Link href="/" className="home-brand" aria-label="PujaOne home">
+            <span className="home-brand-mark" aria-hidden="true">ॐ</span>
+            <span className="home-brand-copy"><strong>PujaOne</strong><small>Puja help, thoughtfully arranged</small></span>
           </Link>
           <nav className="home-nav" aria-label="Homepage navigation">
             <a href="#services">Services</a>
             <a href="#how-it-works">How it works</a>
-            <a href="#trust">Safety</a>
+            <a href="#trust">Trust & safety</a>
             <Link href="/login?role=pandit">For Pandits</Link>
           </nav>
-          <Link href="/login?role=customer" className="home-header-cta">Find a Pandit <ArrowRight /></Link>
+          <Link href="/login?role=customer" className="home-header-cta">Sign in <ArrowRight /></Link>
         </div>
       </header>
 
       <section className="home-hero" aria-labelledby="home-title">
         <div className="home-hero-copy">
-          <div className="home-eyebrow"><BadgeCheck /> Verified nearby Pandits for home Puja</div>
-          <h1 id="home-title">A trusted Pandit, when your family needs one.</h1>
-          <p className="home-hero-lead">Tell us what happened in your own words. We help you choose the right Puja and connect you with a suitable nearby Pandit.</p>
+          <span className="home-eyebrow"><Sparkles /> Simple help for every family</span>
+          <h1 id="home-title">A simpler way to arrange your Puja.</h1>
+          <p className="home-hero-lead">Share the occasion in your own words. PujaOne helps you understand what you need and find a verified Pandit nearby.</p>
           <div className="home-hero-actions">
-            <Link href="/login?role=customer" className="home-primary-button">Find a nearby Pandit <ArrowRight /></Link>
-            <a href="#how-it-works" className="home-text-link">See how booking works <ChevronRight /></a>
+            <Link href="/login?role=customer&next=%2Fcustomer%3Fstart%3Dguided" className="home-primary-button">Tell us what you need <ArrowRight /></Link>
+            <a href="#how-it-works" className="home-secondary-link">How PujaOne works</a>
           </div>
-          <ul className="home-assurances" aria-label="Booking assurances">
-            <li><Check /> Admin-verified profiles</li>
-            <li><Check /> Exact address stays private</li>
-            <li><Check /> Track every booking update</li>
-          </ul>
+          <div className="home-hero-assurance">
+            <BadgeCheck /><span><strong>Reviewed Pandit profiles</strong><small>See language, experience, distance and price before requesting.</small></span>
+          </div>
         </div>
 
-        <div className="home-hero-media">
-          {/* Public assets bypass the local image optimiser used by Vinext. */}
+        <figure className="home-hero-art">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src="/puja-hero.png" alt="A family speaking with a Pandit during a home Puja" width="1024" height="1024" />
-          <div className="home-photo-status"><span><i /> Pandits available nearby</span><small>Location is checked only after you allow it</small></div>
-          <div className="home-photo-trust"><ShieldCheck /><span><strong>Private by design</strong><small>Your contact details are never public</small></span></div>
-        </div>
+          <img src="/pujaone-ritual-art-v2.webp" alt="A hand-painted Puja thali, diya, flowers and kalash prepared in an Indian home" width="1400" height="933" />
+          <figcaption><span><i /> Nearby matching</span><small>Location is used only after you allow it</small></figcaption>
+        </figure>
       </section>
 
       <section className="home-service-section" id="services" aria-labelledby="service-title">
         <div className="home-section-heading">
-          <span>Start here</span>
-          <h2 id="service-title">What would you like help with?</h2>
-          <p>You do not need to know religious terminology. Choose the situation that feels closest.</p>
+          <span>Start with one choice</span>
+          <h2 id="service-title">What can we help you with?</h2>
+          <p>No long form at the beginning. Choose what feels closest to your situation.</p>
         </div>
         <div className="home-service-grid">
-          <Link href="/login?role=customer&next=%2Fcustomer%3Fstart%3Dguided" className="home-service-card">
-            <span className="home-service-icon"><CalendarDays /></span>
-            <div><small>Most requested</small><strong>Book a Puja at home</strong><p>For today or a future date. We will help you choose the appropriate Puja.</p></div>
-            <span className="home-card-action">Start booking <ArrowRight /></span>
-          </Link>
-          <Link href="/login?role=customer&next=%2Fcustomer%3Fstart%3Dsos" className="home-service-card">
-            <span className="home-service-icon"><CalendarX2 /></span>
-            <div><small>Urgent help</small><strong>My Pandit cancelled</strong><p>Find another approved Pandit near your location without starting over.</p></div>
-            <span className="home-card-action">Find a replacement <ArrowRight /></span>
-          </Link>
-          <Link href="/login?role=customer&next=%2Fcustomer%3Fstart%3Donline" className="home-service-card">
-            <span className="home-service-icon"><MessageCircle /></span>
-            <div><small>Private guidance</small><strong>Ask a Pandit online</strong><p>Chat privately when you need religious guidance rather than a home visit.</p></div>
-            <span className="home-card-action">Ask online <ArrowRight /></span>
-          </Link>
+          {entryPoints.map(({ icon: Icon, number, label, title, detail, action, href, tone }) => (
+            <Link href={href} className={`home-service-card home-service-${tone}`} key={href}>
+              <span className="home-service-number">{number}</span>
+              <span className="home-service-icon"><Icon /></span>
+              <div><small>{label}</small><strong>{title}</strong><p>{detail}</p></div>
+              <span className="home-card-action">{action} <ArrowRight /></span>
+            </Link>
+          ))}
         </div>
+      </section>
+
+      <section className="home-proof" aria-label="PujaOne assurances">
+        <div><BadgeCheck /><span><strong>Verified profiles</strong><small>Identity and experience reviewed</small></span></div>
+        <div><MapPin /><span><strong>Real nearby matching</strong><small>Only eligible Pandits are shown</small></span></div>
+        <div><ShieldCheck /><span><strong>Private by default</strong><small>Contact details stay protected</small></span></div>
       </section>
 
       <section className="home-process" id="how-it-works" aria-labelledby="process-title">
         <div className="home-process-intro">
-          <span>Simple from the first step</span>
-          <h2 id="process-title">Book with clarity, not guesswork.</h2>
-          <p>You review the Puja, language, price, distance and Pandit profile before sending any request.</p>
-          <Link href="/login?role=customer" className="home-process-link">Get Puja help <ArrowRight /></Link>
+          <span>From need to confirmed visit</span>
+          <h2 id="process-title">One clear next step, every time.</h2>
+          <p>The screen changes with your request. You only see the action that matters now.</p>
+          <Link href="/login?role=customer" className="home-process-link">Arrange a Puja <ArrowRight /></Link>
         </div>
-        <ol className="home-process-list">
-          <li><b>01</b><span><strong>Describe what you need</strong><small>Type or speak naturally. The app suggests the most suitable ritual.</small></span></li>
-          <li><b>02</b><span><strong>Compare nearby Pandits</strong><small>See experience, language, ratings, price and travel time.</small></span></li>
-          <li><b>03</b><span><strong>Send and track the request</strong><small>Follow acceptance, travel and arrival from one clear screen.</small></span></li>
-        </ol>
+
+        <div className="home-event-demo" aria-label="Example booking journey">
+          <div className="home-event-top"><span>Ganesh Puja</span><b>Today</b></div>
+          <div className="home-event-status"><CheckCircle2 /><span><small>Booking confirmed</small><strong>Your Pandit has accepted</strong></span></div>
+          <ol>
+            <li className="done"><i>1</i><span><strong>Tell us the occasion</strong><small>Simple words are enough</small></span></li>
+            <li className="done"><i>2</i><span><strong>Choose a nearby Pandit</strong><small>Compare what matters</small></span></li>
+            <li className="active"><i>3</i><span><strong>Follow live updates</strong><small>Know what happens next</small></span></li>
+          </ol>
+          <div className="home-event-next"><Clock3 /><span><small>Next update</small><strong>We’ll notify you when the Pandit starts travelling.</strong></span></div>
+        </div>
       </section>
 
       <section className="home-trust" id="trust" aria-labelledby="trust-title">
         <div className="home-trust-copy">
-          <span>Built around family trust</span>
-          <h2 id="trust-title">You stay in control from request to arrival.</h2>
+          <span>Made for real families</span>
+          <h2 id="trust-title">Religious help without the usual uncertainty.</h2>
+          <p>Clear choices, respectful language and no unnecessary information on screen.</p>
         </div>
         <div className="home-trust-points">
-          <article><BadgeCheck /><span><strong>Profiles reviewed</strong><small>Identity and experience are checked before approval.</small></span></article>
-          <article><MapPin /><span><strong>Nearby matching</strong><small>Location is used only to find Pandits serving your area.</small></span></article>
-          <article><Clock3 /><span><strong>Live booking status</strong><small>Know whether your request is pending, accepted or on the way.</small></span></article>
+          <article><CalendarCheck2 /><span><strong>Today or later</strong><small>Book urgently or choose a future date.</small></span></article>
+          <article><MessageCircle /><span><strong>Guidance stays connected</strong><small>Ask the accepted Pandit about timing and preparation.</small></span></article>
+          <article><ShieldCheck /><span><strong>You remain in control</strong><small>Review everything before a request is sent.</small></span></article>
         </div>
+      </section>
+
+      <section className="home-final-cta">
+        <span aria-hidden="true">ॐ</span>
+        <div><small>Not sure which Puja you need?</small><h2>Start with the occasion. We’ll guide the rest.</h2></div>
+        <Link href="/login?role=customer&next=%2Fcustomer%3Fstart%3Dguided">Get Puja help <ArrowRight /></Link>
       </section>
 
       <footer className="home-footer">
         <div className="home-footer-inner">
-          <div className="home-footer-brand"><span>ॐ</span><div><strong>PanditConnect</strong><small>Trusted religious help, nearby.</small></div></div>
+          <div className="home-footer-brand"><span>ॐ</span><div><strong>PujaOne</strong><small>Simple, respectful Puja assistance.</small></div></div>
           <nav aria-label="Legal and partner links"><Link href="/privacy">Privacy</Link><Link href="/terms">Terms</Link><Link href="/cancellation-policy">Cancellation policy</Link><Link href="/login?role=pandit">Join as a Pandit</Link></nav>
-          <p>Designed for simple, private and respectful Puja assistance.</p>
+          <p>Made for families across India.</p>
         </div>
       </footer>
     </main>

@@ -26,7 +26,7 @@ test("Pandit block, restriction and restoration are protected admin actions", as
   assert.match(portal, />Restrict</);
   assert.match(auth, /account_status !== "ACTIVE"/);
   assert.match(page, /currentSessionUser/);
-  assert.match(statusScreen, /You are restricted from PanditConnect/);
+  assert.match(statusScreen, /You are restricted from PujaOne/);
   assert.match(statusScreen, /You have been blocked by the Admin/);
   assert.match(statusScreen, /SupportCenter/);
   assert.match(push, /MANDATORY_ACCOUNT_EVENTS/);
@@ -46,7 +46,7 @@ test("blocked Pandits are excluded from every customer matching path", async () 
   const files = [
     "app/api/pandits/nearby/route.ts",
     "app/api/consultation-pandits/route.ts",
-    "app/api/consultations/route.ts",
+    "app/api/payments/orders/route.ts",
     "app/api/bookings/route.ts",
     "app/api/bookings/[id]/rematch/route.ts",
     "app/api/pandits/[id]/photo/route.ts",

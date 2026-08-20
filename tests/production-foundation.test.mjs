@@ -122,22 +122,29 @@ test("sessions persist independently from mutable account roles", async () => {
   assert.match(adminVerify, /interval '30 days'/);
 });
 
-test("online consultations require a payment choice before chat creation", async () => {
+test("online consultations require captured Razorpay payment before chat activation", async () => {
   const payments = await readFile(new URL("../lib/payments.ts", import.meta.url), "utf8");
   const route = await readFile(new URL("../app/api/consultations/route.ts", import.meta.url), "utf8");
+  const orders = await readFile(new URL("../app/api/payments/orders/route.ts", import.meta.url), "utf8");
+  const verification = await readFile(new URL("../app/api/payments/verify/route.ts", import.meta.url), "utf8");
+  const processing = await readFile(new URL("../lib/payment-processing.ts", import.meta.url), "utf8");
   const panel = await readFile(new URL("../components/consultation-panel.tsx", import.meta.url), "utf8");
-  const migration = await readFile(new URL("../db/migrations/0018_consultation_payment_method.sql", import.meta.url), "utf8");
+  const migration = await readFile(new URL("../db/migrations/0034_secure_razorpay_checkout.sql", import.meta.url), "utf8");
   assert.match(payments, /provider !== "development"/);
   assert.match(payments, /PAYMENT_PROVIDER_KEY_ID/);
   assert.match(payments, /PAYMENT_PROVIDER_KEY_SECRET/);
-  assert.match(route, /paymentMethod !== "CASH"/);
-  assert.match(route, /const paymentStatus = "CASH_SELECTED"/);
-  assert.match(route, /available\.consultation_rate_5min \* blocks/);
+  assert.match(route, /secure Razorpay checkout/);
+  assert.match(orders, /available\.consultation_rate_5min \* blocks/);
+  assert.match(orders, /'AWAITING_PAYMENT'/);
+  assert.match(verification, /verifyCheckoutSignature/);
+  assert.match(verification, /fetchProviderPayment/);
+  assert.match(verification, /captureProviderPayment/);
+  assert.match(processing, /status='ACTIVE',payment_status='CAPTURED'/);
+  assert.match(await readFile(new URL("../app/api/payments/webhook/route.ts", import.meta.url), "utf8"), /previous\.rows\[0\]\.processed_at/);
   assert.match(panel, /Payment before chat/);
-  assert.match(panel, />Cash</);
   assert.match(panel, />UPI</);
   assert.match(panel, />Card</);
-  assert.match(migration, /payment_method/);
+  assert.match(migration, /AWAITING_PAYMENT/);
 });
 
 test("security hardening protects arrival codes, uploads and state-changing requests", async () => {
@@ -289,8 +296,11 @@ test("rematching and consultation selection stay nearby, notify Pandits and prev
   assert.match(rematch, /<= least\(COALESCE\(p\.service_radius_km,25\),25\)/);
   assert.match(rematch, /notifyUser\(match\.id/);
   assert.match(booking, /u\.id<>\$5/);
-  assert.match(consultation, /user_id<>\$2/);
-  assert.match(consultation, /CONSULTATION_STARTED/);
+  const orders = await readFile(new URL("../app/api/payments/orders/route.ts", import.meta.url), "utf8");
+  const processing = await readFile(new URL("../lib/payment-processing.ts", import.meta.url), "utf8");
+  assert.match(orders, /p\.user_id<>\$2/);
+  assert.match(orders, /account_status='ACTIVE'/);
+  assert.match(processing, /CONSULTATION_STARTED/);
 });
 
 test("customer and Pandit profile editing is role scoped and protects verified fields", async () => {

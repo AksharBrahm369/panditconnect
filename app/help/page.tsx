@@ -27,7 +27,7 @@ export default async function HelpPage() {
     <main className="help-page">
       <header className="help-header">
         <Link href={isCustomer ? "/customer" : "/"} className="help-back"><ArrowLeft /> Back</Link>
-        <Link href="/" className="help-brand"><span>ॐ</span><strong>PanditConnect</strong></Link>
+        <Link href="/" className="help-brand"><span>ॐ</span><strong>PujaOne</strong></Link>
       </header>
 
       <section className="help-intro">

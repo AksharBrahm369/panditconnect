@@ -7,7 +7,7 @@ test("customer home keeps booking, replacement and online guidance visibly disti
   const homepage = await readFile(new URL("../app/page.tsx", import.meta.url), "utf8");
 
   assert.match(portal, /My Pandit cancelled/);
-  assert.match(homepage, /<strong>My Pandit cancelled<\/strong>/);
+  assert.match(homepage, /title: "Find a replacement"/);
   assert.doesNotMatch(portal, /<strong>Choose a specific Puja<\/strong>/);
   assert.doesNotMatch(homepage, /<strong>Choose a specific Puja<\/strong>/);
   assert.match(portal, /Help me choose and book/);
@@ -46,26 +46,31 @@ test("beginner help uses distinct guided, walkthrough and app-support paths", as
   assert.match(helpPage, /Talk to app support/);
 });
 
-test("public homepage uses the professional human-centred service design", async () => {
-  const [homepage, layout, styles] = await Promise.all([
+test("public homepage uses the expressive task-first PujaOne service design", async () => {
+  const [homepage, layout, styles, signatureStyles] = await Promise.all([
     readFile(new URL("../app/page.tsx", import.meta.url), "utf8"),
     readFile(new URL("../app/layout.tsx", import.meta.url), "utf8"),
-    readFile(new URL("../app/public-home.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/pujaone-v2.css", import.meta.url), "utf8"),
+    readFile(new URL("../app/pujaone-signature.css", import.meta.url), "utf8"),
   ]);
 
-  assert.match(homepage, /DM_Sans, Lora/);
-  assert.match(homepage, /A trusted Pandit, when your family needs one\./);
-  assert.match(homepage, /Book a Puja at home/);
-  assert.match(homepage, /My Pandit cancelled/);
-  assert.match(homepage, /Ask a Pandit online/);
+  assert.match(homepage, /A simpler way to arrange your Puja\./);
+  assert.match(homepage, /title: "Book a Pandit"/);
+  assert.match(homepage, /title: "Find a replacement"/);
+  assert.match(homepage, /title: "Ask a Pandit"/);
   assert.match(homepage, /next=%2Fcustomer%3Fstart%3Dguided/);
   assert.match(homepage, /next=%2Fcustomer%3Fstart%3Dsos/);
   assert.match(homepage, /next=%2Fcustomer%3Fstart%3Donline/);
-  assert.match(homepage, /Book with clarity, not guesswork\./);
+  assert.match(homepage, /One clear next step, every time/);
+  assert.match(homepage, /pujaone-ritual-art-v2\.webp/);
   assert.match(layout, /import "\.\/public-home\.css"/);
-  assert.match(styles, /--font-home-sans/);
-  assert.match(styles, /--font-home-serif/);
-  assert.match(styles, /@media\(max-width:620px\)/);
+  assert.match(layout, /import "\.\/pujaone-v2\.css"/);
+  assert.match(layout, /import "\.\/pujaone-signature\.css"/);
+  assert.match(styles, /--po-saffron/);
+  assert.match(styles, /home-start-panel/);
+  assert.match(styles, /@media\(max-width:760px\)/);
+  assert.match(signatureStyles, /public-home-v3/);
+  assert.match(signatureStyles, /home-event-demo/);
 });
 
 test("public service choices retain their destination through sign-in", async () => {

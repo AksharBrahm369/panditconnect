@@ -170,7 +170,7 @@ export function NotificationCenter({ role }: { role: PortalRole }) {
     setConnecting(true);
     try {
       if (!("serviceWorker" in navigator) || !("PushManager" in window) || !("Notification" in window)) {
-        setMessage("This browser does not support background notifications. On iPhone, add PanditConnect to the Home Screen first.");
+        setMessage("This browser does not support background notifications. On iPhone, add PujaOne to the Home Screen first.");
         return;
       }
       const publicKey = await resolvePublicKey();

@@ -57,6 +57,13 @@ export function commercialLaunchIssues(){
   const payment=process.env.PAYMENT_PROVIDER?.trim().toLowerCase();
   if(!payment||payment==="development")issues.push("A production payment provider is required before online collection");
   if(payment&&payment!=="development"&&(!process.env.PAYMENT_PROVIDER_KEY_ID?.trim()||!process.env.PAYMENT_PROVIDER_KEY_SECRET?.trim()||!process.env.PAYMENT_PROVIDER_WEBHOOK_SECRET?.trim()))issues.push("Payment provider keys and webhook secret are incomplete");
+  if(payment==="razorpay"){
+    const keyId=process.env.PAYMENT_PROVIDER_KEY_ID?.trim()??"";
+    if(keyId&&!/^rzp_(test|live)_[A-Za-z0-9]+$/.test(keyId))issues.push("PAYMENT_PROVIDER_KEY_ID is not a valid Razorpay key id");
+    if((process.env.PAYMENT_PROVIDER_KEY_SECRET?.trim().length??0)<16)issues.push("PAYMENT_PROVIDER_KEY_SECRET is incomplete");
+    if((process.env.PAYMENT_PROVIDER_WEBHOOK_SECRET?.trim().length??0)<16)issues.push("PAYMENT_PROVIDER_WEBHOOK_SECRET must be a strong separate secret");
+    if(process.env.COMMERCIAL_LAUNCH?.trim().toLowerCase()==="true"&&keyId.startsWith("rzp_test_"))issues.push("Razorpay live keys are required for commercial launch");
+  }
   return issues;
 }
 

@@ -16,9 +16,9 @@ export default function ErrorPage({ error, reset }: { error: Error & { digest?: 
     });
   }, [error]);
 
-  const subject = "Help needed with PanditConnect";
+  const subject = "Help needed with PujaOne";
   const reference = error.digest ? `\nError reference: ${error.digest}` : "";
-  const body = `Namaste Customer Care,\n\nSomething went wrong while I was using PanditConnect. Please help me continue.${reference}\n\nI will describe the issue here: `;
+  const body = `Namaste Customer Care,\n\nSomething went wrong while I was using PujaOne. Please help me continue.${reference}\n\nI will describe the issue here: `;
   const gmailUrl = `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(customerCareEmail)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`;
 
   return <main className="fatal-error">

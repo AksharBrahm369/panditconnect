@@ -71,7 +71,7 @@ export function LoginForm({ initialRole, nextPath, googleError, googleEnabled }:
   return (
     <div className="auth-shell">
       <section className="auth-side">
-        <Link href="/" className="brand brand-light"><span className="brand-mark">ॐ</span><span>PanditConnect</span></Link>
+        <Link href="/" className="brand brand-light"><span className="brand-mark">ॐ</span><span>PujaOne</span></Link>
         <div><span className="eyebrow eyebrow-light">{role === "CUSTOMER" ? "Religious help, made simple" : "Professional Pandit network"}</span><h1>{role === "CUSTOMER" ? "The right guidance. A trusted Pandit. One simple flow." : "Receive genuine nearby Puja requests."}</h1><p>{role === "CUSTOMER" ? "You do not need to know the ritual name. Start with what happened and we guide every next step." : "Control your availability, accept suitable requests and protect your personal contact details."}</p>
           <div className="auth-benefits">
             <span><BadgeCheck /> Approved Pandit profiles</span>
