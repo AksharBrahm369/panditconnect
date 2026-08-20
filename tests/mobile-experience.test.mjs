@@ -26,6 +26,8 @@ test("the complete app has a final mobile-first layout authority", async () => {
   assert.match(css, /\.auth-side \{ display:none/);
   assert.match(css, /\.nearby-pandit-head \{ grid-template-columns/);
   assert.match(css, /\.payment-method-grid \{ grid-template-columns/);
+  assert.match(css, /\.public-home-v3 \.home-section-heading[\s\S]*grid-template-columns:minmax\(0,1fr\)/);
+  assert.match(css, /\.public-home-v3 \.home-service-card[\s\S]*grid-template-columns:46px minmax\(0,1fr\)/);
   assert.match(css, /\.table-wrap:not\(\.admin-bookings-table\)/);
   assert.match(css, /\.nearby-pandit-grid, \.samagri-grid/);
   assert.match(css, /\.consultation-chat, \.booking-chat-panel, \.private-booking-chat/);
